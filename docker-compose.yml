@@ -1,0 +1,75 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: musicians_arena
+      POSTGRES_USER: musicians_arena
+      POSTGRES_PASSWORD: musicians_arena
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: daphne -b 0.0.0.0 -p 8000 config.asgi:application
+    env_file:
+      - backend/.env.example
+    environment:
+      DJANGO_ENV: development
+      DJANGO_DEBUG: "True"
+      DJANGO_ALLOWED_HOSTS: 127.0.0.1,localhost
+      DJANGO_CSRF_TRUSTED_ORIGINS: http://127.0.0.1:8000,http://localhost:8000
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: musicians_arena
+      DB_USER: musicians_arena
+      DB_PASSWORD: musicians_arena
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      CHANNELS_USE_REDIS: "True"
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: celery -A config worker -l info
+    env_file:
+      - backend/.env.example
+    environment:
+      DJANGO_ENV: development
+      DJANGO_DEBUG: "True"
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: musicians_arena
+      DB_USER: musicians_arena
+      DB_PASSWORD: musicians_arena
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      CHANNELS_USE_REDIS: "True"
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+
+volumes:
+  postgres_data:

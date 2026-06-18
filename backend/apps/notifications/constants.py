@@ -1,0 +1,13 @@
+class NotificationType:
+    GIG_INTEREST_SUBMITTED = "gig_interest_submitted"
+    GIG_INTEREST_SHORTLISTED = "gig_interest_shortlisted"
+    GIG_INTEREST_INVITED = "gig_interest_invited"
+    GIG_INTEREST_DECLINED = "gig_interest_declined"
+    GIG_INTEREST_CONVERTED_TO_BOOKING = "gig_interest_converted_to_booking"
+    BOOKING_CREATED = "booking_created"
+    BOOKING_ACCEPTED = "booking_accepted"
+    BOOKING_COUNTERED = "booking_countered"
+    BOOKING_REJECTED = "booking_rejected"
+    BOOKING_CANCELLED = "booking_cancelled"
+    BOOKING_CONFIRMED = "booking_confirmed"
+    NEW_MESSAGE = "new_message"
