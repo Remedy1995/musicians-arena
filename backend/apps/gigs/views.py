@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from apps.accounts.models import User
 from apps.bookings.serializers import BookingSerializer
+from apps.common.throttling import ScopedWriteThrottleMixin
 from apps.gigs.filters import GigFilter
 from apps.gigs.models import Gig, GigInterest
 from apps.gigs.serializers import (
@@ -31,12 +32,13 @@ from apps.notifications.services import (
     get=extend_schema(tags=["Gigs"], summary="List public gigs"),
     post=extend_schema(tags=["Gigs"], summary="Create a public gig"),
 )
-class GigListCreateView(generics.ListCreateAPIView):
+class GigListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     queryset = Gig.objects.none()
     search_fields = ["title", "description", "city", "region", "requirements"]
     ordering_fields = ["event_date", "created_at", "budget_max"]
     filterset_class = GigFilter
+    throttle_scope = "gig_write"
 
     def get_queryset(self):
         queryset = (
@@ -96,9 +98,10 @@ class MyGigListView(generics.ListAPIView):
     get=extend_schema(tags=["Gigs"], summary="Retrieve a gig"),
     patch=extend_schema(tags=["Gigs"], summary="Update an organizer gig"),
 )
-class GigDetailView(generics.RetrieveUpdateAPIView):
+class GigDetailView(ScopedWriteThrottleMixin, generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     queryset = Gig.objects.none()
+    throttle_scope = "gig_write"
 
     def get_queryset(self):
         return (
@@ -123,9 +126,10 @@ class GigDetailView(generics.RetrieveUpdateAPIView):
 
 
 @extend_schema(tags=["Gigs"], summary="Talent shows interest in a public gig")
-class GigInterestCreateView(generics.CreateAPIView):
+class GigInterestCreateView(ScopedWriteThrottleMixin, generics.CreateAPIView):
     serializer_class = GigInterestCreateSerializer
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "gig_interest_write"
 
     def create(self, request, *args, **kwargs):
         if request.user.role != User.Role.TALENT:
@@ -151,14 +155,15 @@ class GigInterestCreateView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         interest = serializer.save()
         notify_gig_interest_submitted(organizer=gig.organizer, interest=interest)
-        return Response(GigInterestSerializer(interest).data, status=status.HTTP_201_CREATED)
+        return Response(GigInterestSerializer(interest, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=["Gigs"], summary="Organizer updates interest status")
-class GigInterestStatusUpdateView(generics.UpdateAPIView):
+class GigInterestStatusUpdateView(ScopedWriteThrottleMixin, generics.UpdateAPIView):
     serializer_class = GigInterestStatusSerializer
     permission_classes = [permissions.IsAuthenticated]
     queryset = GigInterest.objects.select_related("gig", "talent", "talent__profile")
+    throttle_scope = "gig_management_write"
 
     def update(self, request, *args, **kwargs):
         interest = self.get_object()
@@ -182,21 +187,22 @@ class GigInterestStatusUpdateView(generics.UpdateAPIView):
                     conversation=conversation,
                     body=f"You have been {interest.status} for gig: {interest.gig.title}.",
                 )
-            conversation_payload = ConversationSerializer(conversation).data
+            conversation_payload = ConversationSerializer(conversation, context={"request": request}).data
 
         return Response(
             {
-                "interest": GigInterestSerializer(interest).data,
+                "interest": GigInterestSerializer(interest, context={"request": request}).data,
                 "conversation": conversation_payload,
             }
         )
 
 
 @extend_schema(tags=["Gigs"], summary="Convert a gig interest into a booking")
-class GigInterestConvertToBookingView(generics.CreateAPIView):
+class GigInterestConvertToBookingView(ScopedWriteThrottleMixin, generics.CreateAPIView):
     serializer_class = GigInterestConversionSerializer
     permission_classes = [permissions.IsAuthenticated]
     queryset = GigInterest.objects.select_related("gig", "talent", "talent__profile", "gig__event_type")
+    throttle_scope = "booking_create"
 
     def create(self, request, *args, **kwargs):
         interest = self.get_object()
@@ -220,8 +226,8 @@ class GigInterestConvertToBookingView(generics.CreateAPIView):
             )
         return Response(
             {
-                "booking": BookingSerializer(booking).data,
-                "conversation": ConversationSerializer(conversation).data,
+                "booking": BookingSerializer(booking, context={"request": request}).data,
+                "conversation": ConversationSerializer(conversation, context={"request": request}).data,
             },
             status=status.HTTP_201_CREATED,
         )

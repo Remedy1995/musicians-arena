@@ -10,6 +10,7 @@ import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
 import { toMessageItem } from "../services/realtime/types";
 import { ConversationCard } from "../components/ConversationCard";
+import { ProfileAvatar } from "../components/ProfileAvatar";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { theme } from "../theme/theme";
@@ -49,9 +50,13 @@ export function MessagesScreen({
     () => marketplace.conversations.find((conversation) => conversation.id === selectedConversationId) ?? null,
     [marketplace.conversations, selectedConversationId],
   );
-  const selectedConversationName = useMemo(
-    () => getConversationName(selectedConversation, currentUser.id),
+  const selectedConversationParticipant = useMemo(
+    () => getConversationParticipant(selectedConversation, currentUser.id),
     [currentUser.id, selectedConversation],
+  );
+  const selectedConversationName = useMemo(
+    () => selectedConversationParticipant?.display_name || selectedConversationParticipant?.username || "Conversation",
+    [selectedConversationParticipant],
   );
   const chatSocket = useConversationSocket({
     token,
@@ -135,7 +140,7 @@ export function MessagesScreen({
         <SectionHeader title="Recent conversations" action={connected ? "Live" : "Standard sync"} />
         <View style={styles.list}>
           {marketplace.conversations.map((item) => {
-            const other = item.participants.find((participant) => participant.user_id !== currentUser.id) ?? item.participants[0];
+            const other = getConversationParticipant(item, currentUser.id);
             return (
               <Pressable
                 key={item.id}
@@ -146,6 +151,7 @@ export function MessagesScreen({
               >
                 <ConversationCard
                   name={other?.display_name || other?.username || "Conversation"}
+                  imageUri={other?.profile_image_url}
                   message={item.last_message?.body || "No messages yet"}
                   time={item.last_message_at ? item.last_message_at.slice(11, 16) : "Now"}
                   unread={item.last_message?.read_at ? 0 : item.last_message ? 1 : 0}
@@ -167,9 +173,12 @@ export function MessagesScreen({
         >
           <View style={styles.modalHeader}>
             <View style={styles.modalHeaderContent}>
-              <View style={styles.modalAvatar}>
-                <Text style={styles.modalAvatarText}>{getInitials(selectedConversationName)}</Text>
-              </View>
+              <ProfileAvatar
+                label={selectedConversationName}
+                imageUri={selectedConversationParticipant?.profile_image_url}
+                size={52}
+                borderRadius={theme.radius.lg}
+              />
               <View style={styles.modalHeaderText}>
                 <Text style={styles.modalTitle}>{selectedConversationName}</Text>
                 <View style={styles.modalSubtitleRow}>
@@ -230,10 +239,9 @@ export function MessagesScreen({
   }
 }
 
-function getConversationName(conversation: ConversationItem | null, currentUserId: string) {
-  if (!conversation) return "Conversation";
-  const other = conversation.participants.find((participant) => participant.user_id !== currentUserId) ?? conversation.participants[0];
-  return other?.display_name || other?.username || "Conversation";
+function getConversationParticipant(conversation: ConversationItem | null, currentUserId: string) {
+  if (!conversation) return null;
+  return conversation.participants.find((participant) => participant.user_id !== currentUserId) ?? conversation.participants[0] ?? null;
 }
 
 const ConversationThread = memo(function ConversationThread({
@@ -380,19 +388,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[3],
-  },
-  modalAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: theme.radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.ink[900],
-  },
-  modalAvatarText: {
-    fontFamily: theme.typography.fontFamily.displayMedium,
-    fontSize: theme.typography.size.md,
-    color: theme.semanticColors.textOnDark,
   },
   modalHeaderText: {
     flex: 1,
@@ -542,12 +537,3 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 });
-
-function getInitials(value: string) {
-  return value
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}

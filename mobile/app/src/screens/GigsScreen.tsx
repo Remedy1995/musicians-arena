@@ -9,6 +9,7 @@ import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
 import { GigCard } from "../components/GigCard";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { ProfileAvatar } from "../components/ProfileAvatar";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
@@ -600,56 +601,66 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
                   ) : null}
                   {activeTabInterests.map((interest) => (
                     <View key={interest.id} style={styles.interestCard}>
-                  <Text style={styles.interestName}>{interest.display_name || interest.talent_username}</Text>
-                  <Text style={styles.interestMeta}>
-                    {interest.status} {interest.proposed_amount ? `• GHS ${Number(interest.proposed_amount).toLocaleString()}` : ""}
-                  </Text>
-                  <Text style={styles.interestNote}>{interest.note || "No note provided."}</Text>
-                  {interest.status === "interested" || interest.status === "shortlisted" ? (
-                    <View style={styles.decisionRow}>
-                      {interest.status === "interested" ? (
-                        <Pressable
-                          style={[styles.decisionButton, styles.decisionButtonShortlist]}
-                          onPress={() => setDecisionTarget({ interest, status: "shortlisted" })}
-                        >
-                          <Text style={[styles.decisionButtonLabel, styles.decisionButtonLabelDark]}>Shortlist</Text>
-                        </Pressable>
+                      <View style={styles.interestHeaderRow}>
+                        <ProfileAvatar
+                          label={interest.display_name || interest.talent_username}
+                          imageUri={interest.profile_image_url}
+                          size={52}
+                          borderRadius={theme.radius.lg}
+                        />
+                        <View style={styles.interestHeaderText}>
+                          <Text style={styles.interestName}>{interest.display_name || interest.talent_username}</Text>
+                          <Text style={styles.interestMeta}>
+                            {interest.status} {interest.proposed_amount ? `• GHS ${Number(interest.proposed_amount).toLocaleString()}` : ""}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.interestNote}>{interest.note || "No note provided."}</Text>
+                      {interest.status === "interested" || interest.status === "shortlisted" ? (
+                        <View style={styles.decisionRow}>
+                          {interest.status === "interested" ? (
+                            <Pressable
+                              style={[styles.decisionButton, styles.decisionButtonShortlist]}
+                              onPress={() => setDecisionTarget({ interest, status: "shortlisted" })}
+                            >
+                              <Text style={[styles.decisionButtonLabel, styles.decisionButtonLabelDark]}>Shortlist</Text>
+                            </Pressable>
+                          ) : (
+                            <View style={[styles.decisionButton, styles.decisionButtonCurrentState]}>
+                              <Text style={[styles.decisionButtonLabel, styles.decisionButtonLabelDark]}>Shortlisted</Text>
+                            </View>
+                          )}
+                          <Pressable
+                            style={[styles.decisionButton, styles.decisionButtonInvite]}
+                            onPress={() => setDecisionTarget({ interest, status: "invited" })}
+                          >
+                            <Text style={[styles.decisionButtonLabel, styles.decisionButtonLabelDark]}>Invite</Text>
+                          </Pressable>
+                          <Pressable
+                            style={[styles.decisionButton, styles.decisionButtonDecline]}
+                            onPress={() => setDecisionTarget({ interest, status: "declined" })}
+                          >
+                            <Text style={[styles.decisionButtonLabel, styles.decisionButtonLabelDark]}>Decline</Text>
+                          </Pressable>
+                        </View>
                       ) : (
-                        <View style={[styles.decisionButton, styles.decisionButtonCurrentState]}>
-                          <Text style={[styles.decisionButtonLabel, styles.decisionButtonLabelDark]}>Shortlisted</Text>
+                        <View style={styles.decisionLockedCard}>
+                          <Text style={styles.decisionLockedTitle}>
+                            {interest.status === "shortlisted"
+                              ? "Talent shortlisted"
+                              : interest.status === "invited"
+                                ? "Invitation sent"
+                                : "Talent declined"}
+                          </Text>
+                          <Text style={styles.decisionLockedBody}>
+                            {interest.status === "shortlisted"
+                              ? "This applicant has already been shortlisted for this gig."
+                              : interest.status === "invited"
+                                ? "This applicant has already been invited to move forward."
+                                : "This applicant has already been declined for this gig."}
+                          </Text>
                         </View>
                       )}
-                      <Pressable
-                        style={[styles.decisionButton, styles.decisionButtonInvite]}
-                        onPress={() => setDecisionTarget({ interest, status: "invited" })}
-                      >
-                        <Text style={[styles.decisionButtonLabel, styles.decisionButtonLabelDark]}>Invite</Text>
-                      </Pressable>
-                      <Pressable
-                        style={[styles.decisionButton, styles.decisionButtonDecline]}
-                        onPress={() => setDecisionTarget({ interest, status: "declined" })}
-                      >
-                        <Text style={[styles.decisionButtonLabel, styles.decisionButtonLabelDark]}>Decline</Text>
-                      </Pressable>
-                    </View>
-                  ) : (
-                    <View style={styles.decisionLockedCard}>
-                      <Text style={styles.decisionLockedTitle}>
-                        {interest.status === "shortlisted"
-                          ? "Talent shortlisted"
-                          : interest.status === "invited"
-                            ? "Invitation sent"
-                            : "Talent declined"}
-                      </Text>
-                      <Text style={styles.decisionLockedBody}>
-                        {interest.status === "shortlisted"
-                          ? "This applicant has already been shortlisted for this gig."
-                          : interest.status === "invited"
-                            ? "This applicant has already been invited to move forward."
-                        : "This applicant has already been declined for this gig."}
-                      </Text>
-                    </View>
-                  )}
                       <View style={[styles.followupActions, interest.status === "invited" ? styles.followupActionsRow : undefined]}>
                         <View style={styles.followupActionPrimary}>
                           <SecondaryButton
@@ -660,20 +671,21 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
                           />
                         </View>
                         {interest.status === "invited" ? (
-                          <Pressable
-                            style={styles.convertBookingButton}
-                            onPress={() => {
-                              setSelectedInterest(interest);
-                              setConvertForm({
-                                quotedAmount: interest.proposed_amount || "",
-                                depositAmount: "",
-                                balanceAmount: "",
-                                notes: "",
-                              });
-                            }}
-                          >
-                            <Text style={styles.convertBookingButtonLabel}>Book</Text>
-                          </Pressable>
+                          interest.has_active_booking ? (
+                            <View style={[styles.convertBookingButton, styles.convertBookingButtonDisabled]}>
+                              <Text style={styles.convertBookingButtonLabelMuted}>Booked</Text>
+                            </View>
+                          ) : (
+                            <Pressable
+                              style={styles.convertBookingButton}
+                              onPress={() => {
+                                setSelectedInterest(interest);
+                                setConvertForm(buildConvertForm(interest.proposed_amount || ""));
+                              }}
+                            >
+                              <Text style={styles.convertBookingButtonLabel}>Book</Text>
+                            </Pressable>
+                          )
                         ) : null}
                       </View>
                     </View>
@@ -681,46 +693,78 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
                 </View>
               ) : null}
 
-              {selectedInterest ? (
+              {gigDetailError ? <Text style={styles.error}>{gigDetailError}</Text> : null}
+            </ScrollView>
+          ) : (
+            <Text style={styles.helperSubtext}>Loading gig details...</Text>
+          )}
+        </View>
+      </Modal>
+
+      <Modal animationType="fade" transparent visible={Boolean(selectedInterest)} onRequestClose={() => setSelectedInterest(null)}>
+        <View style={styles.convertOverlay}>
+          <View style={styles.convertModal}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleGroup}>
+                <View style={styles.modalAccentBar} />
+                <Text style={styles.modalTitle}>Booking offer</Text>
+              </View>
+              <Pressable onPress={() => setSelectedInterest(null)} style={styles.closeButton}>
+                <Text style={styles.modalClose}>✕ Close</Text>
+              </Pressable>
+            </View>
+            {selectedInterest ? (
+              <ScrollView contentContainerStyle={styles.convertModalContent}>
                 <View style={styles.convertCard}>
-                  <Text style={styles.interestName}>Convert {selectedInterest.display_name || selectedInterest.talent_username}</Text>
+                  <Text style={styles.interestName}>Create booking offer for {selectedInterest.display_name || selectedInterest.talent_username}</Text>
+                  <Text style={styles.convertIntro}>
+                    This creates a formal service offer. The talent can accept it, counter it, or decline it before the booking moves forward.
+                  </Text>
+                  <View style={styles.convertSummaryCard}>
+                    <Text style={styles.convertSummaryLabel}>Engagement model</Text>
+                    <Text style={styles.convertSummaryValue}>Single event booking</Text>
+                    <Text style={styles.convertSummaryBody}>
+                      Organizer sends offer terms, talent reviews them, then both sides continue through booking acceptance and event execution.
+                    </Text>
+                  </View>
                   <TextField
                     label="Quoted amount"
                     value={convertForm.quotedAmount}
-                    onChangeText={(value) => setConvertForm((current) => ({ ...current, quotedAmount: value }))}
+                    onChangeText={(value) => setConvertForm((current) => syncConvertAmounts({ ...current, quotedAmount: value }))}
                     keyboardType="phone-pad"
+                    helperText="Total amount you are offering for this engagement."
                   />
                   <TextField
                     label="Deposit amount"
                     value={convertForm.depositAmount}
-                    onChangeText={(value) => setConvertForm((current) => ({ ...current, depositAmount: value }))}
+                    onChangeText={(value) => setConvertForm((current) => syncConvertAmounts({ ...current, depositAmount: value }))}
                     keyboardType="phone-pad"
+                    helperText="Amount expected upfront to secure the booking."
                   />
                   <TextField
                     label="Balance amount"
                     value={convertForm.balanceAmount}
                     onChangeText={(value) => setConvertForm((current) => ({ ...current, balanceAmount: value }))}
                     keyboardType="phone-pad"
+                    helperText="Remaining amount after the deposit."
                   />
                   <TextField
-                    label="Notes"
+                    label="Booking notes"
                     value={convertForm.notes}
                     onChangeText={(value) => setConvertForm((current) => ({ ...current, notes: value }))}
                     multiline
+                    helperText="Optional details like rehearsal expectation, arrival time, or performance notes."
                   />
                   <PrimaryButton
-                    label={submitting ? "Converting..." : "Create booking"}
+                    label={submitting ? "Creating..." : "Create booking offer"}
                     onPress={() => {
                       void handleConvertInterest();
                     }}
                   />
                 </View>
-              ) : null}
-              {gigDetailError ? <Text style={styles.error}>{gigDetailError}</Text> : null}
-            </ScrollView>
-          ) : (
-            <Text style={styles.helperSubtext}>Loading gig details...</Text>
-          )}
+              </ScrollView>
+            ) : null}
+          </View>
         </View>
       </Modal>
 
@@ -765,12 +809,22 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
           <ScrollView contentContainerStyle={styles.modalForm}>
             {viewedTalentProfile ? (
               <View style={styles.profilePreviewCard}>
-                <Text style={styles.interestName}>
-                  {viewedTalentProfile.display_name || viewedTalentProfile.stage_name || viewedTalentProfile.username}
-                </Text>
-                <Text style={styles.profilePreviewMeta}>
-                  {viewedTalentProfile.primary_category?.name || "Creative talent"} • {[viewedTalentProfile.city, viewedTalentProfile.region].filter(Boolean).join(", ") || "Location not set"}
-                </Text>
+                <View style={styles.profilePreviewHeader}>
+                  <ProfileAvatar
+                    label={viewedTalentProfile.display_name || viewedTalentProfile.stage_name || viewedTalentProfile.username}
+                    imageUri={viewedTalentProfile.profile_image_url || profileTarget?.profile_image_url}
+                    size={72}
+                    borderRadius={theme.radius.xl}
+                  />
+                  <View style={styles.profilePreviewHeaderText}>
+                    <Text style={styles.interestName}>
+                      {viewedTalentProfile.display_name || viewedTalentProfile.stage_name || viewedTalentProfile.username}
+                    </Text>
+                    <Text style={styles.profilePreviewMeta}>
+                      {viewedTalentProfile.primary_category?.name || "Creative talent"} • {[viewedTalentProfile.city, viewedTalentProfile.region].filter(Boolean).join(", ") || "Location not set"}
+                    </Text>
+                  </View>
+                </View>
                 <Text style={styles.profilePreviewBody}>
                   {viewedTalentProfile.bio || "This talent has not added a bio yet."}
                 </Text>
@@ -847,6 +901,27 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
 
   async function handleConvertInterest() {
     if (!selectedInterest || !gigDetail) return;
+    const quoted = Number(convertForm.quotedAmount);
+    const deposit = Number(convertForm.depositAmount || "0");
+    const balance = Number(convertForm.balanceAmount || "0");
+
+    if (!convertForm.quotedAmount || Number.isNaN(quoted) || quoted <= 0) {
+      setGigDetailError("Quoted amount must be greater than zero.");
+      return;
+    }
+    if (Number.isNaN(deposit) || deposit < 0) {
+      setGigDetailError("Deposit amount cannot be negative.");
+      return;
+    }
+    if (Number.isNaN(balance) || balance < 0) {
+      setGigDetailError("Balance amount cannot be negative.");
+      return;
+    }
+    if (Math.abs(deposit + balance - quoted) > 0.009) {
+      setGigDetailError("Deposit and balance must add up to the quoted amount.");
+      return;
+    }
+
     setSubmitting(true);
     setGigDetailError(null);
     try {
@@ -876,6 +951,30 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
       setSubmitting(false);
     }
   }
+}
+
+function syncConvertAmounts(form: { quotedAmount: string; depositAmount: string; balanceAmount: string; notes: string }) {
+  const quoted = Number(form.quotedAmount);
+  const deposit = Number(form.depositAmount);
+
+  if (!Number.isNaN(quoted) && !Number.isNaN(deposit) && form.quotedAmount && form.depositAmount) {
+    const remaining = quoted - deposit;
+    return {
+      ...form,
+      balanceAmount: remaining >= 0 ? String(remaining) : form.balanceAmount,
+    };
+  }
+
+  return form;
+}
+
+function buildConvertForm(quotedAmount: string) {
+  return syncConvertAmounts({
+    quotedAmount,
+    depositAmount: quotedAmount ? String(Math.round(Number(quotedAmount) * 0.4 * 100) / 100) : "",
+    balanceAmount: "",
+    notes: "",
+  });
 }
 
 const styles = StyleSheet.create({
@@ -1089,11 +1188,20 @@ const styles = StyleSheet.create({
   },
   interestCard: {
     borderRadius: theme.radius.xl,
-    padding: theme.spacing[4],
+    padding: theme.spacing[5],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
-    gap: theme.spacing[2],
+    gap: theme.spacing[3],
+  },
+  interestHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[3],
+  },
+  interestHeaderText: {
+    flex: 1,
+    gap: theme.spacing[1],
   },
   interestName: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -1113,15 +1221,16 @@ const styles = StyleSheet.create({
   },
   decisionRow: {
     flexDirection: "row",
-    gap: theme.spacing[2],
+    gap: theme.spacing[3],
+    marginTop: theme.spacing[2],
   },
   decisionButton: {
     flex: 1,
-    minHeight: 46,
+    minHeight: 48,
     borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: theme.spacing[2],
+    paddingHorizontal: theme.spacing[3],
   },
   decisionButtonShortlist: {
     backgroundColor: "#F7EED6",
@@ -1170,12 +1279,13 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textSecondary,
   },
   followupActions: {
-    gap: theme.spacing[3],
+    gap: theme.spacing[4],
+    marginTop: theme.spacing[3],
   },
   followupActionsRow: {
     flexDirection: "row",
     alignItems: "stretch",
-    gap: theme.spacing[3],
+    gap: theme.spacing[5],
   },
   followupActionPrimary: {
     flex: 1,
@@ -1191,20 +1301,76 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.teal[600],
   },
+  convertBookingButtonDisabled: {
+    backgroundColor: theme.colors.stone[100],
+    borderColor: theme.semanticColors.borderSoft,
+  },
   convertBookingButtonLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.sm,
     color: theme.semanticColors.textOnDark,
     letterSpacing: 0.2,
   },
+  convertBookingButtonLabelMuted: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.sm,
+    color: theme.semanticColors.textMuted,
+    letterSpacing: 0.2,
+  },
   convertCard: {
     borderRadius: theme.radius.xl,
     padding: theme.spacing[5],
-    backgroundColor: "#FFF7F2",
+    backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.ember[300],
+    borderColor: theme.semanticColors.borderSoft,
     gap: theme.spacing[4],
     ...theme.shadows.card,
+  },
+  convertOverlay: {
+    flex: 1,
+    backgroundColor: theme.semanticColors.background,
+  },
+  convertModal: {
+    flex: 1,
+    backgroundColor: theme.semanticColors.background,
+    padding: theme.layout.screenPadding,
+    paddingTop: theme.spacing[6],
+    gap: theme.spacing[4],
+  },
+  convertModalContent: {
+    gap: theme.spacing[4],
+  },
+  convertIntro: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.sm,
+    lineHeight: theme.typography.lineHeight.sm,
+    color: theme.semanticColors.textSecondary,
+  },
+  convertSummaryCard: {
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing[4],
+    backgroundColor: theme.semanticColors.surface,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+    gap: theme.spacing[1],
+  },
+  convertSummaryLabel: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    color: theme.semanticColors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  convertSummaryValue: {
+    fontFamily: theme.typography.fontFamily.displayMedium,
+    fontSize: theme.typography.size.md,
+    color: theme.semanticColors.textPrimary,
+  },
+  convertSummaryBody: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.sm,
+    lineHeight: theme.typography.lineHeight.sm,
+    color: theme.semanticColors.textSecondary,
   },
   gigContextCard: {
     borderRadius: theme.radius.xl,
@@ -1407,6 +1573,15 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
     gap: theme.spacing[3],
     ...theme.shadows.card,
+  },
+  profilePreviewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[4],
+  },
+  profilePreviewHeaderText: {
+    flex: 1,
+    gap: theme.spacing[1],
   },
   profilePreviewMeta: {
     fontFamily: theme.typography.fontFamily.bodySemibold,

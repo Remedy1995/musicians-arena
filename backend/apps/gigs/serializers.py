@@ -23,6 +23,8 @@ class GigInterestSerializer(serializers.ModelSerializer):
     talent_id = serializers.UUIDField(source="talent.id", read_only=True)
     talent_username = serializers.CharField(source="talent.username", read_only=True)
     display_name = serializers.CharField(source="talent.profile.display_name", read_only=True)
+    profile_image_url = serializers.SerializerMethodField()
+    has_active_booking = serializers.SerializerMethodField()
 
     class Meta:
         model = GigInterest
@@ -31,13 +33,41 @@ class GigInterestSerializer(serializers.ModelSerializer):
             "talent_id",
             "talent_username",
             "display_name",
+            "profile_image_url",
             "note",
             "proposed_amount",
+            "status",
+            "has_active_booking",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "talent_id",
+            "talent_username",
+            "display_name",
+            "profile_image_url",
             "status",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "talent_id", "talent_username", "display_name", "status", "created_at", "updated_at"]
+
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_profile_image_url(self, obj):
+        profile = getattr(obj.talent, "profile", None)
+        if not profile:
+            return None
+        request = self.context.get("request")
+        if profile.profile_image:
+            url = profile.profile_image.url
+            return request.build_absolute_uri(url) if request else url
+        return profile.profile_image_url
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_has_active_booking(self, obj):
+        return obj.gig.bookings.filter(talent=obj.talent).exclude(
+            status__in=[Booking.Status.CANCELLED, Booking.Status.REFUNDED]
+        ).exists()
 
 
 class GigListSerializer(serializers.ModelSerializer):
@@ -113,7 +143,11 @@ class GigDetailSerializer(GigListSerializer):
     def get_interests(self, obj):
         request = self.context.get("request")
         if request and request.user.id == obj.organizer_id:
-            return GigInterestSerializer(obj.interests.select_related("talent", "talent__profile").all(), many=True).data
+            return GigInterestSerializer(
+                obj.interests.select_related("talent", "talent__profile").all(),
+                many=True,
+                context=self.context,
+            ).data
         return []
 
 
@@ -225,6 +259,11 @@ class GigInterestConversionSerializer(serializers.Serializer):
         interest = self.context["interest"]
         if interest.status == GigInterest.Status.DECLINED:
             raise serializers.ValidationError("Declined interests cannot be converted into bookings.")
+        existing_booking = interest.gig.bookings.filter(talent=interest.talent).exclude(
+            status__in=[Booking.Status.CANCELLED, Booking.Status.REFUNDED]
+        ).first()
+        if existing_booking:
+            raise serializers.ValidationError("This talent already has a booking for this gig.")
 
         quoted_amount = attrs.get("quoted_amount") or interest.proposed_amount
         deposit_amount = attrs.get("deposit_amount")

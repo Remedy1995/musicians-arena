@@ -140,6 +140,7 @@ export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: Dis
             <TalentCard
               key={talent.id}
               name={talent.display_name || talent.stage_name || talent.username}
+              imageUri={talent.profile_image_url}
               title={talent.primary_category?.name ? `${talent.primary_category.name} ready for live bookings` : "Creative talent ready for live bookings"}
               city={talent.city || talent.region || "Ghana"}
               rate={formatRate(talent.fixed_price_min, talent.fixed_price_max)}

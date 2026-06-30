@@ -18,7 +18,7 @@ export function BottomTabBar({ role, activeTab, onTabPress, badges = {} }: Botto
     { key: "discover", label: role === "client" ? "Dashboard" : "Discover", icon: "compass-outline", activeIcon: "compass" },
     { key: "gigs", label: role === "client" ? "My Gigs" : "Gig Board", icon: "music-note-outline", activeIcon: "music-note" },
     { key: "messages", label: "Messages", icon: "message-text-outline", activeIcon: "message-text" },
-    { key: "bookings", label: role === "client" ? "Hires" : "Bookings", icon: "clipboard-text-outline", activeIcon: "clipboard-text" },
+    { key: "bookings", label: "Bookings", icon: "clipboard-text-outline", activeIcon: "clipboard-text" },
     { key: "profile", label: "Profile", icon: "account-circle-outline", activeIcon: "account-circle" },
   ];
 

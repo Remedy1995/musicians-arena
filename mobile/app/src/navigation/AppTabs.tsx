@@ -26,7 +26,7 @@ export function AppTabs({ role, currentUser, token, onExit, onSignOut }: AppTabs
   const [focusedBookingId, setFocusedBookingId] = useState<string | null>(null);
   const marketplace = useMarketplaceData(token);
   const bookingAttentionCount = marketplace.bookings.filter((booking) =>
-    ["pending", "countered", "awaiting_deposit"].includes(booking.status),
+    role === "talent" ? ["pending", "countered"].includes(booking.status) : ["awaiting_deposit"].includes(booking.status),
   ).length;
   const messageUnreadCount = marketplace.conversations.filter(
     (conversation) =>

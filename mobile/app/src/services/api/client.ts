@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 import { apiConfig } from "../../config/api";
 
 type RequestOptions = {
@@ -74,6 +76,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     headers["Content-Type"] = "application/json";
   }
 
+  if (options.isMultipart && Platform.OS !== "web" && options.body instanceof FormData) {
+    return apiMultipartRequest<T>(`${apiConfig.baseUrl}${path}`, options.method ?? "POST", headers, options.body);
+  }
+
   const response = await fetch(`${apiConfig.baseUrl}${path}`, {
     method: options.method ?? "GET",
     headers,
@@ -93,4 +99,40 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   return payload as T;
+}
+
+function apiMultipartRequest<T>(
+  url: string,
+  method: "GET" | "POST" | "PATCH" | "DELETE",
+  headers: Record<string, string>,
+  body: FormData,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open(method, url);
+
+    Object.entries(headers).forEach(([key, value]) => {
+      request.setRequestHeader(key, value);
+    });
+
+    request.onload = () => {
+      const contentType = request.getResponseHeader("content-type") || "";
+      const responseText = request.responseText || "";
+      const payload = contentType.includes("application/json") && responseText ? JSON.parse(responseText) : null;
+
+      if (request.status >= 200 && request.status < 300) {
+        resolve(payload as T);
+        return;
+      }
+
+      const message = extractErrorMessage(payload);
+      reject(new ApiError(message, request.status));
+    };
+
+    request.onerror = () => {
+      reject(new ApiError("Network request failed.", 0));
+    };
+
+    request.send(body);
+  });
 }

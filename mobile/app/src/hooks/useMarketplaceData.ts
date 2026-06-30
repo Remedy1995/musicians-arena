@@ -53,35 +53,56 @@ export function useMarketplaceData(token: string) {
     setLoading(true);
     setError(null);
     try {
-      const [me, talents, gigs, bookings, conversations, notifications, unread, categories, eventTypes] = await Promise.all([
-        api.me(token),
-        api.talents(),
-        api.gigs(token),
-        api.bookings(token),
-        api.conversations(token),
-        api.notifications(token),
-        api.unreadNotificationCount(token),
-        api.talentCategories(),
-        api.eventTypes(),
-      ]);
-      const [talentProfile, talentMedia] =
-        me.role === "talent"
-          ? await Promise.all([api.talentMe(token), api.talentMedia(token)])
-          : [null, []];
+      const me = await api.me(token);
+      const [talentsResult, gigsResult, bookingsResult, conversationsResult, notificationsResult, unreadResult, categoriesResult, eventTypesResult] =
+        await Promise.allSettled([
+          api.talents(),
+          api.gigs(token),
+          api.bookings(token),
+          api.conversations(token),
+          api.notifications(token),
+          api.unreadNotificationCount(token),
+          api.talentCategories(),
+          api.eventTypes(),
+        ]);
 
-      setData({
+      const [talentProfileResult, talentMediaResult] =
+        me.role === "talent"
+          ? await Promise.allSettled([api.talentMe(token), api.talentMedia(token)])
+          : [null, null];
+
+      setData((current) => ({
         me,
-        talents,
-        gigs,
-        bookings,
-        conversations,
-        notifications,
-        unreadCount: unread.unread_count,
-        categories,
-        eventTypes,
-        talentProfile,
-        talentMedia,
-      });
+        talents: talentsResult?.status === "fulfilled" ? talentsResult.value : current.talents,
+        gigs: gigsResult?.status === "fulfilled" ? gigsResult.value : current.gigs,
+        bookings: bookingsResult?.status === "fulfilled" ? bookingsResult.value : current.bookings,
+        conversations: conversationsResult?.status === "fulfilled" ? conversationsResult.value : current.conversations,
+        notifications: notificationsResult?.status === "fulfilled" ? notificationsResult.value : current.notifications,
+        unreadCount: unreadResult?.status === "fulfilled" ? unreadResult.value.unread_count : current.unreadCount,
+        categories: categoriesResult?.status === "fulfilled" ? categoriesResult.value : current.categories,
+        eventTypes: eventTypesResult?.status === "fulfilled" ? eventTypesResult.value : current.eventTypes,
+        talentProfile:
+          talentProfileResult && talentProfileResult.status === "fulfilled"
+            ? talentProfileResult.value
+            : me.role === "talent"
+              ? current.talentProfile
+              : null,
+        talentMedia:
+          talentMediaResult && talentMediaResult.status === "fulfilled"
+            ? talentMediaResult.value
+            : me.role === "talent"
+              ? current.talentMedia
+              : [],
+      }));
+
+      const criticalFailure =
+        gigsResult.status === "rejected"
+          ? gigsResult.reason
+          : bookingsResult.status === "rejected"
+            ? bookingsResult.reason
+            : null;
+
+      setError(criticalFailure instanceof Error ? criticalFailure.message : null);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Unable to load marketplace data.";
       setError(message);
@@ -95,21 +116,45 @@ export function useMarketplaceData(token: string) {
   }, [refresh]);
 
   useEffect(() => {
-    const socket = new WebSocket(`${apiConfig.wsBaseUrl}/ws/notifications/?token=${token}`);
+    let socket: WebSocket | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let reconnectAttempts = 0;
+    let isMounted = true;
 
-    socket.onmessage = (messageEvent) => {
-      const payload = JSON.parse(messageEvent.data) as NotificationSocketPayload;
-      if (payload.event === "notification.created" && payload.notification) {
-        setData((current) => ({
-          ...current,
-          notifications: [payload.notification as NotificationItem, ...current.notifications].slice(0, 30),
-          unreadCount: typeof payload.unread_count === "number" ? payload.unread_count : current.unreadCount + 1,
-        }));
-      }
+    const connect = () => {
+      socket = new WebSocket(`${apiConfig.wsBaseUrl}/ws/notifications/?token=${token}`);
+
+      socket.onopen = () => {
+        reconnectAttempts = 0;
+      };
+
+      socket.onmessage = (messageEvent) => {
+        const payload = JSON.parse(messageEvent.data) as NotificationSocketPayload;
+        if (payload.event === "notification.created" && payload.notification) {
+          setData((current) => ({
+            ...current,
+            notifications: [payload.notification as NotificationItem, ...current.notifications].slice(0, 30),
+            unreadCount: typeof payload.unread_count === "number" ? payload.unread_count : current.unreadCount + 1,
+          }));
+        }
+      };
+
+      socket.onclose = () => {
+        if (!isMounted) return;
+        const delay = Math.min(1000 * 2 ** reconnectAttempts, 8000);
+        reconnectAttempts += 1;
+        reconnectTimeout = setTimeout(connect, delay);
+      };
     };
 
+    connect();
+
     return () => {
-      socket.close();
+      isMounted = false;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      socket?.close();
     };
   }, [token]);
 

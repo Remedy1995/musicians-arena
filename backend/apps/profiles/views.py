@@ -1,10 +1,11 @@
 from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
 
 from apps.accounts.models import User
+from apps.common.throttling import ScopedWriteThrottleMixin
 from apps.profiles.filters import TalentProfileFilter
 from apps.profiles.models import EventType, TalentCategory, TalentMedia, TalentProfile
 from apps.profiles.serializers import (
@@ -16,6 +17,8 @@ from apps.profiles.serializers import (
     TalentProfileDetailSerializer,
     TalentProfileListSerializer,
     TalentProfileUpdateSerializer,
+    UserProfilePhotoUploadSerializer,
+    UserProfileSerializer,
 )
 
 
@@ -67,8 +70,27 @@ class MyProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
-class TalentProfileUpdateView(generics.RetrieveUpdateAPIView):
+class MyProfilePhotoUploadView(ScopedWriteThrottleMixin, generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    serializer_class = UserProfilePhotoUploadSerializer
+    throttle_scope = "media_upload"
+
+    def get_object(self):
+        return self.request.user.profile
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        profile = serializer.save()
+        return Response(UserProfileSerializer(profile, context={"request": request}).data, status=status.HTTP_200_OK)
+
+
+class TalentProfileUpdateView(ScopedWriteThrottleMixin, generics.RetrieveUpdateAPIView):
     serializer_class = TalentProfileUpdateSerializer
+    throttle_scope = "profile_write"
 
     def get_object(self):
         user = self.request.user
@@ -77,10 +99,11 @@ class TalentProfileUpdateView(generics.RetrieveUpdateAPIView):
         return user.talent_profile
 
 
-class TalentMediaListCreateView(generics.ListCreateAPIView):
+class TalentMediaListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     queryset = TalentMedia.objects.none()
+    throttle_scope = "media_upload"
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
@@ -108,10 +131,11 @@ class TalentMediaListCreateView(generics.ListCreateAPIView):
         return Response(TalentMediaSerializer(media, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
 
 
-class TalentMediaDetailView(generics.RetrieveUpdateDestroyAPIView):
+class TalentMediaDetailView(ScopedWriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     queryset = TalentMedia.objects.none()
+    throttle_scope = "media_upload"
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:

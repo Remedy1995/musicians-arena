@@ -4,11 +4,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.serializers import AuthResponseSerializer, LoginSerializer, RegisterSerializer, UserSummarySerializer
+from apps.common.throttling import ScopedWriteThrottleMixin
 
 
-class RegisterView(generics.CreateAPIView):
+class RegisterView(ScopedWriteThrottleMixin, generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_scope = "auth_register"
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -17,8 +19,9 @@ class RegisterView(generics.CreateAPIView):
         return Response(AuthResponseSerializer.from_user(user), status=status.HTTP_201_CREATED)
 
 
-class LoginView(APIView):
+class LoginView(ScopedWriteThrottleMixin, APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = "auth_login"
 
     @extend_schema(tags=["Auth"], summary="Log in", request=LoginSerializer, responses=AuthResponseSerializer)
     def post(self, request):
@@ -28,6 +31,8 @@ class LoginView(APIView):
 
 
 class MeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     @extend_schema(tags=["Auth"], summary="Get current authenticated user", responses=UserSummarySerializer)
     def get(self, request):
         return Response(AuthResponseSerializer.from_user(request.user)["user"])

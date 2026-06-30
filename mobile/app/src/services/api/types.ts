@@ -100,6 +100,7 @@ export type TalentListItem = {
   user_id: string;
   username: string;
   display_name: string;
+  profile_image_url: string | null;
   city: string;
   region: string;
   bio: string;
@@ -153,9 +154,11 @@ export type GigInterestItem = {
   talent_id: string;
   talent_username: string;
   display_name: string;
+  profile_image_url: string | null;
   note: string;
   proposed_amount: string | null;
   status: string;
+  has_active_booking: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -172,9 +175,25 @@ export type BookingTalent = {
   username: string;
 };
 
+export type BookingClient = {
+  id: string;
+  username: string;
+};
+
+export type BookingOfferItem = {
+  id: string;
+  proposed_by_id: string;
+  amount: string;
+  notes: string;
+  status: "pending" | "accepted" | "rejected" | "expired";
+  responded_at: string | null;
+  created_at: string;
+};
+
 export type BookingItem = {
   id: string;
   client_id: string;
+  client: BookingClient;
   talent: BookingTalent;
   event_type: string | null;
   status: string;
@@ -193,6 +212,8 @@ export type BookingItem = {
   deposit_amount: string | null;
   balance_amount: string | null;
   currency_code: string;
+  latest_offer: BookingOfferItem | null;
+  offer_history: BookingOfferItem[];
   created_at: string;
   updated_at: string;
 };
@@ -263,6 +284,7 @@ export type ConversationParticipant = {
   user_id: string;
   username: string;
   display_name: string;
+  profile_image_url: string | null;
   joined_at: string;
 };
 

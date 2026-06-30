@@ -12,10 +12,22 @@ class ConversationParticipantSerializer(serializers.ModelSerializer):
     user_id = serializers.UUIDField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
     display_name = serializers.CharField(source="user.profile.display_name", read_only=True)
+    profile_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = ConversationParticipant
-        fields = ["id", "user_id", "username", "display_name", "joined_at"]
+        fields = ["id", "user_id", "username", "display_name", "profile_image_url", "joined_at"]
+
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_profile_image_url(self, obj):
+        profile = getattr(obj.user, "profile", None)
+        if not profile:
+            return None
+        request = self.context.get("request")
+        if profile.profile_image:
+            url = profile.profile_image.url
+            return request.build_absolute_uri(url) if request else url
+        return profile.profile_image_url
 
 
 class MessageSerializer(serializers.ModelSerializer):

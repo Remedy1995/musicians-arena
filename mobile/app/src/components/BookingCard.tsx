@@ -9,13 +9,25 @@ type BookingCardProps = {
   date: string;
   amount: string;
   status: string;
+  eyebrow?: string;
+  highlight?: boolean;
 };
 
-export function BookingCard({ title, counterpart, date, amount, status }: BookingCardProps) {
-  const tone = status === "Confirmed" ? "success" : status === "Awaiting deposit" ? "urgent" : "neutral";
+export function BookingCard({ title, counterpart, date, amount, status, eyebrow, highlight = false }: BookingCardProps) {
+  const tone =
+    status === "Booking request"
+      ? "accent"
+      : status === "Counteroffer"
+        ? "accent"
+        : status === "Confirmed"
+          ? "success"
+          : status === "Awaiting deposit"
+            ? "urgent"
+            : "neutral";
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, highlight ? styles.cardHighlight : undefined]}>
+      {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
       <View style={styles.topRow}>
         <View style={styles.headText}>
           <Text style={styles.title} numberOfLines={2}>{title}</Text>
@@ -48,6 +60,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
     ...theme.shadows.card,
+  },
+  cardHighlight: {
+    borderColor: "#F4C96A",
+    backgroundColor: "#FFF8EA",
+  },
+  eyebrow: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    lineHeight: theme.typography.lineHeight.xs,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: theme.colors.gold[600],
   },
   topRow: {
     flexDirection: "row",

@@ -17,10 +17,18 @@
 ## Talent Portfolio
 
 - Open talent profile management
+- Upload a profile photo as a talent
+- Confirm the new avatar persists after refresh
 - Upload an image portfolio item
 - Add a hosted media URL
-- Confirm portfolio items appear in the list
+- Confirm portfolio items appear in the correct portfolio tab or filter
+- Open a hosted link item and confirm it shows link-specific detail, not a fake image preview
 - Delete a portfolio item
+
+## Client Profile
+
+- Upload a profile photo as a client
+- Confirm the new avatar persists after refresh
 
 ## Gigs
 
@@ -54,6 +62,7 @@
 - Confirm the talent sees the message
 - Reply from the talent
 - Confirm the client sees the reply
+- Confirm live updates work while Daphne is serving the ASGI app
 
 ## Notifications
 
@@ -74,3 +83,4 @@
 - Payment recording is still simulated for now
 - Real payment-provider webhook confirmation is not yet connected
 - Media storage is local by default, but storage backend switching is ready
+- For realtime testing, use Daphne rather than Django `runserver`

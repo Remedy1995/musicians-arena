@@ -58,6 +58,8 @@ export const api = {
       profile?: Partial<MeResponse["profile"]>;
     },
   ) => apiRequest<MeResponse>("/profiles/me/", { method: "PATCH", token, body: payload }),
+  uploadProfilePhoto: (token: string, payload: FormData) =>
+    apiRequest<MeResponse["profile"]>("/profiles/me/photo/", { method: "PATCH", token, body: payload, isMultipart: true }),
   talentMe: (token: string) => apiRequest<TalentProfileMe>("/profiles/talent/me/", { token }),
   updateTalentMe: (
     token: string,
@@ -82,6 +84,16 @@ export const api = {
   talentMedia: (token: string) => apiRequest<TalentMediaItem[]>("/profiles/talent/me/media/", { token }),
   createTalentMedia: (token: string, payload: FormData) =>
     apiRequest<TalentMediaItem>("/profiles/talent/me/media/", { method: "POST", token, body: payload, isMultipart: true }),
+  createTalentMediaLink: (
+    token: string,
+    payload: {
+      media_type: "image" | "audio" | "video";
+      title: string;
+      description: string;
+      visibility: "public" | "private";
+      storage_url: string;
+    },
+  ) => apiRequest<TalentMediaItem>("/profiles/talent/me/media/", { method: "POST", token, body: payload }),
   updateTalentMedia: (token: string, mediaId: string, payload: FormData) =>
     apiRequest<TalentMediaItem>(`/profiles/talent/me/media/${mediaId}/`, { method: "PATCH", token, body: payload, isMultipart: true }),
   deleteTalentMedia: (token: string, mediaId: string) =>

@@ -1,22 +1,22 @@
 import { StyleSheet, Text, View } from "react-native";
 
 import { theme } from "../theme/theme";
+import { ProfileAvatar } from "./ProfileAvatar";
 import { StatusBadge } from "./StatusBadge";
 
 type ConversationCardProps = {
   name: string;
+  imageUri?: string | null;
   message: string;
   time: string;
   unread?: number;
   badge?: string;
 };
 
-export function ConversationCard({ name, message, time, unread, badge }: ConversationCardProps) {
+export function ConversationCard({ name, imageUri, message, time, unread, badge }: ConversationCardProps) {
   return (
     <View style={styles.card}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{name.slice(0, 2).toUpperCase()}</Text>
-      </View>
+      <ProfileAvatar label={name} imageUri={imageUri} size={52} borderRadius={theme.radius.lg} />
       <View style={styles.body}>
         <View style={styles.headerRow}>
           <Text style={styles.name}>{name}</Text>
@@ -49,19 +49,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: theme.radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.ink[900],
-  },
-  avatarText: {
-    fontFamily: theme.typography.fontFamily.displayMedium,
-    fontSize: theme.typography.size.md,
-    color: theme.semanticColors.textOnDark,
   },
   body: {
     flex: 1,

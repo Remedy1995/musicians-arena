@@ -13,6 +13,8 @@ type UseConversationSocketProps = {
 export function useConversationSocket({ token, conversationId, enabled = true, onEvent }: UseConversationSocketProps) {
   const socketRef = useRef<WebSocket | null>(null);
   const onEventRef = useRef<typeof onEvent>(onEvent);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
   const [connected, setConnected] = useState(false);
 
   const socketUrl = useMemo(() => {
@@ -27,28 +29,48 @@ export function useConversationSocket({ token, conversationId, enabled = true, o
   useEffect(() => {
     if (!enabled || !socketUrl) return;
 
-    const socket = new WebSocket(socketUrl);
-    socketRef.current = socket;
+    let isMounted = true;
 
-    socket.onopen = () => {
-      setConnected(true);
+    const connect = () => {
+      const socket = new WebSocket(socketUrl);
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        reconnectAttemptsRef.current = 0;
+        if (isMounted) {
+          setConnected(true);
+        }
+      };
+
+      socket.onmessage = (messageEvent) => {
+        const payload = JSON.parse(messageEvent.data) as ChatSocketPayload;
+        onEventRef.current?.(payload);
+      };
+
+      socket.onclose = () => {
+        if (!isMounted) return;
+        setConnected(false);
+        const delay = Math.min(1000 * 2 ** reconnectAttemptsRef.current, 8000);
+        reconnectAttemptsRef.current += 1;
+        reconnectTimeoutRef.current = setTimeout(connect, delay);
+      };
+
+      socket.onerror = () => {
+        if (isMounted) {
+          setConnected(false);
+        }
+      };
     };
 
-    socket.onmessage = (messageEvent) => {
-      const payload = JSON.parse(messageEvent.data) as ChatSocketPayload;
-      onEventRef.current?.(payload);
-    };
-
-    socket.onclose = () => {
-      setConnected(false);
-    };
-
-    socket.onerror = () => {
-      setConnected(false);
-    };
+    connect();
 
     return () => {
-      socket.close();
+      isMounted = false;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      socketRef.current?.close();
       socketRef.current = null;
       setConnected(false);
     };

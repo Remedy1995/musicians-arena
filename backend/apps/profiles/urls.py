@@ -3,6 +3,7 @@ from django.urls import path
 from apps.profiles.views import (
     EventTypeListView,
     MyProfileView,
+    MyProfilePhotoUploadView,
     TalentCategoryListView,
     TalentMediaDetailView,
     TalentMediaListCreateView,
@@ -14,6 +15,7 @@ from apps.profiles.views import (
 
 urlpatterns = [
     path("me/", MyProfileView.as_view(), name="my-profile"),
+    path("me/photo/", MyProfilePhotoUploadView.as_view(), name="my-profile-photo"),
     path("talent/me/", TalentProfileUpdateView.as_view(), name="my-talent-profile"),
     path("categories/", TalentCategoryListView.as_view(), name="talent-categories"),
     path("event-types/", EventTypeListView.as_view(), name="event-types"),

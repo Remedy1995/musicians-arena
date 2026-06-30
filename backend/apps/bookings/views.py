@@ -1,6 +1,6 @@
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import generics
+from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,6 +17,7 @@ from apps.bookings.serializers import (
     DisputeResolutionSerializer,
     DisputeSerializer,
 )
+from apps.common.throttling import ScopedWriteThrottleMixin
 from apps.notifications.services import notify_booking_action, notify_booking_created
 
 
@@ -24,9 +25,11 @@ from apps.notifications.services import notify_booking_action, notify_booking_cr
     get=extend_schema(tags=["Bookings"], summary="List bookings"),
     post=extend_schema(tags=["Bookings"], summary="Create booking"),
 )
-class BookingListCreateView(generics.ListCreateAPIView):
+class BookingListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPIView):
     serializer_class = BookingSerializer
     queryset = Booking.objects.none()
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "booking_create"
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -43,7 +46,10 @@ class BookingListCreateView(generics.ListCreateAPIView):
         notify_booking_created(booking=booking)
 
 
-class BookingDetailView(generics.RetrieveUpdateAPIView):
+class BookingDetailView(ScopedWriteThrottleMixin, generics.RetrieveUpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "booking_action_write"
+
     def get_queryset(self):
         user = self.request.user
         return Booking.objects.filter(Q(client=user) | Q(talent=user)).select_related("client", "talent", "event_type")
@@ -63,7 +69,10 @@ class BookingDetailView(generics.RetrieveUpdateAPIView):
         serializer.save()
 
 
-class BookingActionView(APIView):
+class BookingActionView(ScopedWriteThrottleMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "booking_action_write"
+
     @extend_schema(
         tags=["Bookings"],
         summary="Perform a booking action",
@@ -76,8 +85,8 @@ class BookingActionView(APIView):
         serializer.is_valid(raise_exception=True)
 
         action = serializer.validated_data["action"]
-        if action in {"accept", "reject"} and request.user.id != booking.talent_id:
-            raise PermissionDenied("Only the talent can accept or reject this booking.")
+        if action in {"accept", "reject"} and not self._can_accept_or_reject(booking, request.user):
+            raise PermissionDenied("You cannot accept or reject this booking in its current state.")
         if action in {"cancel", "confirm"} and request.user.id != booking.client_id:
             raise PermissionDenied("Only the client can cancel or confirm this booking.")
 
@@ -90,7 +99,7 @@ class BookingActionView(APIView):
             notify_booking_action(booking=booking, action="cancel")
         elif action == "confirm":
             notify_booking_action(booking=booking, action="confirm")
-        return Response(BookingSerializer(booking).data)
+        return Response(BookingSerializer(booking, context={"request": request}).data)
 
     def _get_booking(self, user, pk):
         booking = generics.get_object_or_404(
@@ -99,8 +108,21 @@ class BookingActionView(APIView):
         )
         return booking
 
+    def _can_accept_or_reject(self, booking, user):
+        if booking.status == Booking.Status.PENDING:
+            return user.id == booking.talent_id
 
-class BookingCounterOfferView(APIView):
+        latest_offer = booking.offers.order_by("-created_at").first()
+        if not latest_offer or latest_offer.status != "pending":
+            return False
+
+        return booking.status in {Booking.Status.COUNTERED, Booking.Status.DISPUTED} and latest_offer.proposed_by_id != user.id
+
+
+class BookingCounterOfferView(ScopedWriteThrottleMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "booking_action_write"
+
     @extend_schema(
         tags=["Bookings"],
         summary="Submit a booking counteroffer",
@@ -119,8 +141,10 @@ class BookingCounterOfferView(APIView):
         return Response(BookingOfferSerializer(counteroffer).data)
 
 
-class BookingDisputeListCreateView(generics.ListCreateAPIView):
+class BookingDisputeListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPIView):
     queryset = Booking.objects.none()
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "booking_action_write"
 
     def get_booking(self):
         return generics.get_object_or_404(
@@ -143,8 +167,10 @@ class BookingDisputeListCreateView(generics.ListCreateAPIView):
         return context
 
 
-class BookingDisputeDetailView(generics.RetrieveUpdateAPIView):
+class BookingDisputeDetailView(ScopedWriteThrottleMixin, generics.RetrieveUpdateAPIView):
     queryset = Booking.objects.none()
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "booking_action_write"
 
     def get_queryset(self):
         filters = Q(pk=self.kwargs["booking_pk"])

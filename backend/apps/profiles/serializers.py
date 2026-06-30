@@ -20,6 +20,8 @@ class EventTypeSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    profile_image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = UserProfile
         fields = [
@@ -36,6 +38,55 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "timezone",
         ]
         read_only_fields = ["id"]
+
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_profile_image_url(self, obj):
+        request = self.context.get("request")
+        if obj.profile_image:
+            url = obj.profile_image.url
+            return request.build_absolute_uri(url) if request else url
+        return obj.profile_image_url
+
+
+class UserProfilePhotoUploadSerializer(serializers.ModelSerializer):
+    profile_image = serializers.FileField(write_only=True)
+    profile_image_url = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = ["profile_image", "profile_image_url"]
+        read_only_fields = ["profile_image_url"]
+
+    def validate_profile_image(self, value):
+        if value.size > settings.MEDIA_MAX_IMAGE_BYTES:
+            raise serializers.ValidationError("Uploaded image exceeds the maximum allowed size.")
+        content_type = getattr(value, "content_type", "")
+        if content_type and content_type not in {"image/jpeg", "image/png", "image/webp"}:
+            raise serializers.ValidationError("Unsupported image type. Use JPEG, PNG, or WebP.")
+        return value
+
+    def update(self, instance, validated_data):
+        upload = validated_data["profile_image"]
+        if instance.profile_image:
+            instance.profile_image.delete(save=False)
+        instance.profile_image = upload
+        instance.save(update_fields=["profile_image", "updated_at"])
+        instance.profile_image_url = self._build_file_url(instance)
+        instance.save(update_fields=["profile_image_url", "updated_at"])
+        return instance
+
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_profile_image_url(self, obj):
+        request = self.context.get("request")
+        if obj.profile_image:
+            url = obj.profile_image.url
+            return request.build_absolute_uri(url) if request else url
+        return obj.profile_image_url
+
+    def _build_file_url(self, instance):
+        request = self.context.get("request")
+        url = instance.profile_image.url
+        return request.build_absolute_uri(url) if request else url
 
 
 class TalentMediaSerializer(serializers.ModelSerializer):
@@ -181,6 +232,7 @@ class TalentProfileListSerializer(serializers.ModelSerializer):
     user_id = serializers.UUIDField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
     display_name = serializers.CharField(source="user.profile.display_name", read_only=True)
+    profile_image_url = serializers.SerializerMethodField()
     city = serializers.CharField(source="user.profile.city", read_only=True)
     region = serializers.CharField(source="user.profile.region", read_only=True)
     bio = serializers.CharField(source="user.profile.bio", read_only=True)
@@ -193,6 +245,7 @@ class TalentProfileListSerializer(serializers.ModelSerializer):
             "user_id",
             "username",
             "display_name",
+            "profile_image_url",
             "city",
             "region",
             "bio",
@@ -208,6 +261,17 @@ class TalentProfileListSerializer(serializers.ModelSerializer):
             "booking_count",
             "is_featured",
         ]
+
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_profile_image_url(self, obj):
+        profile = getattr(obj.user, "profile", None)
+        if not profile:
+            return None
+        request = self.context.get("request")
+        if profile.profile_image:
+            url = profile.profile_image.url
+            return request.build_absolute_uri(url) if request else url
+        return profile.profile_image_url
 
 
 class TalentProfileDetailSerializer(TalentProfileListSerializer):

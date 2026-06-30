@@ -3,11 +3,24 @@
     "name": "Musician's Arena",
     "slug": "musicians-arena",
     "version": "1.0.0",
+    "scheme": "musiciansarena",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F8F4EE"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Musician's Arena needs photo library access so you can upload profile pictures and portfolio media.",
+        "NSPhotoLibraryAddUsageDescription": "Musician's Arena may save selected media while preparing your profile and portfolio uploads."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +36,13 @@
     },
     "plugins": [
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Musician's Arena needs access to your media so you can upload profile pictures and portfolio samples."
+        }
+      ]
     ]
   }
 }

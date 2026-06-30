@@ -2,10 +2,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
 
 import { theme } from "../theme/theme";
+import { ProfileAvatar } from "./ProfileAvatar";
 import { StatusBadge } from "./StatusBadge";
 
 type TalentCardProps = {
   name: string;
+  imageUri?: string | null;
   title: string;
   city: string;
   rate: string;
@@ -15,19 +17,18 @@ type TalentCardProps = {
   tags: string[];
 };
 
-export function TalentCard({ name, title, city, rate, rating, jobs, verified, tags }: TalentCardProps) {
+export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, verified, tags }: TalentCardProps) {
   return (
     <LinearGradient colors={["#20252A", "#111315"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
       <View style={styles.header}>
-        <View style={styles.heroMark}>
-          <Text style={styles.heroInitials}>
-            {name
-              .split(" ")
-              .map((part) => part[0])
-              .join("")
-              .slice(0, 2)}
-          </Text>
-        </View>
+        <ProfileAvatar
+          label={name}
+          imageUri={imageUri}
+          size={56}
+          borderRadius={theme.radius.lg}
+          style={styles.heroMark}
+          textStyle={styles.heroInitials}
+        />
         {verified ? <StatusBadge label="Verified" tone="accent" /> : null}
       </View>
       <Text style={styles.name}>{name}</Text>
@@ -66,17 +67,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   heroMark: {
-    width: 56,
-    height: 56,
-    borderRadius: theme.radius.lg,
     backgroundColor: "rgba(255, 255, 255, 0.08)",
-    alignItems: "center",
-    justifyContent: "center",
   },
   heroInitials: {
-    fontFamily: theme.typography.fontFamily.displayMedium,
     fontSize: theme.typography.size.lg,
-    color: theme.semanticColors.textOnDark,
   },
   name: {
     fontFamily: theme.typography.fontFamily.display,

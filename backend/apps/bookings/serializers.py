@@ -7,6 +7,10 @@ from rest_framework import serializers
 from apps.bookings.models import Booking, BookingOffer, Dispute
 
 
+def booking_is_legacy_negotiation(booking: Booking) -> bool:
+    return booking.status == Booking.Status.DISPUTED and booking.offers.exists()
+
+
 class BookingSerializer(serializers.ModelSerializer):
     client_id = serializers.UUIDField(source="client.id", read_only=True)
     talent_id = serializers.PrimaryKeyRelatedField(
@@ -14,13 +18,17 @@ class BookingSerializer(serializers.ModelSerializer):
         queryset=Booking._meta.get_field("talent").remote_field.model.objects.filter(role="talent"),
         write_only=True,
     )
+    client = serializers.SerializerMethodField(read_only=True)
     talent = serializers.SerializerMethodField(read_only=True)
+    latest_offer = serializers.SerializerMethodField(read_only=True)
+    offer_history = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Booking
         fields = [
             "id",
             "client_id",
+            "client",
             "talent_id",
             "talent",
             "event_type",
@@ -40,6 +48,8 @@ class BookingSerializer(serializers.ModelSerializer):
             "deposit_amount",
             "balance_amount",
             "currency_code",
+            "latest_offer",
+            "offer_history",
             "accepted_at",
             "confirmed_at",
             "completed_at",
@@ -60,11 +70,30 @@ class BookingSerializer(serializers.ModelSerializer):
         ]
 
     @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_client(self, obj):
+        return {
+            "id": str(obj.client_id),
+            "username": obj.client.username,
+        }
+
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_talent(self, obj):
         return {
             "id": str(obj.talent_id),
             "username": obj.talent.username,
         }
+
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_latest_offer(self, obj):
+        latest_offer = obj.offers.order_by("-created_at").first()
+        if not latest_offer:
+            return None
+        return BookingOfferSerializer(latest_offer).data
+
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_offer_history(self, obj):
+        offers = obj.offers.order_by("created_at")
+        return BookingOfferSerializer(offers, many=True).data
 
     def create(self, validated_data):
         if validated_data["talent"].id == self.context["request"].user.id:
@@ -113,6 +142,9 @@ class BookingActionSerializer(serializers.Serializer):
     def validate(self, attrs):
         action = attrs["action"]
         booking = self.context["booking"]
+        negotiation_statuses = {Booking.Status.PENDING, Booking.Status.COUNTERED}
+        if booking_is_legacy_negotiation(booking):
+            negotiation_statuses.add(Booking.Status.DISPUTED)
 
         if action == "accept":
             required = ["quoted_amount", "deposit_amount", "balance_amount"]
@@ -121,7 +153,7 @@ class BookingActionSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {field: "This field is required when accepting a booking." for field in missing}
                 )
-            if booking.status not in {Booking.Status.PENDING, Booking.Status.COUNTERED}:
+            if booking.status not in negotiation_statuses:
                 raise serializers.ValidationError("Only pending or countered bookings can be accepted.")
             quoted_amount = attrs["quoted_amount"]
             deposit_amount = attrs["deposit_amount"]
@@ -131,15 +163,18 @@ class BookingActionSerializer(serializers.Serializer):
             if deposit_amount + balance_amount != quoted_amount:
                 raise serializers.ValidationError("Deposit and balance amounts must add up to the quoted amount.")
         elif action == "reject":
-            if booking.status not in {Booking.Status.PENDING, Booking.Status.COUNTERED}:
+            if booking.status not in negotiation_statuses:
                 raise serializers.ValidationError("Only pending or countered bookings can be rejected.")
         elif action == "cancel":
-            if booking.status not in {
+            cancellable_statuses = {
                 Booking.Status.PENDING,
                 Booking.Status.COUNTERED,
                 Booking.Status.AWAITING_DEPOSIT,
                 Booking.Status.CONFIRMED,
-            }:
+            }
+            if booking_is_legacy_negotiation(booking):
+                cancellable_statuses.add(Booking.Status.DISPUTED)
+            if booking.status not in cancellable_statuses:
                 raise serializers.ValidationError("This booking cannot be cancelled in its current state.")
         elif action == "confirm":
             if booking.status != Booking.Status.AWAITING_DEPOSIT:
@@ -152,8 +187,13 @@ class BookingActionSerializer(serializers.Serializer):
         user = self.context["request"].user
         action = self.validated_data["action"]
         reason = self.validated_data.get("reason", "")
+        pending_offer = booking.offers.filter(status=BookingOffer.Status.PENDING).order_by("-created_at").first()
 
         if action == "accept":
+            if pending_offer and pending_offer.proposed_by_id != user.id:
+                pending_offer.status = BookingOffer.Status.ACCEPTED
+                pending_offer.responded_at = timezone.now()
+                pending_offer.save(update_fields=["status", "responded_at", "updated_at"])
             booking.quoted_amount = self.validated_data["quoted_amount"]
             booking.deposit_amount = self.validated_data["deposit_amount"]
             booking.balance_amount = self.validated_data["balance_amount"]
@@ -163,6 +203,10 @@ class BookingActionSerializer(serializers.Serializer):
                 reason=reason or "Booking accepted by talent.",
             )
         elif action == "reject":
+            if pending_offer and pending_offer.proposed_by_id != user.id:
+                pending_offer.status = BookingOffer.Status.REJECTED
+                pending_offer.responded_at = timezone.now()
+                pending_offer.save(update_fields=["status", "responded_at", "updated_at"])
             booking.transition_status(
                 to_status=Booking.Status.CANCELLED,
                 changed_by=user,
@@ -187,13 +231,28 @@ class CounterOfferSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     notes = serializers.CharField(required=False, allow_blank=True)
 
+    def validate(self, attrs):
+        booking = self.context["booking"]
+        user = self.context["request"].user
+
+        if booking.status not in {Booking.Status.PENDING, Booking.Status.COUNTERED, Booking.Status.AWAITING_DEPOSIT} and not booking_is_legacy_negotiation(booking):
+            raise serializers.ValidationError("Counteroffers are not allowed for this booking in its current state.")
+
+        latest_offer = booking.offers.order_by("-created_at").first()
+        if latest_offer and latest_offer.status == BookingOffer.Status.PENDING and latest_offer.proposed_by_id == user.id:
+            raise serializers.ValidationError("Your latest counteroffer is still waiting for a response.")
+        return attrs
+
     @transaction.atomic
     def save(self, **kwargs):
         booking = self.context["booking"]
         user = self.context["request"].user
+        latest_offer = booking.offers.order_by("-created_at").first()
 
-        if booking.status not in {Booking.Status.PENDING, Booking.Status.COUNTERED, Booking.Status.AWAITING_DEPOSIT}:
-            raise serializers.ValidationError("Counteroffers are not allowed for this booking in its current state.")
+        if latest_offer and latest_offer.status == BookingOffer.Status.PENDING and latest_offer.proposed_by_id != user.id:
+            latest_offer.status = BookingOffer.Status.REJECTED
+            latest_offer.responded_at = timezone.now()
+            latest_offer.save(update_fields=["status", "responded_at", "updated_at"])
 
         booking_offer = BookingOffer.objects.create(
             booking=booking,
@@ -266,7 +325,11 @@ class DisputeCreateSerializer(serializers.ModelSerializer):
             status=Dispute.Status.OPEN,
             **validated_data,
         )
-        if booking.status != Booking.Status.DISPUTED:
+        if booking.status in {
+            Booking.Status.CONFIRMED,
+            Booking.Status.IN_PROGRESS,
+            Booking.Status.COMPLETED,
+        }:
             booking.transition_status(
                 to_status=Booking.Status.DISPUTED,
                 changed_by=user,

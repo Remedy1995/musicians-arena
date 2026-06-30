@@ -11,12 +11,18 @@ def talent_media_upload_to(instance, filename):
     return f"talent-media/{instance.talent_profile.user_id}/{instance.id or 'pending'}{extension}"
 
 
+def user_profile_image_upload_to(instance, filename):
+    extension = Path(filename).suffix.lower() or ".jpg"
+    return f"profile-images/{instance.user_id}/{instance.id or 'pending'}{extension}"
+
+
 class UserProfile(TimeStampedUUIDModel):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     first_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100, blank=True)
     display_name = models.CharField(max_length=150)
     profile_image_url = models.URLField(blank=True)
+    profile_image = models.FileField(upload_to=user_profile_image_upload_to, blank=True)
     cover_image_url = models.URLField(blank=True)
     bio = models.TextField(blank=True)
     city = models.CharField(max_length=120, blank=True)

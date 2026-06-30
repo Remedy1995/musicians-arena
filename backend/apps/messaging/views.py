@@ -5,6 +5,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.throttling import ScopedWriteThrottleMixin
 from apps.messaging.models import Conversation, Message
 from apps.messaging.serializers import (
     ConversationCreateSerializer,
@@ -19,9 +20,10 @@ from apps.notifications.services import notify_new_message
     get=extend_schema(tags=["Messaging"], summary="List user conversations"),
     post=extend_schema(tags=["Messaging"], summary="Create a conversation"),
 )
-class ConversationListCreateView(generics.ListCreateAPIView):
+class ConversationListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Conversation.objects.none()
+    throttle_scope = "message_start"
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -29,7 +31,7 @@ class ConversationListCreateView(generics.ListCreateAPIView):
         return (
             Conversation.objects.filter(participants__user=self.request.user)
             .select_related("initiated_by", "booking")
-            .prefetch_related("participants__user", "messages")
+            .prefetch_related("participants__user__profile", "messages")
             .distinct()
             .order_by("-last_message_at", "-created_at")
         )
@@ -43,7 +45,7 @@ class ConversationListCreateView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         conversation = serializer.save()
-        return Response(ConversationSerializer(conversation).data, status=status.HTTP_201_CREATED)
+        return Response(ConversationSerializer(conversation, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=["Messaging"], summary="Retrieve a conversation")
@@ -55,7 +57,7 @@ class ConversationDetailView(generics.RetrieveAPIView):
         return (
             Conversation.objects.filter(participants__user=self.request.user)
             .select_related("initiated_by", "booking")
-            .prefetch_related("participants__user", "messages")
+            .prefetch_related("participants__user__profile", "messages")
             .distinct()
         )
 
@@ -64,9 +66,10 @@ class ConversationDetailView(generics.RetrieveAPIView):
     get=extend_schema(tags=["Messaging"], summary="List conversation messages"),
     post=extend_schema(tags=["Messaging"], summary="Send a conversation message"),
 )
-class ConversationMessageListCreateView(generics.ListCreateAPIView):
+class ConversationMessageListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Message.objects.none()
+    throttle_scope = "message_write"
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
