@@ -1,10 +1,13 @@
 services:
   db:
     image: postgres:17
+    restart: unless-stopped
+    env_file:
+      - backend/.env
     environment:
-      POSTGRES_DB: musicians_arena
-      POSTGRES_USER: musicians_arena
-      POSTGRES_PASSWORD: musicians_arena
+      POSTGRES_DB: ${POSTGRES_DB:-musicians_arena}
+      POSTGRES_USER: ${POSTGRES_USER:-musicians_arena}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-musicians_arena}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -12,6 +15,7 @@ services:
 
   redis:
     image: redis:7
+    restart: unless-stopped
     ports:
       - "6379:6379"
 
@@ -21,7 +25,7 @@ services:
       dockerfile: backend/Dockerfile
     command: daphne -b 0.0.0.0 -p 8000 config.asgi:application
     env_file:
-      - backend/.env.example
+      - backend/.env
     environment:
       DJANGO_ENV: development
       DJANGO_DEBUG: "True"
@@ -37,6 +41,9 @@ services:
       CHANNELS_USE_REDIS: "True"
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
+      RUN_MIGRATIONS: "True"
+      RUN_COLLECTSTATIC: "False"
+      WAIT_FOR_REDIS: "True"
     depends_on:
       - db
       - redis
@@ -51,7 +58,7 @@ services:
       dockerfile: backend/Dockerfile
     command: celery -A config worker -l info
     env_file:
-      - backend/.env.example
+      - backend/.env
     environment:
       DJANGO_ENV: development
       DJANGO_DEBUG: "True"
@@ -65,6 +72,7 @@ services:
       CHANNELS_USE_REDIS: "True"
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
+      WAIT_FOR_REDIS: "True"
     depends_on:
       - db
       - redis

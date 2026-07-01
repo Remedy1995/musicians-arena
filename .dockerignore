@@ -1,4 +1,6 @@
 .git
+.agents
+.codex
 .venv
 __pycache__
 *.pyc
@@ -7,3 +9,5 @@ backend/db.sqlite3
 backend/media
 backend/staticfiles
 node_modules
+mobile
+docs
