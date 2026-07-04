@@ -7,6 +7,11 @@ function parseInteger(value: string | undefined, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function parseBoolean(value: string | undefined, fallback: boolean) {
+  if (value === undefined) return fallback;
+  return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+}
+
 export default (): ExpoConfig => {
   const appName = process.env.APP_DISPLAY_NAME || baseConfig.name || "Musician's Arena";
   const appSlug = process.env.APP_SLUG || baseConfig.slug || "musicians-arena";
@@ -18,6 +23,13 @@ export default (): ExpoConfig => {
   const androidVersionCode = parseInteger(process.env.ANDROID_VERSION_CODE, 1);
   const easProjectId = process.env.EAS_PROJECT_ID;
   const appVariant = process.env.APP_VARIANT || "development";
+  const allowInsecureHttp = parseBoolean(process.env.ALLOW_INSECURE_HTTP, false);
+  const androidConfig = {
+    ...baseConfig.android,
+    package: androidPackage,
+    versionCode: androidVersionCode,
+    usesCleartextTraffic: allowInsecureHttp,
+  } as NonNullable<ExpoConfig["android"]> & { usesCleartextTraffic?: boolean };
 
   return {
     ...baseConfig,
@@ -32,15 +44,24 @@ export default (): ExpoConfig => {
       ...baseConfig.ios,
       bundleIdentifier: iosBundleIdentifier,
       buildNumber: iosBuildNumber,
+      infoPlist: {
+        ...(baseConfig.ios?.infoPlist || {}),
+        ...(allowInsecureHttp
+          ? {
+              NSAppTransportSecurity: {
+                NSAllowsArbitraryLoads: true,
+              },
+            }
+          : {}),
+      },
     },
-    android: {
-      ...baseConfig.android,
-      package: androidPackage,
-      versionCode: androidVersionCode,
-    },
+    android: androidConfig,
     extra: {
       ...(baseConfig.extra || {}),
       appVariant,
+      apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || null,
+      wsBaseUrl: process.env.EXPO_PUBLIC_WS_BASE_URL || null,
+      allowInsecureHttp,
       ...(easProjectId
         ? {
             eas: {

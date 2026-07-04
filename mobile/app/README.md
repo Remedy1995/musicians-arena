@@ -35,6 +35,7 @@ Key values:
 
 - `EXPO_PUBLIC_API_BASE_URL`: REST base URL such as `https://api.yourdomain.com/api/v1`
 - `EXPO_PUBLIC_WS_BASE_URL`: websocket base URL such as `wss://api.yourdomain.com`
+- `ALLOW_INSECURE_HTTP`: set to `true` while your backend is still served over plain `http://` by IP
 - `IOS_BUNDLE_IDENTIFIER`: final iOS bundle identifier for TestFlight and App Store builds
 - `ANDROID_PACKAGE`: final Android package name for Play Store builds
 - `EAS_PROJECT_ID`: Expo project ID after linking the app to EAS
@@ -65,8 +66,8 @@ cd backend
 The app now uses dynamic Expo config through `app.config.ts`, plus `eas.json` build profiles:
 
 - `development`: internal dev-client builds
-- `preview`: internal QA builds
-- `production`: store-ready builds
+- `preview`: internal QA builds wired to `http://157.90.144.124:8000/api/v1`
+- `production`: release builds currently wired to the same backend until you switch to a domain and HTTPS
 
 Common commands:
 
@@ -76,6 +77,22 @@ npx eas build --platform ios --profile preview
 npx eas build --platform android --profile production
 npx eas build --platform ios --profile production
 ```
+
+Convenience scripts:
+
+```bash
+npm run build:android:preview
+npm run build:ios:preview
+npm run build:android:production
+npm run build:ios:production
+```
+
+Current mobile build behavior:
+
+- Android and iOS preview builds are configured to talk directly to `http://157.90.144.124:8000/api/v1`
+- websocket chat and notifications use `ws://157.90.144.124:8000`
+- cleartext HTTP is explicitly enabled so the current IP-based backend works on real devices
+- once you move the backend behind a real HTTPS domain, switch the build env values to `https://` and `wss://`, then set `ALLOW_INSECURE_HTTP=false`
 
 Helpful validation commands:
 
