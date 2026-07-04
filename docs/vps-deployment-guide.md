@@ -3,8 +3,12 @@
 This guide assumes:
 
 - Ubuntu 24.04 or a similar Linux VPS
-- a domain or subdomain pointed to the VPS, for example `api.example.com`
 - Docker and Docker Compose plugin installed on the server
+
+You can use this stack in two modes:
+
+- IP preview mode for early testing on ports such as `8000` and `8080`
+- domain mode later with the optional Caddy gateway profile for HTTPS
 
 ## 1. Prepare the VPS
 
@@ -27,8 +31,8 @@ Open the firewall:
 
 ```bash
 sudo ufw allow OpenSSH
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
+sudo ufw allow 8000/tcp
+sudo ufw allow 8080/tcp
 sudo ufw enable
 ```
 
@@ -59,13 +63,17 @@ Update `backend/.env`:
 
 Update `infra/.env.production`:
 
-- set `APP_DOMAIN=api.yourdomain.com`
-- set `ACME_EMAIL=you@yourdomain.com`
+- set `API_PORT=8000`
+- set `WEB_PORT=8080`
+- set `EXPO_PUBLIC_API_BASE_URL=http://your-server-ip:8000/api/v1`
+- set `EXPO_PUBLIC_WS_BASE_URL=ws://your-server-ip:8000`
+- if you already have a domain and want HTTPS later, also set `APP_DOMAIN=api.yourdomain.com` and `ACME_EMAIL=you@yourdomain.com`
 
 Important:
 
 - database credentials are read from `backend/.env`
-- `infra/.env.production` is only for infrastructure values such as `APP_DOMAIN` and `ACME_EMAIL`
+- `infra/.env.production` now carries port bindings and preview frontend build values in addition to optional gateway values
+- if you deploy the preview web frontend on port `8080`, add `http://your-server-ip:8080` to `DJANGO_CORS_ALLOWED_ORIGINS`
 
 ## 4. Start the stack
 
@@ -85,14 +93,18 @@ docker compose --env-file infra/.env.production -f docker-compose.prod.yml logs 
 Once the containers are healthy, test:
 
 ```bash
-curl https://api.yourdomain.com/api/v1/health/
-curl https://api.yourdomain.com/api/v1/docs/swagger/
+curl http://your-server-ip:8000/api/v1/health/
+curl http://your-server-ip:8000/api/v1/docs/swagger/
 ```
+
+You should also verify the preview web frontend:
+
+- `http://your-server-ip:8080`
 
 You should also verify websocket traffic from the mobile app after you point:
 
-- `EXPO_PUBLIC_API_BASE_URL=https://api.yourdomain.com/api/v1`
-- `EXPO_PUBLIC_WS_BASE_URL=wss://api.yourdomain.com`
+- `EXPO_PUBLIC_API_BASE_URL=http://your-server-ip:8000/api/v1`
+- `EXPO_PUBLIC_WS_BASE_URL=ws://your-server-ip:8000`
 
 ## 6. Run admin tasks
 
@@ -127,7 +139,8 @@ docker compose --env-file infra/.env.production -f docker-compose.prod.yml ps
 
 ## Notes
 
-- Caddy handles HTTPS termination and proxies both HTTP and websocket traffic to Daphne.
+- The default stack now exposes the Django API directly on `API_PORT` and the preview web frontend on `WEB_PORT`.
+- Caddy remains available behind the `gateway` profile for later domain-based HTTPS deployment.
 - Postgres and Redis are kept internal to Docker and are not exposed publicly in production.
-- Static files are collected into a shared Docker volume and served by Caddy.
+- Static files are collected into a shared Docker volume and served by Django/Caddy depending on the mode you use.
 - Media files are stored on a shared Docker volume by default. For long-term production durability, S3-compatible storage is the better next step.

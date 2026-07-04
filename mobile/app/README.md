@@ -29,6 +29,8 @@ npm start
 
 Create a local env file from `.env.example` and set the API endpoints you want the app to use.
 
+For a live VPS preview that targets the current deployment at `157.90.144.124:8000`, start from `.env.preview.example`.
+
 Key values:
 
 - `EXPO_PUBLIC_API_BASE_URL`: REST base URL such as `https://api.yourdomain.com/api/v1`
@@ -80,6 +82,28 @@ Helpful validation commands:
 ```bash
 npm run typecheck
 npm run expo:config
+npm run web:export
+```
+
+## VPS Web Preview
+
+The repo includes a lightweight preview web container that exports the Expo app and serves it with nginx for browser testing.
+
+- the preview frontend defaults to port `8080`
+- the production API defaults to port `8000`
+- set `EXPO_PUBLIC_API_BASE_URL` and `EXPO_PUBLIC_WS_BASE_URL` in `infra/.env.production`
+- allow the preview origin in Django CORS, for example `http://157.90.144.124:8080`
+
+After you pull the latest repo on the VPS:
+
+```bash
+docker compose --env-file infra/.env.production -f docker-compose.prod.yml up -d --build
+```
+
+Then open:
+
+```text
+http://157.90.144.124:8080
 ```
 
 ## MVP Gaps
