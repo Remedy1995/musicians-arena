@@ -22,14 +22,10 @@ services:
     restart: unless-stopped
     env_file:
       - backend/.env
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-musicians_arena}
-      POSTGRES_USER: ${POSTGRES_USER:-musicians_arena}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-musicians_arena}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-musicians_arena} -d ${POSTGRES_DB:-musicians_arena}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 10

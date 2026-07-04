@@ -62,6 +62,11 @@ Update `infra/.env.production`:
 - set `APP_DOMAIN=api.yourdomain.com`
 - set `ACME_EMAIL=you@yourdomain.com`
 
+Important:
+
+- database credentials are read from `backend/.env`
+- `infra/.env.production` is only for infrastructure values such as `APP_DOMAIN` and `ACME_EMAIL`
+
 ## 4. Start the stack
 
 ```bash
