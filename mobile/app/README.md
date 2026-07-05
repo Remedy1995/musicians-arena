@@ -84,6 +84,7 @@ Convenience scripts:
 npm run eas:login
 npm run eas:whoami
 npm run build:android:preview
+npm run build:android:preview:clean
 npm run build:ios:preview
 npm run build:android:production
 npm run build:ios:production
@@ -94,6 +95,7 @@ Current mobile build behavior:
 - Android and iOS preview builds are configured to talk directly to `http://157.90.144.124:8000/api/v1`
 - websocket chat and notifications use `ws://157.90.144.124:8000`
 - cleartext HTTP is explicitly enabled so the current IP-based backend works on real devices
+- after native Android config changes, use `npm run build:android:preview:clean`, uninstall the old APK, then install the new APK
 - once you move the backend behind a real HTTPS domain, switch the build env values to `https://` and `wss://`, then set `ALLOW_INSECURE_HTTP=false`
 
 Helpful validation commands:
