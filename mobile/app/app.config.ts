@@ -23,13 +23,20 @@ export default (): ExpoConfig => {
   const androidVersionCode = parseInteger(process.env.ANDROID_VERSION_CODE, 1);
   const easProjectId = process.env.EAS_PROJECT_ID || "d87d4395-c737-433e-a7b5-00b37877b66b";
   const appVariant = process.env.APP_VARIANT || "development";
-  const allowInsecureHttp = parseBoolean(process.env.ALLOW_INSECURE_HTTP, false);
+  const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || null;
+  const wsBaseUrl = process.env.EXPO_PUBLIC_WS_BASE_URL || null;
+  const usesPlainHttp = Boolean(apiBaseUrl?.startsWith("http://") || wsBaseUrl?.startsWith("ws://"));
+  const allowInsecureHttp = parseBoolean(process.env.ALLOW_INSECURE_HTTP, usesPlainHttp);
   const androidConfig = {
     ...baseConfig.android,
     package: androidPackage,
     versionCode: androidVersionCode,
     usesCleartextTraffic: allowInsecureHttp,
-  } as NonNullable<ExpoConfig["android"]> & { usesCleartextTraffic?: boolean };
+    softwareKeyboardLayoutMode: "resize",
+  } as NonNullable<ExpoConfig["android"]> & {
+    usesCleartextTraffic?: boolean;
+    softwareKeyboardLayoutMode?: "pan" | "resize";
+  };
 
   return {
     ...baseConfig,
@@ -59,8 +66,8 @@ export default (): ExpoConfig => {
     extra: {
       ...(baseConfig.extra || {}),
       appVariant,
-      apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || null,
-      wsBaseUrl: process.env.EXPO_PUBLIC_WS_BASE_URL || null,
+      apiBaseUrl,
+      wsBaseUrl,
       allowInsecureHttp,
       ...(easProjectId
         ? {

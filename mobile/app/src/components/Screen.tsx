@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { theme } from "../theme/theme";
@@ -13,12 +13,20 @@ type ScreenProps = {
 export function Screen({ children, contentContainerStyle, innerStyle }: ScreenProps) {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.content, contentContainerStyle]}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoider}
       >
-        <View style={[styles.inner, innerStyle]}>{children}</View>
-      </ScrollView>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          automaticallyAdjustKeyboardInsets
+          contentContainerStyle={[styles.content, contentContainerStyle]}
+        >
+          <View style={[styles.inner, innerStyle]}>{children}</View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -27,6 +35,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: theme.semanticColors.background,
+  },
+  keyboardAvoider: {
+    flex: 1,
   },
   content: {
     paddingBottom: theme.spacing[10],
