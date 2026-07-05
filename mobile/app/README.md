@@ -72,15 +72,17 @@ The app now uses dynamic Expo config through `app.config.ts`, plus `eas.json` bu
 Common commands:
 
 ```bash
-npx eas build --platform android --profile preview
-npx eas build --platform ios --profile preview
-npx eas build --platform android --profile production
-npx eas build --platform ios --profile production
+npx eas-cli@latest build --platform android --profile preview
+npx eas-cli@latest build --platform ios --profile preview
+npx eas-cli@latest build --platform android --profile production
+npx eas-cli@latest build --platform ios --profile production
 ```
 
 Convenience scripts:
 
 ```bash
+npm run eas:login
+npm run eas:whoami
 npm run build:android:preview
 npm run build:ios:preview
 npm run build:android:production
