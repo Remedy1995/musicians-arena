@@ -63,6 +63,10 @@ export default (): ExpoConfig => {
       },
     },
     android: androidConfig,
+    plugins: [
+      ...(baseConfig.plugins || []),
+      ...(allowInsecureHttp ? ["./plugins/withAndroidCleartextTraffic"] : []),
+    ],
     extra: {
       ...(baseConfig.extra || {}),
       appVariant,
