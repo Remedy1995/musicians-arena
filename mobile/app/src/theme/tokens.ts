@@ -147,10 +147,10 @@ export const motion = {
 };
 
 export const layout = {
-  screenPadding: spacing[5],
-  cardGap: spacing[4],
-  sectionGap: spacing[8],
-  buttonHeight: 54,
-  inputHeight: 56,
+  screenPadding: spacing[4],
+  cardGap: spacing[3],
+  sectionGap: spacing[5],
+  buttonHeight: 48,
+  inputHeight: 52,
   tabBarHeight: 78,
 };

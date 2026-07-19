@@ -979,8 +979,8 @@ function buildConvertForm(quotedAmount: string) {
 
 const styles = StyleSheet.create({
   header: {
-    gap: theme.spacing[2],
-    paddingTop: theme.spacing[3],
+    gap: theme.spacing[1],
+    paddingTop: theme.spacing[1],
   },
   headerBadge: {
     alignSelf: "flex-start",
@@ -996,24 +996,24 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size["3xl"],
-    lineHeight: theme.typography.lineHeight["3xl"],
+    fontSize: theme.typography.size["2xl"],
+    lineHeight: theme.typography.lineHeight["2xl"],
     color: theme.semanticColors.textPrimary,
   },
   body: {
     fontFamily: theme.typography.fontFamily.body,
-    fontSize: theme.typography.size.md,
-    lineHeight: theme.typography.lineHeight.md,
+    fontSize: theme.typography.size.sm,
+    lineHeight: theme.typography.lineHeight.sm,
     color: theme.semanticColors.textSecondary,
   },
   heroActions: {
-    gap: theme.spacing[3],
+    gap: theme.spacing[2],
   },
   section: {
-    gap: theme.spacing[4],
+    gap: theme.spacing[3],
   },
   list: {
-    gap: theme.spacing[4],
+    gap: theme.spacing[3],
   },
   modalScreen: {
     flex: 1,

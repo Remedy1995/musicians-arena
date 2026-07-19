@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: theme.spacing[10],
+    paddingBottom: theme.spacing[6],
   },
   inner: {
     paddingHorizontal: theme.layout.screenPadding,

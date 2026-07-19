@@ -21,8 +21,8 @@ export function InfoCard({ eyebrow, title, body }: InfoCardProps) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: theme.radius.xl,
-    padding: theme.spacing[5],
-    gap: theme.spacing[2],
+    padding: theme.spacing[4],
+    gap: theme.spacing[1],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,

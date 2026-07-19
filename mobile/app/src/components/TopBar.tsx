@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: theme.spacing[3],
+    paddingTop: theme.spacing[1],
     paddingBottom: theme.spacing[1],
   },
   brandGroup: {
@@ -61,8 +61,8 @@ const styles = StyleSheet.create({
     gap: theme.spacing[3],
   },
   logoMark: {
-    width: 42,
-    height: 42,
+    width: 38,
+    height: 38,
     borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",

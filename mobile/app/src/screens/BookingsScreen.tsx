@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { UserRole } from "../AppShell";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
@@ -100,6 +100,12 @@ export function BookingsScreen({
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [paymentSummary, setPaymentSummary] = useState<BookingPaymentSummary | null>(null);
+  const [paystackCheckout, setPaystackCheckout] = useState<{
+    paymentType: "deposit" | "balance" | "full";
+    amount: string;
+    authorizationUrl: string;
+    reference: string;
+  } | null>(null);
   const [loadingPaymentSummary, setLoadingPaymentSummary] = useState(false);
   const [form, setForm] = useState({
     quotedAmount: "",
@@ -175,7 +181,7 @@ export function BookingsScreen({
             ? "New client booking offers land here first. Open any request to accept, counter, or decline."
             : "Keep every confirmed booking, payment milestone, and event handoff in one place."}
         </Text>
-        {role === "client" ? (
+                {role === "client" ? (
           <View style={styles.statusTabsWrap}>
             <View style={styles.statusFilterHeader}>
               <Text style={styles.statusFilterLabel}>Browse by status</Text>
@@ -410,17 +416,35 @@ export function BookingsScreen({
               </Pressable>
               <View style={styles.paymentCard}>
                 <Text style={styles.sectionMiniTitle}>Payment summary</Text>
+                <View style={styles.fundsStatePill}>
+                  <MaterialCommunityIcons name="shield-lock-outline" size={16} color={theme.colors.gold[600]} />
+                  <Text style={styles.fundsStateText}>
+                    {formatFundsState(paymentSummary?.funds_state ?? "awaiting_payment")}
+                  </Text>
+                </View>
                 <Text style={styles.paymentLine}>Quoted: {formatMoney(selectedBooking.currency_code, paymentSummary?.quoted_amount || selectedBooking.quoted_amount || selectedBooking.budget_max || selectedBooking.budget_min)}</Text>
                 <Text style={styles.paymentLine}>Deposit due: {formatMoney(selectedBooking.currency_code, paymentSummary?.deposit_amount || selectedBooking.deposit_amount)}</Text>
                 <Text style={styles.paymentLine}>Deposit paid: {formatMoney(selectedBooking.currency_code, paymentSummary?.deposit_paid)}</Text>
                 <Text style={styles.paymentLine}>Balance due: {formatMoney(selectedBooking.currency_code, paymentSummary?.balance_amount || selectedBooking.balance_amount)}</Text>
                 <Text style={styles.paymentLine}>Balance paid: {formatMoney(selectedBooking.currency_code, paymentSummary?.balance_paid)}</Text>
                 <Text style={styles.paymentLine}>Total paid: {formatMoney(selectedBooking.currency_code, paymentSummary?.total_paid)}</Text>
+                <Text style={styles.paymentLine}>Held by app: {formatMoney(selectedBooking.currency_code, paymentSummary?.held_amount)}</Text>
                 <Text style={styles.paymentLine}>Outstanding: {formatMoney(selectedBooking.currency_code, paymentSummary?.outstanding_amount)}</Text>
+                {paymentSummary?.refund_due_amount && Number(paymentSummary.refund_due_amount) > 0 ? (
+                  <Text style={styles.paymentLine}>Refund due: {formatMoney(selectedBooking.currency_code, paymentSummary.refund_due_amount)}</Text>
+                ) : null}
+                {paymentSummary?.talent_compensation_amount && Number(paymentSummary.talent_compensation_amount) > 0 ? (
+                  <Text style={styles.paymentLine}>Talent compensation: {formatMoney(selectedBooking.currency_code, paymentSummary.talent_compensation_amount)}</Text>
+                ) : null}
+                {paymentSummary?.balance_due_at ? (
+                  <Text style={styles.paymentHint}>Balance due by {formatTimestamp(paymentSummary.balance_due_at)}</Text>
+                ) : null}
+                {paymentSummary?.next_step ? <Text style={styles.paymentNextStep}>{paymentSummary.next_step}</Text> : null}
                 {role === "talent" ? (
                   <>
-                    <Text style={styles.paymentLine}>Platform commission: {formatMoney(selectedBooking.currency_code, paymentSummary?.commission_amount)}</Text>
-                    <Text style={styles.paymentLine}>Payout due: {formatMoney(selectedBooking.currency_code, paymentSummary?.payout_due_amount)}</Text>
+                    <Text style={styles.paymentLine}>Projected commission: {formatMoney(selectedBooking.currency_code, paymentSummary?.projected_commission_amount)}</Text>
+                    <Text style={styles.paymentLine}>Projected payout: {formatMoney(selectedBooking.currency_code, paymentSummary?.projected_payout_amount)}</Text>
+                    <Text style={styles.paymentLine}>Payout pending release: {formatMoney(selectedBooking.currency_code, paymentSummary?.payout_due_amount)}</Text>
                   </>
                 ) : null}
                 {loadingPaymentSummary ? <Text style={styles.paymentHint}>Refreshing payment summary...</Text> : null}
@@ -428,7 +452,17 @@ export function BookingsScreen({
                   <View style={styles.paymentHistory}>
                     {paymentSummary.payments.slice(0, 3).map((payment) => (
                       <Text key={payment.id} style={styles.paymentHistoryLine}>
-                        {payment.payment_type} • {formatMoney(payment.currency_code, payment.amount)} • {payment.status}
+                        {payment.payment_type} • {formatMoney(payment.currency_code, payment.amount)} • {payment.fund_state}
+                      </Text>
+                    ))}
+                  </View>
+                ) : null}
+                {paymentSummary?.refunds.length ? (
+                  <View style={styles.payoutHistory}>
+                    <Text style={styles.sectionMiniTitle}>Refund summary</Text>
+                    {paymentSummary.refunds.slice(0, 3).map((refund) => (
+                      <Text key={refund.id} style={styles.paymentHistoryLine}>
+                        {refund.status} • {formatMoney(selectedBooking.currency_code, refund.amount)} • {refund.reason.replaceAll("_", " ")}
                       </Text>
                     ))}
                   </View>
@@ -438,7 +472,7 @@ export function BookingsScreen({
                     <Text style={styles.sectionMiniTitle}>Payout summary</Text>
                     {paymentSummary.payouts.slice(0, 3).map((payout) => (
                       <Text key={payout.id} style={styles.paymentHistoryLine}>
-                        {payout.status} • Net {formatMoney(selectedBooking.currency_code, payout.net_amount)} • {payout.payout_method.replaceAll("_", " ")}
+                        {payout.status} • Net {formatMoney(selectedBooking.currency_code, payout.net_amount)} • {payout.trigger_reason.replaceAll("_", " ")}
                       </Text>
                     ))}
                   </View>
@@ -499,17 +533,57 @@ export function BookingsScreen({
                     ) : null}
                     {effectiveStatus === "awaiting_deposit" ? (
                       <SecondaryButton
-                        label="Record deposit payment"
+                        label="Pay deposit"
                         onPress={() => {
-                          void handleRecordPayment("deposit");
+                          void handlePaystackPayment("deposit");
                         }}
                       />
                     ) : null}
-                    {["confirmed", "completed"].includes(effectiveStatus ?? "") ? (
+                    {paymentSummary?.can_pay_balance || (effectiveStatus === "confirmed" && Number(paymentSummary?.outstanding_amount ?? "0") > 0) ? (
                       <SecondaryButton
-                        label="Record balance payment"
+                        label="Pay balance"
                         onPress={() => {
-                          void handleRecordPayment("balance");
+                          void handlePaystackPayment("balance");
+                        }}
+                      />
+                    ) : null}
+                    {paystackCheckout ? (
+                      <View style={styles.checkoutPendingCard}>
+                        <View style={styles.checkoutPendingHeader}>
+                          <MaterialCommunityIcons name="lock-check-outline" size={18} color={theme.colors.teal[600]} />
+                          <Text style={styles.checkoutPendingTitle}>Checkout started</Text>
+                        </View>
+                        <Text style={styles.checkoutPendingBody}>
+                          Complete the {paystackCheckout.paymentType} payment in Paystack, then return here to verify it.
+                        </Text>
+                        <SecondaryButton
+                          label="Open Paystack again"
+                          onPress={() => {
+                            void Linking.openURL(paystackCheckout.authorizationUrl);
+                          }}
+                        />
+                        <PrimaryButton
+                          label={submitting ? "Verifying..." : "I've completed payment"}
+                          onPress={() => {
+                            void handleVerifyPaystackPayment();
+                          }}
+                        />
+                      </View>
+                    ) : null}
+                    {paymentSummary?.can_confirm_completion ? (
+                      <PrimaryButton
+                        label="Confirm completion"
+                        onPress={() => {
+                          void handleBookingAction("complete");
+                        }}
+                      />
+                    ) : null}
+                    {paymentSummary?.can_report_no_show ? (
+                      <SecondaryButton
+                        label="Report talent no-show"
+                        destructive
+                        onPress={() => {
+                          void handleBookingAction("report_no_show", "talent");
                         }}
                       />
                     ) : null}
@@ -517,6 +591,15 @@ export function BookingsScreen({
                 ) : null}
                 {role === "talent" && effectiveStatus === "awaiting_deposit" ? (
                   <SecondaryButton label="Awaiting client deposit" />
+                ) : null}
+                {role === "talent" && paymentSummary?.can_report_no_show ? (
+                  <SecondaryButton
+                    label="Report organizer no-show"
+                    destructive
+                    onPress={() => {
+                      void handleBookingAction("report_no_show", "client");
+                    }}
+                  />
                 ) : null}
                 <SecondaryButton label="Open messages" onPress={() => onNavigateTab("messages")} />
               </View>
@@ -646,13 +729,17 @@ export function BookingsScreen({
     </Screen>
   );
 
-  async function handleBookingAction(action: "accept" | "reject" | "cancel" | "confirm") {
+  async function handleBookingAction(
+    action: "accept" | "reject" | "cancel" | "confirm" | "complete" | "report_no_show",
+    noShowParty?: "client" | "talent",
+  ) {
     if (!selectedBooking) return;
     setSubmitting(true);
     setActionError(null);
     try {
       await api.bookingAction(token, selectedBooking.id, {
         action,
+        no_show_party: noShowParty,
         quoted_amount: action === "accept" ? acceptTerms.quotedAmount : undefined,
         deposit_amount: action === "accept" ? acceptTerms.depositAmount : undefined,
         balance_amount: action === "accept" ? acceptTerms.balanceAmount : undefined,
@@ -707,12 +794,50 @@ async function handleCounteroffer() {
     }
   }
 
+  async function handlePaystackPayment(paymentType: "deposit" | "balance" | "full") {
+    if (!selectedBooking) return;
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      const checkout = await api.initializePaystackPayment(token, selectedBooking.id, paymentType);
+      setPaystackCheckout({
+        paymentType: checkout.payment_type,
+        amount: checkout.amount,
+        authorizationUrl: checkout.authorization_url,
+        reference: checkout.provider_reference,
+      });
+      await Linking.openURL(checkout.authorization_url);
+    } catch (caught) {
+      setActionError(caught instanceof ApiError ? caught.message : caught instanceof Error ? caught.message : "Unable to open Paystack checkout.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleVerifyPaystackPayment() {
+    if (!selectedBooking || !paystackCheckout) return;
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      await api.verifyPaystackPayment(token, selectedBooking.id, paystackCheckout.reference);
+      const summary = await api.bookingPaymentSummary(token, selectedBooking.id);
+      setPaymentSummary(summary);
+      setPaystackCheckout(null);
+      await marketplace.refresh();
+    } catch (caught) {
+      setActionError(caught instanceof ApiError ? caught.message : caught instanceof Error ? caught.message : "Unable to verify Paystack payment.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function closeModal() {
     setActionOpen(false);
     setHistoryOpen(false);
     setActiveActionForm(null);
     setSelectedBookingId(null);
     setPaymentSummary(null);
+    setPaystackCheckout(null);
     setForm({
       quotedAmount: "",
       depositAmount: "",
@@ -866,6 +991,29 @@ function getBookingCardEyebrow(status: string) {
 
 function formatStatusLabel(status: string) {
   return status.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function formatFundsState(status: string) {
+  switch (status) {
+    case "deposit_held":
+      return "Deposit held safely";
+    case "fully_held":
+      return "Full amount held safely";
+    case "payout_ready":
+      return "Payout ready";
+    case "payout_pending":
+      return "Payout pending";
+    case "payout_paid":
+      return "Payout paid";
+    case "refund_pending":
+      return "Refund pending";
+    case "compensation_pending":
+      return "Compensation pending";
+    case "disputed":
+      return "Funds frozen for review";
+    default:
+      return "Awaiting payment";
+  }
 }
 
 function getBookingDisplayStatusLabel(status: string) {
@@ -1144,10 +1292,58 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size.sm,
     color: theme.semanticColors.textSecondary,
   },
+  fundsStatePill: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[2],
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: theme.spacing[2],
+    backgroundColor: "#FFF4DB",
+    borderWidth: 1,
+    borderColor: theme.colors.gold[300],
+  },
+  fundsStateText: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    color: theme.colors.gold[600],
+  },
   paymentHint: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.xs,
     color: theme.semanticColors.textMuted,
+  },
+  paymentNextStep: {
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    fontSize: theme.typography.size.sm,
+    lineHeight: theme.typography.lineHeight.sm,
+    color: theme.semanticColors.textPrimary,
+    marginTop: theme.spacing[2],
+  },
+  checkoutPendingCard: {
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing[3],
+    backgroundColor: "#EAF7F5",
+    borderWidth: 1,
+    borderColor: theme.colors.teal[300],
+    gap: theme.spacing[2],
+  },
+  checkoutPendingHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[2],
+  },
+  checkoutPendingTitle: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.sm,
+    color: theme.colors.teal[600],
+  },
+  checkoutPendingBody: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.xs,
+    lineHeight: theme.typography.lineHeight.xs,
+    color: theme.semanticColors.textSecondary,
   },
   disputeList: {
     gap: theme.spacing[3],

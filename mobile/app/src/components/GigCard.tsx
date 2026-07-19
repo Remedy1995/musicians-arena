@@ -104,8 +104,8 @@ const styles = StyleSheet.create({
     ...theme.shadows.card,
   },
   cardContent: {
-    padding: theme.spacing[5],
-    gap: theme.spacing[4],
+    padding: theme.spacing[4],
+    gap: theme.spacing[3],
   },
   header: {
     flexDirection: "row",
@@ -137,8 +137,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: theme.typography.fontFamily.displayMedium,
-    fontSize: theme.typography.size.xl,
-    lineHeight: theme.typography.lineHeight.xl,
+    fontSize: theme.typography.size.lg,
+    lineHeight: theme.typography.lineHeight.lg,
     color: theme.semanticColors.textPrimary,
   },
   metaStack: {

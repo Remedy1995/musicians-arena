@@ -266,8 +266,8 @@ const styles = StyleSheet.create({
   heroCard: {
     overflow: "hidden",
     borderRadius: theme.radius.xl,
-    padding: theme.spacing[6],
-    gap: theme.spacing[4],
+    padding: theme.spacing[4],
+    gap: theme.spacing[3],
     ...theme.shadows.floating,
   },
   heroGlow: {
@@ -285,17 +285,17 @@ const styles = StyleSheet.create({
     color: theme.colors.gold[300],
   },
   heroTitle: {
-    maxWidth: 290,
+    maxWidth: 310,
     fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size["3xl"],
-    lineHeight: theme.typography.lineHeight["3xl"],
+    fontSize: theme.typography.size["2xl"],
+    lineHeight: theme.typography.lineHeight["2xl"],
     color: theme.semanticColors.textOnDark,
   },
   heroBody: {
-    maxWidth: 300,
+    maxWidth: 320,
     fontFamily: theme.typography.fontFamily.body,
-    fontSize: theme.typography.size.md,
-    lineHeight: theme.typography.lineHeight.md,
+    fontSize: theme.typography.size.sm,
+    lineHeight: theme.typography.lineHeight.sm,
     color: "rgba(255, 255, 255, 0.78)",
   },
   heroStats: {
@@ -305,13 +305,13 @@ const styles = StyleSheet.create({
   metricPill: {
     flex: 1,
     borderRadius: theme.radius.lg,
-    padding: theme.spacing[4],
+    padding: theme.spacing[3],
     backgroundColor: "rgba(255, 255, 255, 0.08)",
   },
   metricValue: {
     fontFamily: theme.typography.fontFamily.displayMedium,
-    fontSize: theme.typography.size["2xl"],
-    lineHeight: theme.typography.lineHeight["2xl"],
+    fontSize: theme.typography.size.xl,
+    lineHeight: theme.typography.lineHeight.xl,
     color: theme.semanticColors.textOnDark,
   },
   metricLabel: {
@@ -323,15 +323,15 @@ const styles = StyleSheet.create({
   searchCard: {
     borderRadius: theme.radius.xl,
     backgroundColor: theme.semanticColors.surface,
-    padding: theme.spacing[5],
-    gap: theme.spacing[4],
+    padding: theme.spacing[4],
+    gap: theme.spacing[3],
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
     ...theme.shadows.card,
   },
   searchTitle: {
     fontFamily: theme.typography.fontFamily.displayMedium,
-    fontSize: theme.typography.size.xl,
+    fontSize: theme.typography.size.lg,
     color: theme.semanticColors.textPrimary,
   },
   searchInput: {
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   quickFilter: {
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
+    paddingVertical: 6,
     backgroundColor: theme.colors.stone[100],
   },
   quickFilterActive: {
@@ -366,14 +366,14 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textOnDark,
   },
   section: {
-    gap: theme.spacing[4],
+    gap: theme.spacing[3],
   },
   horizontalList: {
-    gap: theme.spacing[4],
-    paddingRight: theme.spacing[5],
+    gap: theme.spacing[3],
+    paddingRight: theme.spacing[4],
   },
   gigList: {
-    gap: theme.spacing[4],
+    gap: theme.spacing[3],
   },
   errorText: {
     fontFamily: theme.typography.fontFamily.bodyMedium,

@@ -54,8 +54,8 @@ export function BookingCard({ title, counterpart, date, amount, status, eyebrow,
 const styles = StyleSheet.create({
   card: {
     borderRadius: theme.radius.xl,
-    padding: theme.spacing[5],
-    gap: theme.spacing[4],
+    padding: theme.spacing[4],
+    gap: theme.spacing[3],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,

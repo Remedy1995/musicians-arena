@@ -45,6 +45,8 @@ Key values:
 - role-aware sign in and registration for clients and talents
 - talent discovery, gig board, gig posting, and applicant review
 - booking negotiation, counteroffers, and payment-summary scaffolding
+- held-funds booking workflow with deposit, balance, completion confirmation, no-show reporting, refund/compensation summaries, and payout-pending states
+- Paystack test checkout for deposit and balance payments with server-side verification
 - messaging APIs with ASGI/WebSocket support via Daphne
 - talent portfolio uploads and hosted-link portfolio items
 - profile photo upload for both clients and talents
@@ -98,6 +100,28 @@ Current mobile build behavior:
 - after native Android config changes, use `npm run build:android:preview:clean`, uninstall the old APK, then install the new APK
 - once you move the backend behind a real HTTPS domain, switch the build env values to `https://` and `wss://`, then set `ALLOW_INSECURE_HTTP=false`
 
+## Payment and Media Production Setup
+
+Paystack secret keys belong in `backend/.env`, never in the mobile app. The backend initializes checkout, verifies the returned reference and amount, and records successful payments as held funds. The mobile app then refreshes the booking payment summary.
+
+For Hetzner Object Storage, use the S3-compatible backend in `backend/.env`:
+
+```env
+MEDIA_FILE_STORAGE_BACKEND=storages.backends.s3.S3Storage
+AWS_STORAGE_BUCKET_NAME=musicians-arena-media
+AWS_ACCESS_KEY_ID=your_hetzner_access_key
+AWS_SECRET_ACCESS_KEY=your_hetzner_secret_key
+AWS_S3_REGION_NAME=fsn1
+AWS_S3_ENDPOINT_URL=https://fsn1.your-objectstorage.com
+AWS_S3_SIGNATURE_VERSION=s3v4
+AWS_S3_ADDRESSING_STYLE=virtual
+AWS_QUERYSTRING_AUTH=True
+AWS_S3_FILE_OVERWRITE=False
+AWS_LOCATION=media
+```
+
+Keep the bucket private when using signed URLs. Copy existing files from the local `media_data` volume before removing local media storage. Register `/api/v1/payments/paystack/webhook/` with Paystack after the API is available over HTTPS; IP-only HTTP testing can use the in-app verification action instead.
+
 Helpful validation commands:
 
 ```bash
@@ -106,7 +130,7 @@ npm run expo:config
 npm run web:export
 ```
 
-## VPS Web Preview
+## VPS Deployment and Web Preview
 
 The repo includes a lightweight preview web container that exports the Expo app and serves it with nginx for browser testing.
 
@@ -121,15 +145,23 @@ After you pull the latest repo on the VPS:
 docker compose --env-file infra/.env.production -f docker-compose.prod.yml up -d --build
 ```
 
+Check the API and container state:
+
+```bash
+docker compose --env-file infra/.env.production -f docker-compose.prod.yml ps
+curl http://127.0.0.1:8000/api/v1/health/
+docker compose --env-file infra/.env.production -f docker-compose.prod.yml logs -f api
+```
+
+The current IP-based setup is suitable for controlled testing. Before public release, put the API behind HTTPS, change the mobile REST/WebSocket values to `https://` and `wss://`, update Django allowed hosts and CORS origins, and register the HTTPS Paystack webhook.
+
 Then open:
 
 ```text
 http://157.90.144.124:8080
 ```
 
-## MVP Gaps
+## Remaining Release Work
 
-- real payment gateway integration and webhook confirmation
-- production media storage such as S3 or Cloudinary
 - persistent auth session storage and refresh handling
 - physical-device QA across Android and iOS

@@ -147,7 +147,13 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = config("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", defau
 DATA_UPLOAD_MAX_MEMORY_SIZE = config("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", default=20 * 1024 * 1024, cast=int)
 
 AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="")
+AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
+AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
+AWS_SESSION_TOKEN = config("AWS_SESSION_TOKEN", default="")
 AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="")
+AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default="")
+AWS_S3_SIGNATURE_VERSION = config("AWS_S3_SIGNATURE_VERSION", default="")
+AWS_S3_ADDRESSING_STYLE = config("AWS_S3_ADDRESSING_STYLE", default="")
 AWS_S3_CUSTOM_DOMAIN = config("AWS_S3_CUSTOM_DOMAIN", default="")
 AWS_QUERYSTRING_AUTH = config("AWS_QUERYSTRING_AUTH", default=False, cast=bool)
 AWS_DEFAULT_ACL = config("AWS_DEFAULT_ACL", default="")
@@ -160,7 +166,13 @@ default_storage_config = {
 if MEDIA_FILE_STORAGE_BACKEND == "storages.backends.s3.S3Storage":
     default_storage_options = {
         "bucket_name": AWS_STORAGE_BUCKET_NAME,
+        "access_key": AWS_ACCESS_KEY_ID,
+        "secret_key": AWS_SECRET_ACCESS_KEY,
+        "security_token": AWS_SESSION_TOKEN,
         "region_name": AWS_S3_REGION_NAME,
+        "endpoint_url": AWS_S3_ENDPOINT_URL,
+        "signature_version": AWS_S3_SIGNATURE_VERSION,
+        "addressing_style": AWS_S3_ADDRESSING_STYLE,
         "custom_domain": AWS_S3_CUSTOM_DOMAIN,
         "querystring_auth": AWS_QUERYSTRING_AUTH,
         "file_overwrite": AWS_S3_FILE_OVERWRITE,
@@ -241,6 +253,22 @@ CELERY_TASK_TIME_LIMIT = config("CELERY_TASK_TIME_LIMIT", default=300, cast=int)
 CELERY_TASK_SOFT_TIME_LIMIT = config("CELERY_TASK_SOFT_TIME_LIMIT", default=240, cast=int)
 CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=(ENVIRONMENT == "development"), cast=bool)
 CELERY_TASK_EAGER_PROPAGATES = config("CELERY_TASK_EAGER_PROPAGATES", default=True, cast=bool)
+
+PAYMENT_PLATFORM_COMMISSION_RATE = config("PAYMENT_PLATFORM_COMMISSION_RATE", default="0.10")
+PAYMENT_DEPOSIT_PERCENTAGE = config("PAYMENT_DEPOSIT_PERCENTAGE", default="0.40")
+PAYMENT_BALANCE_DUE_HOURS_BEFORE_EVENT = config("PAYMENT_BALANCE_DUE_HOURS_BEFORE_EVENT", default=24, cast=int)
+PAYMENT_FREE_CANCELLATION_HOURS_BEFORE_EVENT = config("PAYMENT_FREE_CANCELLATION_HOURS_BEFORE_EVENT", default=72, cast=int)
+PAYMENT_COMPLETION_CONFIRMATION_HOURS = config("PAYMENT_COMPLETION_CONFIRMATION_HOURS", default=48, cast=int)
+PAYSTACK_SECRET_KEY = config("PAYSTACK_SECRET_KEY", default="")
+PAYSTACK_BASE_URL = config("PAYSTACK_BASE_URL", default="https://api.paystack.co")
+PAYSTACK_CURRENCY = config("PAYSTACK_CURRENCY", default="GHS")
+PAYSTACK_CALLBACK_URL = config("PAYSTACK_CALLBACK_URL", default="")
+PAYSTACK_PAYMENT_CHANNELS = config(
+    "PAYSTACK_PAYMENT_CHANNELS",
+    default="card,mobile_money,bank,ussd",
+    cast=Csv(),
+)
+PAYSTACK_REQUEST_TIMEOUT_SECONDS = config("PAYSTACK_REQUEST_TIMEOUT_SECONDS", default=20, cast=int)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Musician's Arena API",

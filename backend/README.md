@@ -85,6 +85,12 @@ This starts:
 - `GET /api/v1/notifications/`
 - `GET /api/v1/notifications/unread-count/`
 - `PATCH /api/v1/notifications/<uuid>/read/`
+- `GET /api/v1/payments/`
+- `GET /api/v1/payments/payouts/`
+- `GET /api/v1/payments/bookings/<uuid>/summary/`
+- `POST /api/v1/payments/bookings/<uuid>/paystack/initialize/`
+- `POST /api/v1/payments/bookings/<uuid>/paystack/verify/`
+- `POST /api/v1/payments/paystack/webhook/`
 
 ## Discovery Filters
 
@@ -145,6 +151,29 @@ The API stores metadata such as:
 - A booking can have only one active dispute at a time.
 - Creating a dispute automatically moves the booking into `disputed` status.
 - Only admin users can resolve or reject disputes through the dispute detail update endpoint.
+
+## Held-Funds Booking Payment Policy
+
+Paystack checkout is now available in test mode through these endpoints:
+
+- `POST /api/v1/payments/bookings/<booking_id>/paystack/initialize/` with `{"payment_type":"deposit"}` or `{"payment_type":"balance"}`.
+- `POST /api/v1/payments/bookings/<booking_id>/paystack/verify/` with the returned `provider_reference` after checkout.
+- `POST /api/v1/payments/paystack/webhook/` for signed `charge.success` notifications.
+
+The backend calculates the outstanding milestone amount, sends it to Paystack in the currency subunit, checks the returned amount/currency/reference, and only then marks the local payment as `successful` and `held`. The Paystack secret key must never be placed in the mobile app.
+
+For local/test setup, add `PAYSTACK_SECRET_KEY=sk_test_...` to `backend/.env`. In the Paystack dashboard test settings, register the public URL `https://<api-domain>/api/v1/payments/paystack/webhook/`. On an IP-only HTTP deployment, use the mobile “I’ve completed payment” verification action for testing; webhooks require a publicly reachable HTTPS endpoint.
+
+Production media uses the same Django file fields with an S3-compatible storage backend. Set `MEDIA_FILE_STORAGE_BACKEND=storages.backends.s3.S3Storage`, bucket credentials, region/endpoint, and a public custom domain or signed URLs in `backend/.env`. Do not delete the local media volume until existing files have been copied to the bucket.
+
+- Booking deposit and balance payments are recorded as successful provider payments, but their internal `fund_state` stays `held`.
+- Deposit payment moves an accepted booking from `awaiting_deposit` to `confirmed`; no talent payout is created at this point.
+- Balance payment is required before the organizer can confirm completion.
+- Organizer completion confirmation moves the booking to `completed` and creates a pending payout, minus platform commission.
+- Early organizer cancellation refunds held funds to the organizer.
+- Late organizer cancellation compensates the talent from the held deposit.
+- Talent cancellation or talent no-show keeps the organizer protected through refund outcomes.
+- No-show reports move the booking to `disputed` and freeze held funds for support/admin review.
 
 ## Seed Reference Data
 

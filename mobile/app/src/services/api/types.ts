@@ -242,6 +242,9 @@ export type PaymentItem = {
   provider: string;
   provider_reference: string;
   status: string;
+  fund_state: string;
+  provider_fee_amount: string;
+  metadata_json: Record<string, unknown>;
   paid_at: string | null;
   created_at: string;
   updated_at: string;
@@ -256,8 +259,26 @@ export type PayoutItem = {
   net_amount: string;
   status: string;
   payout_method: string;
+  trigger_reason: string;
+  idempotency_key: string;
   provider_reference: string;
+  metadata_json: Record<string, unknown>;
   paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RefundItem = {
+  id: string;
+  booking: string;
+  recipient: string;
+  amount: string;
+  currency_code: string;
+  reason: string;
+  status: string;
+  provider_reference: string;
+  metadata_json: Record<string, unknown>;
+  processed_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -272,11 +293,38 @@ export type BookingPaymentSummary = {
   deposit_paid: string;
   balance_paid: string;
   total_paid: string;
+  held_amount: string;
   outstanding_amount: string;
+  refund_due_amount: string;
+  talent_compensation_amount: string;
   commission_amount: string;
+  platform_commission_rate: string;
+  projected_commission_amount: string;
+  projected_payout_amount: string;
   payout_due_amount: string;
+  payout_released_amount: string;
+  funds_state: string;
+  next_step: string;
+  balance_due_at: string | null;
+  completion_confirmation_due_at: string | null;
+  can_pay_deposit: boolean;
+  can_pay_balance: boolean;
+  can_confirm_completion: boolean;
+  can_report_no_show: boolean;
   payments: PaymentItem[];
   payouts: PayoutItem[];
+  refunds: RefundItem[];
+};
+
+export type PaystackCheckout = {
+  payment_id: string;
+  payment_type: "deposit" | "balance" | "full";
+  amount: string;
+  currency_code: string;
+  provider: "paystack";
+  provider_reference: string;
+  authorization_url: string;
+  access_code: string;
 };
 
 export type ConversationParticipant = {

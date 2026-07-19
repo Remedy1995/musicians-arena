@@ -5,6 +5,13 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.bookings.models import Booking, BookingOffer, Dispute
+from apps.payments.services import (
+    apply_cancellation_policy,
+    payment_totals,
+    prepare_booking_payment_policy,
+    release_completion_payout,
+    report_no_show,
+)
 
 
 def booking_is_legacy_negotiation(booking: Booking) -> bool:
@@ -54,6 +61,15 @@ class BookingSerializer(serializers.ModelSerializer):
             "confirmed_at",
             "completed_at",
             "cancelled_at",
+            "balance_due_at",
+            "completion_confirmation_due_at",
+            "cancellation_policy",
+            "cancellation_reason",
+            "refund_due_amount",
+            "talent_compensation_amount",
+            "no_show_party",
+            "no_show_reported_at",
+            "payment_policy_json",
             "created_at",
             "updated_at",
         ]
@@ -65,6 +81,15 @@ class BookingSerializer(serializers.ModelSerializer):
             "confirmed_at",
             "completed_at",
             "cancelled_at",
+            "balance_due_at",
+            "completion_confirmation_due_at",
+            "cancellation_policy",
+            "cancellation_reason",
+            "refund_due_amount",
+            "talent_compensation_amount",
+            "no_show_party",
+            "no_show_reported_at",
+            "payment_policy_json",
             "created_at",
             "updated_at",
         ]
@@ -133,8 +158,9 @@ class BookingOfferSerializer(serializers.ModelSerializer):
 
 
 class BookingActionSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(choices=["accept", "reject", "cancel", "confirm"])
+    action = serializers.ChoiceField(choices=["accept", "reject", "cancel", "confirm", "complete", "report_no_show"])
     reason = serializers.CharField(required=False, allow_blank=True)
+    no_show_party = serializers.ChoiceField(choices=Booking.NoShowParty.choices, required=False)
     quoted_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
     deposit_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
     balance_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
@@ -171,6 +197,7 @@ class BookingActionSerializer(serializers.Serializer):
                 Booking.Status.COUNTERED,
                 Booking.Status.AWAITING_DEPOSIT,
                 Booking.Status.CONFIRMED,
+                Booking.Status.IN_PROGRESS,
             }
             if booking_is_legacy_negotiation(booking):
                 cancellable_statuses.add(Booking.Status.DISPUTED)
@@ -179,6 +206,29 @@ class BookingActionSerializer(serializers.Serializer):
         elif action == "confirm":
             if booking.status != Booking.Status.AWAITING_DEPOSIT:
                 raise serializers.ValidationError("Only bookings awaiting deposit can be confirmed.")
+            if not payment_totals(booking)["deposit_is_paid"]:
+                raise serializers.ValidationError("The deposit must be paid before this booking can be confirmed.")
+        elif action == "complete":
+            if booking.status != Booking.Status.CONFIRMED:
+                raise serializers.ValidationError("Only confirmed bookings can be completed.")
+            if not payment_totals(booking)["is_fully_funded"]:
+                raise serializers.ValidationError("The remaining balance must be paid before completion can be confirmed.")
+        elif action == "report_no_show":
+            no_show_party = attrs.get("no_show_party")
+            if not no_show_party:
+                raise serializers.ValidationError({"no_show_party": "Select whether the client or talent did not show up."})
+            if booking.status not in {Booking.Status.CONFIRMED, Booking.Status.IN_PROGRESS}:
+                raise serializers.ValidationError("No-shows can only be reported for confirmed or in-progress bookings.")
+            user = self.context["request"].user
+            if no_show_party == Booking.NoShowParty.CLIENT and user.id != booking.talent_id:
+                raise serializers.ValidationError("Only the talent can report a client no-show.")
+            if no_show_party == Booking.NoShowParty.TALENT and user.id != booking.client_id:
+                raise serializers.ValidationError("Only the client can report a talent no-show.")
+            active_dispute_exists = booking.disputes.filter(
+                status__in=[Dispute.Status.OPEN, Dispute.Status.UNDER_REVIEW]
+            ).exists()
+            if active_dispute_exists:
+                raise serializers.ValidationError("This booking already has an active dispute.")
         return attrs
 
     @transaction.atomic
@@ -197,11 +247,14 @@ class BookingActionSerializer(serializers.Serializer):
             booking.quoted_amount = self.validated_data["quoted_amount"]
             booking.deposit_amount = self.validated_data["deposit_amount"]
             booking.balance_amount = self.validated_data["balance_amount"]
+            prepare_booking_payment_policy(booking)
             booking.transition_status(
                 to_status=Booking.Status.AWAITING_DEPOSIT,
                 changed_by=user,
                 reason=reason or "Booking accepted by talent.",
+                save=False,
             )
+            booking.save()
         elif action == "reject":
             if pending_offer and pending_offer.proposed_by_id != user.id:
                 pending_offer.status = BookingOffer.Status.REJECTED
@@ -218,11 +271,34 @@ class BookingActionSerializer(serializers.Serializer):
                 changed_by=user,
                 reason=reason or "Booking cancelled.",
             )
+            apply_cancellation_policy(booking=booking, cancelled_by=user, reason=reason)
         elif action == "confirm":
             booking.transition_status(
                 to_status=Booking.Status.CONFIRMED,
                 changed_by=user,
-                reason=reason or "Booking confirmed.",
+                reason=reason or "Booking confirmed after deposit payment.",
+            )
+        elif action == "complete":
+            booking.transition_status(
+                to_status=Booking.Status.COMPLETED,
+                changed_by=user,
+                reason=reason or "Organizer confirmed service completion.",
+            )
+            release_completion_payout(booking=booking)
+        elif action == "report_no_show":
+            no_show_party = self.validated_data["no_show_party"]
+            booking = report_no_show(
+                booking=booking,
+                reported_by=user,
+                no_show_party=no_show_party,
+                reason=reason,
+            )
+            Dispute.objects.create(
+                booking=booking,
+                raised_by=user,
+                dispute_type=Dispute.DisputeType.NO_SHOW,
+                status=Dispute.Status.OPEN,
+                description=reason or f"{no_show_party} no-show reported.",
             )
         return booking
 

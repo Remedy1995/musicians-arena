@@ -3,6 +3,7 @@ import {
   AuthResponse,
   BookingItem,
   BookingPaymentSummary,
+  PaystackCheckout,
   ConversationItem,
   DisputeItem,
   EventType,
@@ -114,6 +115,18 @@ export const api = {
       provider_reference?: string;
     },
   ) => apiRequest(`/payments/bookings/${bookingId}/pay/`, { method: "POST", token, body: payload }),
+  initializePaystackPayment: (token: string, bookingId: string, paymentType: "deposit" | "balance" | "full") =>
+    apiRequest<PaystackCheckout>(`/payments/bookings/${bookingId}/paystack/initialize/`, {
+      method: "POST",
+      token,
+      body: { payment_type: paymentType },
+    }),
+  verifyPaystackPayment: (token: string, bookingId: string, reference: string) =>
+    apiRequest(`/payments/bookings/${bookingId}/paystack/verify/`, {
+      method: "POST",
+      token,
+      body: { reference },
+    }),
   conversations: (token: string) => apiRequest<ConversationItem[]>("/messaging/conversations/", { token }),
   conversationMessages: (token: string, conversationId: string) =>
     apiRequest(`/messaging/conversations/${conversationId}/messages/`, { token }),
@@ -143,8 +156,9 @@ export const api = {
     token: string,
     bookingId: string,
     payload: {
-      action: "accept" | "reject" | "cancel" | "confirm";
+      action: "accept" | "reject" | "cancel" | "confirm" | "complete" | "report_no_show";
       reason?: string;
+      no_show_party?: "client" | "talent";
       quoted_amount?: string;
       deposit_amount?: string;
       balance_amount?: string;

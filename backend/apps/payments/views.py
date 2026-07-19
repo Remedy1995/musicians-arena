@@ -1,10 +1,11 @@
-from decimal import Decimal
-
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 from apps.bookings.models import Booking
 from apps.payments.models import Payment, Payout
@@ -13,6 +14,17 @@ from apps.payments.serializers import (
     PaymentSerializer,
     PayoutSerializer,
     RecordPaymentSerializer,
+    PaystackCheckoutSerializer,
+    PaystackInitializeSerializer,
+    PaystackVerifySerializer,
+    serialize_booking_payment_summary,
+)
+from apps.payments.services import (
+    PaystackError,
+    initialize_paystack_payment,
+    process_paystack_webhook,
+    verify_paystack_payment,
+    verify_paystack_signature,
 )
 
 
@@ -60,40 +72,7 @@ class BookingPaymentSummaryView(APIView):
 
     def get(self, request, booking_id):
         booking = _get_booking_for_user(request.user, booking_id)
-        successful_payments = booking.payments.filter(status=Payment.Status.SUCCESSFUL).order_by("-created_at")
-        payouts = booking.payouts.order_by("-created_at")
-        deposit_paid = sum(
-            payment.amount for payment in successful_payments.filter(payment_type__in=[Payment.PaymentType.DEPOSIT, Payment.PaymentType.FULL])
-        )
-        balance_paid = sum(
-            payment.amount for payment in successful_payments.filter(payment_type__in=[Payment.PaymentType.BALANCE, Payment.PaymentType.FULL])
-        )
-        total_paid = sum(payment.amount for payment in successful_payments)
-        quoted_amount = booking.quoted_amount or Decimal("0.00")
-        outstanding_amount = max(quoted_amount - total_paid, Decimal("0.00"))
-        commission_amount = sum((payout.commission_amount for payout in payouts), Decimal("0.00"))
-        payout_due_amount = sum(
-            (payout.net_amount for payout in payouts.filter(status__in=[Payout.Status.PENDING, Payout.Status.PROCESSING])),
-            Decimal("0.00"),
-        )
-
-        payload = {
-            "booking_id": booking.id,
-            "booking_status": booking.status,
-            "quoted_amount": booking.quoted_amount,
-            "deposit_amount": booking.deposit_amount,
-            "balance_amount": booking.balance_amount,
-            "currency_code": booking.currency_code,
-            "deposit_paid": deposit_paid or Decimal("0.00"),
-            "balance_paid": balance_paid or Decimal("0.00"),
-            "total_paid": total_paid or Decimal("0.00"),
-            "outstanding_amount": outstanding_amount,
-            "commission_amount": commission_amount,
-            "payout_due_amount": payout_due_amount,
-            "payments": successful_payments,
-            "payouts": payouts,
-        }
-        serializer = BookingPaymentSummarySerializer(payload)
+        serializer = serialize_booking_payment_summary(booking, user=request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -108,31 +87,86 @@ class BookingPaymentCreateView(APIView):
         serializer = RecordPaymentSerializer(data=request.data, context={"request": request, "booking": booking})
         serializer.is_valid(raise_exception=True)
         payment = serializer.save()
-        _sync_payout_for_booking(booking)
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
 
-def _sync_payout_for_booking(booking: Booking):
-    successful_payments = booking.payments.filter(status=Payment.Status.SUCCESSFUL)
-    total_paid = sum((payment.amount for payment in successful_payments), Decimal("0.00"))
-    quoted_amount = booking.quoted_amount or Decimal("0.00")
+@extend_schema(
+    tags=["Payments"],
+    summary="Initialize a Paystack checkout for a booking payment",
+    request=PaystackInitializeSerializer,
+    responses=PaystackCheckoutSerializer,
+)
+class PaystackInitializeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-    if total_paid <= 0 or quoted_amount <= 0:
-        return
+    def post(self, request, booking_id):
+        booking = _get_booking_for_user(request.user, booking_id)
+        if request.user.id != booking.client_id:
+            raise PermissionDenied("Only the booking organizer can pay for this booking.")
+        serializer = PaystackInitializeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            payment, checkout = initialize_paystack_payment(
+                booking=booking,
+                payer=request.user,
+                payment_type=serializer.validated_data["payment_type"],
+            )
+        except PaystackError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        payload = {
+            "payment_id": payment.id,
+            "payment_type": payment.payment_type,
+            "amount": payment.amount,
+            "currency_code": payment.currency_code,
+            "provider": payment.provider,
+            "provider_reference": payment.provider_reference,
+            "authorization_url": checkout.get("authorization_url", ""),
+            "access_code": checkout.get("access_code", ""),
+        }
+        return Response(PaystackCheckoutSerializer(payload).data, status=status.HTTP_200_OK)
 
-    gross_amount = min(total_paid, quoted_amount)
-    commission_amount = (gross_amount * Decimal("0.10")).quantize(Decimal("0.01"))
-    net_amount = gross_amount - commission_amount
-    payout_status = Payout.Status.PAID if booking.status == Booking.Status.COMPLETED else Payout.Status.PENDING
 
-    Payout.objects.update_or_create(
-        booking=booking,
-        payee=booking.talent,
-        defaults={
-            "gross_amount": gross_amount,
-            "commission_amount": commission_amount,
-            "net_amount": net_amount,
-            "status": payout_status,
-            "payout_method": Payout.PayoutMethod.MOBILE_MONEY,
-        },
-    )
+@extend_schema(
+    tags=["Payments"],
+    summary="Verify a Paystack checkout and place funds on hold",
+    request=PaystackVerifySerializer,
+    responses=PaymentSerializer,
+)
+class PaystackVerifyView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, booking_id):
+        booking = _get_booking_for_user(request.user, booking_id)
+        serializer = PaystackVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payment = Payment.objects.filter(
+            booking=booking,
+            provider="paystack",
+            provider_reference=serializer.validated_data["reference"],
+        ).first()
+        if not payment:
+            return Response({"detail": "Paystack payment reference was not found for this booking."}, status=status.HTTP_404_NOT_FOUND)
+        if request.user.id != payment.payer_id:
+            raise PermissionDenied("Only the payment organizer can verify this checkout.")
+        try:
+            payment = verify_paystack_payment(payment=payment)
+        except PaystackError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(PaymentSerializer(payment).data, status=status.HTTP_200_OK)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+@extend_schema(exclude=True)
+class PaystackWebhookView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        if not verify_paystack_signature(raw_body=request.body, signature=request.headers.get("x-paystack-signature", "")):
+            return Response({"detail": "Invalid webhook signature."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+            process_paystack_webhook(payload=payload)
+        except (json.JSONDecodeError, PaystackError):
+            # Acknowledge only validly signed payloads; Paystack will retry if processing fails.
+            return Response({"detail": "Webhook could not be processed."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status": True}, status=status.HTTP_200_OK)

@@ -55,10 +55,10 @@ export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, ve
 
 const styles = StyleSheet.create({
   card: {
-    width: 296,
+    width: 270,
     borderRadius: theme.radius.xl,
-    padding: theme.spacing[5],
-    gap: theme.spacing[3],
+    padding: theme.spacing[4],
+    gap: theme.spacing[2],
     ...theme.shadows.floating,
   },
   header: {

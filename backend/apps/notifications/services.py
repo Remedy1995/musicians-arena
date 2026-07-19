@@ -86,6 +86,8 @@ def notify_booking_action(*, booking, action):
         "reject": (booking.client_id, NotificationType.BOOKING_REJECTED, "Booking rejected", f"Your booking '{booking.title}' was rejected."),
         "cancel": (booking.talent_id, NotificationType.BOOKING_CANCELLED, "Booking cancelled", f"Booking '{booking.title}' was cancelled."),
         "confirm": (booking.talent_id, NotificationType.BOOKING_CONFIRMED, "Booking confirmed", f"Booking '{booking.title}' was confirmed."),
+        "complete": (booking.talent_id, NotificationType.BOOKING_CONFIRMED, "Completion confirmed", f"Booking '{booking.title}' was marked completed. Payout is pending release."),
+        "no_show": (booking.client_id if booking.no_show_party == "client" else booking.talent_id, NotificationType.BOOKING_CANCELLED, "No-show reported", f"A no-show report was opened for booking '{booking.title}'."),
     }
     user_id, notification_type, title, body = config[action]
     dispatch_notification(

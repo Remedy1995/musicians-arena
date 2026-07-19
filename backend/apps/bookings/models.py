@@ -17,6 +17,19 @@ class Booking(TimeStampedUUIDModel):
         DISPUTED = "disputed", "Disputed"
         REFUNDED = "refunded", "Refunded"
 
+    class CancellationPolicy(models.TextChoices):
+        NONE = "none", "None"
+        CLIENT_FREE_CANCELLATION = "client_free_cancellation", "Client Free Cancellation"
+        CLIENT_LATE_CANCELLATION = "client_late_cancellation", "Client Late Cancellation"
+        CLIENT_NO_SHOW = "client_no_show", "Client No Show"
+        TALENT_CANCELLED = "talent_cancelled", "Talent Cancelled"
+        TALENT_NO_SHOW = "talent_no_show", "Talent No Show"
+        ADMIN_DECISION = "admin_decision", "Admin Decision"
+
+    class NoShowParty(models.TextChoices):
+        CLIENT = "client", "Client"
+        TALENT = "talent", "Talent"
+
     client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="client_bookings")
     talent = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="talent_bookings")
     event_type = models.ForeignKey("profiles.EventType", null=True, blank=True, on_delete=models.SET_NULL)
@@ -41,11 +54,38 @@ class Booking(TimeStampedUUIDModel):
     confirmed_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
+    balance_due_at = models.DateTimeField(null=True, blank=True)
+    completion_confirmation_due_at = models.DateTimeField(null=True, blank=True)
+    cancelled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="cancelled_bookings",
+    )
+    cancellation_policy = models.CharField(
+        max_length=40,
+        choices=CancellationPolicy.choices,
+        default=CancellationPolicy.NONE,
+    )
+    cancellation_reason = models.TextField(blank=True)
+    refund_due_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    talent_compensation_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    no_show_reported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reported_booking_no_shows",
+    )
+    no_show_party = models.CharField(max_length=16, choices=NoShowParty.choices, blank=True)
+    no_show_reported_at = models.DateTimeField(null=True, blank=True)
+    payment_policy_json = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         return self.title
 
-    def transition_status(self, *, to_status, changed_by, reason=""):
+    def transition_status(self, *, to_status, changed_by, reason="", save=True):
         previous_status = self.status
         self.status = to_status
 
@@ -58,7 +98,8 @@ class Booking(TimeStampedUUIDModel):
         elif to_status == self.Status.CANCELLED:
             self.cancelled_at = timezone.now()
 
-        self.save()
+        if save:
+            self.save()
         BookingStatusHistory.objects.create(
             booking=self,
             from_status=previous_status,

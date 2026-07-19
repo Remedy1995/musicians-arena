@@ -1,11 +1,16 @@
 from decimal import Decimal
 
 from django.db import transaction
-from django.utils import timezone
 from rest_framework import serializers
 
 from apps.bookings.models import Booking
-from apps.payments.models import Payment, Payout
+from apps.payments.models import Payment, Payout, Refund
+from apps.payments.services import (
+    build_payment_summary_payload,
+    create_successful_held_payment,
+    payment_totals,
+    refresh_booking_after_payment,
+)
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -21,6 +26,9 @@ class PaymentSerializer(serializers.ModelSerializer):
             "provider",
             "provider_reference",
             "status",
+            "fund_state",
+            "provider_fee_amount",
+            "metadata_json",
             "paid_at",
             "created_at",
             "updated_at",
@@ -40,12 +48,60 @@ class PayoutSerializer(serializers.ModelSerializer):
             "net_amount",
             "status",
             "payout_method",
+            "trigger_reason",
+            "idempotency_key",
             "provider_reference",
+            "metadata_json",
             "paid_at",
             "created_at",
             "updated_at",
         ]
         read_only_fields = fields
+
+
+class RefundSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Refund
+        fields = [
+            "id",
+            "booking",
+            "recipient",
+            "amount",
+            "currency_code",
+            "reason",
+            "status",
+            "provider_reference",
+            "metadata_json",
+            "processed_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class PaystackInitializeSerializer(serializers.Serializer):
+    payment_type = serializers.ChoiceField(
+        choices=[
+            Payment.PaymentType.DEPOSIT,
+            Payment.PaymentType.BALANCE,
+            Payment.PaymentType.FULL,
+        ]
+    )
+
+
+class PaystackVerifySerializer(serializers.Serializer):
+    reference = serializers.CharField(max_length=255)
+
+
+class PaystackCheckoutSerializer(serializers.Serializer):
+    payment_id = serializers.UUIDField()
+    payment_type = serializers.CharField()
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    currency_code = serializers.CharField()
+    provider = serializers.CharField()
+    provider_reference = serializers.CharField()
+    authorization_url = serializers.URLField()
+    access_code = serializers.CharField()
 
 
 class BookingPaymentSummarySerializer(serializers.Serializer):
@@ -58,11 +114,27 @@ class BookingPaymentSummarySerializer(serializers.Serializer):
     deposit_paid = serializers.DecimalField(max_digits=12, decimal_places=2)
     balance_paid = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_paid = serializers.DecimalField(max_digits=12, decimal_places=2)
+    held_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     outstanding_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    refund_due_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    talent_compensation_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     commission_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    platform_commission_rate = serializers.CharField()
+    projected_commission_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    projected_payout_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     payout_due_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    payout_released_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    funds_state = serializers.CharField()
+    next_step = serializers.CharField()
+    balance_due_at = serializers.DateTimeField(allow_null=True)
+    completion_confirmation_due_at = serializers.DateTimeField(allow_null=True)
+    can_pay_deposit = serializers.BooleanField()
+    can_pay_balance = serializers.BooleanField()
+    can_confirm_completion = serializers.BooleanField()
+    can_report_no_show = serializers.BooleanField()
     payments = PaymentSerializer(many=True)
     payouts = PayoutSerializer(many=True)
+    refunds = RefundSerializer(many=True)
 
 
 class RecordPaymentSerializer(serializers.Serializer):
@@ -78,13 +150,9 @@ class RecordPaymentSerializer(serializers.Serializer):
         deposit_amount = booking.deposit_amount or Decimal("0.00")
         balance_amount = booking.balance_amount or Decimal("0.00")
 
-        successful_payments = booking.payments.filter(status=Payment.Status.SUCCESSFUL)
-        deposit_paid = sum(
-            payment.amount for payment in successful_payments.filter(payment_type__in=[Payment.PaymentType.DEPOSIT, Payment.PaymentType.FULL])
-        )
-        balance_paid = sum(
-            payment.amount for payment in successful_payments.filter(payment_type__in=[Payment.PaymentType.BALANCE, Payment.PaymentType.FULL])
-        )
+        totals = payment_totals(booking)
+        deposit_paid = totals["deposit_paid"]
+        balance_paid = totals["balance_paid"]
 
         suggested_amount = quoted_amount
         if payment_type == Payment.PaymentType.DEPOSIT:
@@ -121,23 +189,18 @@ class RecordPaymentSerializer(serializers.Serializer):
         booking: Booking = self.context["booking"]
         payer = self.context["request"].user
 
-        payment = Payment.objects.create(
+        payment = create_successful_held_payment(
             booking=booking,
             payer=payer,
             payment_type=self.validated_data["payment_type"],
             amount=self.validated_data["amount"],
-            currency_code=booking.currency_code,
-            provider=self.validated_data.get("provider", ""),
+            provider=self.validated_data.get("provider", "manual"),
             provider_reference=self.validated_data.get("provider_reference", ""),
-            status=Payment.Status.SUCCESSFUL,
-            paid_at=timezone.now(),
         )
 
-        if payment.payment_type in {Payment.PaymentType.DEPOSIT, Payment.PaymentType.FULL} and booking.status == Booking.Status.AWAITING_DEPOSIT:
-            booking.transition_status(
-                to_status=Booking.Status.CONFIRMED,
-                changed_by=payer,
-                reason="Booking confirmed after successful payment.",
-            )
-
+        refresh_booking_after_payment(booking=booking, changed_by=payer)
         return payment
+
+
+def serialize_booking_payment_summary(booking: Booking, *, user):
+    return BookingPaymentSummarySerializer(build_payment_summary_payload(booking, user=user))

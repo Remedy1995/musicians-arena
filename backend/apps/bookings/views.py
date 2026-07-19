@@ -87,8 +87,10 @@ class BookingActionView(ScopedWriteThrottleMixin, APIView):
         action = serializer.validated_data["action"]
         if action in {"accept", "reject"} and not self._can_accept_or_reject(booking, request.user):
             raise PermissionDenied("You cannot accept or reject this booking in its current state.")
-        if action in {"cancel", "confirm"} and request.user.id != booking.client_id:
-            raise PermissionDenied("Only the client can cancel or confirm this booking.")
+        if action == "confirm" and request.user.id != booking.client_id:
+            raise PermissionDenied("Only the client can confirm this booking.")
+        if action == "complete" and request.user.id != booking.client_id:
+            raise PermissionDenied("Only the client can confirm completion.")
 
         booking = serializer.save()
         if action == "accept":
@@ -99,6 +101,10 @@ class BookingActionView(ScopedWriteThrottleMixin, APIView):
             notify_booking_action(booking=booking, action="cancel")
         elif action == "confirm":
             notify_booking_action(booking=booking, action="confirm")
+        elif action == "complete":
+            notify_booking_action(booking=booking, action="complete")
+        elif action == "report_no_show":
+            notify_booking_action(booking=booking, action="no_show")
         return Response(BookingSerializer(booking, context={"request": request}).data)
 
     def _get_booking(self, user, pk):
