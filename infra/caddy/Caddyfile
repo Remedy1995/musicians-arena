@@ -2,7 +2,13 @@
 	email {$ACME_EMAIL:admin@example.com}
 }
 
-{$APP_DOMAIN:localhost} {
+
+{$WEB_DOMAIN:musicianz.site} {
+	encode zstd gzip
+	reverse_proxy web:80
+}
+
+{$APP_DOMAIN:api.musicianz.site} {
 	encode zstd gzip
 
 	handle_path /static/* {

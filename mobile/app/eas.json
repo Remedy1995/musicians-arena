@@ -5,9 +5,9 @@
       "distribution": "internal",
       "env": {
         "APP_VARIANT": "development",
-        "ALLOW_INSECURE_HTTP": "true",
-        "EXPO_PUBLIC_API_BASE_URL": "http://157.90.144.124:8000/api/v1",
-        "EXPO_PUBLIC_WS_BASE_URL": "ws://157.90.144.124:8000"
+        "ALLOW_INSECURE_HTTP": "false",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.musicianz.site/api/v1",
+        "EXPO_PUBLIC_WS_BASE_URL": "wss://api.musicianz.site"
       },
       "android": {
         "buildType": "apk"
@@ -17,9 +17,9 @@
       "distribution": "internal",
       "env": {
         "APP_VARIANT": "preview",
-        "ALLOW_INSECURE_HTTP": "true",
-        "EXPO_PUBLIC_API_BASE_URL": "http://157.90.144.124:8000/api/v1",
-        "EXPO_PUBLIC_WS_BASE_URL": "ws://157.90.144.124:8000"
+        "ALLOW_INSECURE_HTTP": "false",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.musicianz.site/api/v1",
+        "EXPO_PUBLIC_WS_BASE_URL": "wss://api.musicianz.site"
       },
       "android": {
         "buildType": "apk"
@@ -28,9 +28,9 @@
     "production": {
       "env": {
         "APP_VARIANT": "production",
-        "ALLOW_INSECURE_HTTP": "true",
-        "EXPO_PUBLIC_API_BASE_URL": "http://157.90.144.124:8000/api/v1",
-        "EXPO_PUBLIC_WS_BASE_URL": "ws://157.90.144.124:8000"
+        "ALLOW_INSECURE_HTTP": "false",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.musicianz.site/api/v1",
+        "EXPO_PUBLIC_WS_BASE_URL": "wss://api.musicianz.site"
       }
     }
   },

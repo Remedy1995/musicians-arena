@@ -29,13 +29,13 @@ npm start
 
 Create a local env file from `.env.example` and set the API endpoints you want the app to use.
 
-For a live VPS preview that targets the current deployment at `157.90.144.124:8000`, start from `.env.preview.example`.
+For a live VPS preview that targets `https://api.musicianz.site`, start from `.env.preview.example`.
 
 Key values:
 
 - `EXPO_PUBLIC_API_BASE_URL`: REST base URL such as `https://api.yourdomain.com/api/v1`
 - `EXPO_PUBLIC_WS_BASE_URL`: websocket base URL such as `wss://api.yourdomain.com`
-- `ALLOW_INSECURE_HTTP`: set to `true` while your backend is still served over plain `http://` by IP
+- `ALLOW_INSECURE_HTTP`: keep this `false` for the domain-based HTTPS deployment
 - `IOS_BUNDLE_IDENTIFIER`: final iOS bundle identifier for TestFlight and App Store builds
 - `ANDROID_PACKAGE`: final Android package name for Play Store builds
 - `EAS_PROJECT_ID`: Expo project ID after linking the app to EAS
@@ -61,15 +61,15 @@ cd backend
 ../.venv/bin/daphne -b 0.0.0.0 -p 8005 config.asgi:application
 ```
 
-- the mobile app currently targets `http://127.0.0.1:8005/api/v1` and `ws://127.0.0.1:8005`
+- the mobile app targets the local API only for development; preview and production use the deployed HTTPS API
 
 ## Release Builds
 
 The app now uses dynamic Expo config through `app.config.ts`, plus `eas.json` build profiles:
 
 - `development`: internal dev-client builds
-- `preview`: internal QA builds wired to `http://157.90.144.124:8000/api/v1`
-- `production`: release builds currently wired to the same backend until you switch to a domain and HTTPS
+- `preview`: internal QA builds wired to `https://api.musicianz.site/api/v1`
+- `production`: release builds wired to the same HTTPS backend
 
 Common commands:
 
@@ -94,11 +94,9 @@ npm run build:ios:production
 
 Current mobile build behavior:
 
-- Android and iOS preview builds are configured to talk directly to `http://157.90.144.124:8000/api/v1`
-- websocket chat and notifications use `ws://157.90.144.124:8000`
-- cleartext HTTP is explicitly enabled so the current IP-based backend works on real devices
+- Android and iOS preview builds use `https://api.musicianz.site/api/v1`
+- websocket chat and notifications use `wss://api.musicianz.site`
 - after native Android config changes, use `npm run build:android:preview:clean`, uninstall the old APK, then install the new APK
-- once you move the backend behind a real HTTPS domain, switch the build env values to `https://` and `wss://`, then set `ALLOW_INSECURE_HTTP=false`
 
 ## Payment and Media Production Setup
 
@@ -120,7 +118,7 @@ AWS_S3_FILE_OVERWRITE=False
 AWS_LOCATION=media
 ```
 
-Keep the bucket private when using signed URLs. Copy existing files from the local `media_data` volume before removing local media storage. Register `/api/v1/payments/paystack/webhook/` with Paystack after the API is available over HTTPS; IP-only HTTP testing can use the in-app verification action instead.
+Keep the bucket private when using signed URLs. Copy existing files from the local `media_data` volume before removing local media storage. Register `/api/v1/payments/paystack/webhook/` with Paystack after the API is available over HTTPS.
 
 Helpful validation commands:
 
@@ -132,33 +130,33 @@ npm run web:export
 
 ## VPS Deployment and Web Preview
 
-The repo includes a lightweight preview web container that exports the Expo app and serves it with nginx for browser testing.
+The repo includes a lightweight web container that exports the Expo app and serves it with nginx behind Caddy.
 
-- the preview frontend defaults to port `8080`
-- the production API defaults to port `8000`
+- the internal web service defaults to port `8080`
+- the internal API defaults to port `8000`
 - set `EXPO_PUBLIC_API_BASE_URL` and `EXPO_PUBLIC_WS_BASE_URL` in `infra/.env.production`
-- allow the preview origin in Django CORS, for example `http://157.90.144.124:8080`
+- Caddy exposes the web app at `https://musicianz.site` and the API at `https://api.musicianz.site`
 
 After you pull the latest repo on the VPS:
 
 ```bash
-docker compose --env-file infra/.env.production -f docker-compose.prod.yml up -d --build
+docker compose --profile gateway --env-file infra/.env.production -f docker-compose.prod.yml up -d --build
 ```
 
 Check the API and container state:
 
 ```bash
 docker compose --env-file infra/.env.production -f docker-compose.prod.yml ps
-curl http://127.0.0.1:8000/api/v1/health/
+curl https://api.musicianz.site/api/v1/health/
 docker compose --env-file infra/.env.production -f docker-compose.prod.yml logs -f api
 ```
 
-The current IP-based setup is suitable for controlled testing. Before public release, put the API behind HTTPS, change the mobile REST/WebSocket values to `https://` and `wss://`, update Django allowed hosts and CORS origins, and register the HTTPS Paystack webhook.
+The domain-based setup is suitable for browser and native-device testing. Keep the API and WebSocket values on `https://` and `wss://`, and update Django allowed hosts and CORS origins when changing domains.
 
 Then open:
 
 ```text
-http://157.90.144.124:8080
+https://musicianz.site
 ```
 
 ## Remaining Release Work
