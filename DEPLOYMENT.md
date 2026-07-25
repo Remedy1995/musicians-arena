@@ -143,7 +143,7 @@ The domain values should be:
 
     DJANGO_ENV=production
     DJANGO_DEBUG=False
-    DJANGO_ALLOWED_HOSTS=api.musicianz.site
+    DJANGO_ALLOWED_HOSTS=api.musicianz.site,localhost,127.0.0.1
     DJANGO_CSRF_TRUSTED_ORIGINS=https://api.musicianz.site,https://musicianz.site
     DJANGO_CORS_ALLOWED_ORIGINS=https://musicianz.site,https://www.musicianz.site
     DJANGO_SECURE_SSL_REDIRECT=True
