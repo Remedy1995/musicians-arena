@@ -6,7 +6,11 @@ services:
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
       WEB_DOMAIN: ${WEB_DOMAIN}
+      SHIRLEY_DOMAIN: ${SHIRLEY_DOMAIN:-shirleytrading.com}
+      SHIRLEY_WWW_DOMAIN: ${SHIRLEY_WWW_DOMAIN:-www.shirleytrading.com}
       ACME_EMAIL: ${ACME_EMAIL}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "80:80"
       - "443:443"

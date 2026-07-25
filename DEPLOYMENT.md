@@ -6,12 +6,15 @@ The deployment uses:
 
 - musicianz.site for the Expo web application
 - api.musicianz.site for Django REST APIs and WebSockets
+- shirleytrading.com and www.shirleytrading.com for the existing Next.js application on port 3002
 - Caddy for HTTPS certificates and reverse proxying
 - Docker Compose for the application services
 - Hetzner Object Storage for private profile and portfolio media
 - Paystack for deposit and balance collection
 
 The native Android and iOS applications are built on a development Mac with EAS. They are not hosted inside the VPS.
+
+Caddy is the single public gateway. Do not run Nginx on ports 80 or 443 at the same time. Nginx may continue serving Shirley Trading internally on port 8081, while Caddy handles public HTTPS.
 
 ## 1. Domain and server values
 
@@ -158,6 +161,8 @@ Set:
 
     APP_DOMAIN=api.musicianz.site
     WEB_DOMAIN=musicianz.site
+    SHIRLEY_DOMAIN=shirleytrading.com
+    SHIRLEY_WWW_DOMAIN=www.shirleytrading.com
     ACME_EMAIL=DEPLOY_EMAIL
     API_PORT=8000
     WEB_PORT=8080
@@ -166,9 +171,42 @@ Set:
 
 The API and web ports are internal host ports. Caddy is the only service that publishes 80 and 443.
 
+## 6.1 Keep Shirley Trading available
+
+Keep the existing Next.js service on 127.0.0.1:3002 and move only the Shirley Nginx server block to internal port 8081:
+
+    server {
+        listen 0.0.0.0:8081;
+        server_name shirleytrading.com www.shirleytrading.com;
+
+        location / {
+            proxy_pass http://127.0.0.1:3002;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+
+After editing the Shirley Nginx site configuration, validate and restart Nginx:
+
+    nginx -t
+    systemctl restart nginx
+    systemctl status nginx --no-pager
+
+Confirm both internal services are running:
+
+    ss -ltnp | grep ':3002'
+    ss -ltnp | grep ':8081'
+    curl http://127.0.0.1:3002
+    curl -H 'Host: shirleytrading.com' http://127.0.0.1:8081
+
+The Caddy container proxies both Shirley domains to host.docker.internal:8081. Ensure both DNS records point to this VPS before Caddy requests certificates. Do not open port 8081 publicly; only ports 80 and 443 should be exposed.
+
 Never commit backend/.env or infra/.env.production. They contain passwords, storage keys, and payment credentials.
 
-## 6. Configure Hetzner Object Storage
+## 7. Configure Hetzner Object Storage
 
 Create a private bucket in the Hetzner Object Storage console and create an access key with access limited to that bucket where possible.
 
@@ -199,7 +237,7 @@ If the old server still has local media, copy it to a temporary directory first 
 
 Install the AWS CLI only if it is not already available. Replace HETZNER_BUCKET and the endpoint with your actual values.
 
-## 7. Configure Paystack
+## 8. Configure Paystack
 
 Start with Paystack test mode. Put the secret only in backend/.env:
 
@@ -229,7 +267,7 @@ Paystack test cards and test payment guidance are available at:
 
     https://paystack.com/docs/payments/test-payments/
 
-## 8. Validate the Compose configuration
+## 9. Validate the Compose configuration
 
 Before starting services, inspect the resolved Compose configuration:
 
@@ -239,11 +277,12 @@ Before starting services, inspect the resolved Compose configuration:
 Check that:
 
 - caddy has APP_DOMAIN api.musicianz.site and WEB_DOMAIN musicianz.site
+- caddy has Shirley Trading routes for shirleytrading.com and www.shirleytrading.com
 - api and web bind to 127.0.0.1
 - no secret values are pasted into logs or committed files
 - the Caddyfile is mounted read-only
 
-## 9. Start the full production stack
+## 10. Start the full production stack
 
 Run the gateway profile so Caddy, the API, the Expo web build, PostgreSQL, Redis, and the Celery worker start together:
 
@@ -272,13 +311,14 @@ Read startup logs:
     docker compose --profile gateway --env-file infra/.env.production -f docker-compose.prod.yml logs --tail=100 web
     docker compose --profile gateway --env-file infra/.env.production -f docker-compose.prod.yml logs --tail=100 worker
 
-## 10. Verify the domain deployment
+## 11. Verify the domain deployment
 
 From the VPS:
 
     curl -I https://api.musicianz.site/api/v1/health/
     curl https://api.musicianz.site/api/v1/health/
     curl -I https://musicianz.site
+    curl -I https://shirleytrading.com
 
 The API health response should be:
 
@@ -288,7 +328,7 @@ The web response should return HTTP 200 or a normal redirect. The Caddy logs sho
 
 The API documentation is available from the API domain at the configured Swagger route. Use the API domain rather than the server IP for browser testing.
 
-## 11. Deploy updates safely
+## 12. Deploy updates safely
 
 For a normal application update:
 
@@ -311,7 +351,7 @@ For a database backup before a risky migration:
 
 Back up the database and Object Storage separately. A Docker volume is not a complete backup strategy.
 
-## 12. Build the Android app
+## 13. Build the Android app
 
 Run native builds on the development Mac, not on the VPS:
 
@@ -341,7 +381,7 @@ For a release build:
 
     npm run build:android:production
 
-## 13. Build the iOS app
+## 14. Build the iOS app
 
 An installable iOS preview or TestFlight build requires a paid Apple Developer Program membership. The Expo account alone does not provide an Apple signing team.
 
@@ -359,7 +399,7 @@ After QA:
 
 The app uses the same HTTPS API and secure WebSocket domain on iOS.
 
-## 14. Troubleshooting
+## 15. Troubleshooting
 
 Caddy does not start:
 
@@ -400,9 +440,10 @@ WebSockets do not connect:
 - confirm Redis is healthy
 - inspect API logs while opening the chat screen
 
-## 15. Release checklist
+## 16. Release checklist
 
 - [ ] Both DNS records resolve to the new VPS.
+- [ ] Shirley Trading DNS records resolve to the new VPS and its Next.js service is running on port 3002.
 - [ ] Ports 80 and 443 are allowed; ports 5432, 6379, 8000, and 8080 are not public.
 - [ ] backend/.env and infra/.env.production contain unique secrets and are not committed.
 - [ ] Caddy serves musicianz.site and api.musicianz.site over HTTPS.

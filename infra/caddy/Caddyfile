@@ -8,6 +8,11 @@
 	reverse_proxy web:80
 }
 
+{$SHIRLEY_DOMAIN:shirleytrading.com}, {$SHIRLEY_WWW_DOMAIN:www.shirleytrading.com} {
+	encode zstd gzip
+	reverse_proxy host.docker.internal:8081
+}
+
 {$APP_DOMAIN:api.musicianz.site} {
 	encode zstd gzip
 
