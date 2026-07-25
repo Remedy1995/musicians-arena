@@ -250,7 +250,7 @@ Run the gateway profile so Caddy, the API, the Expo web build, PostgreSQL, Redis
     cd /opt/musicians-arena
     docker compose --profile gateway --env-file infra/.env.production -f docker-compose.prod.yml up -d --build
 
-The API entrypoint waits for PostgreSQL and Redis, runs migrations, collects static files, and then starts Daphne. Daphne serves both REST and WebSocket traffic on port 8000 inside the Docker network.
+The API entrypoint waits for PostgreSQL and Redis, runs migrations, collects static files, and then starts Daphne. Daphne serves both REST and WebSocket traffic on port 8000 inside the Docker network. The API health check includes the forwarded HTTPS headers so it works with DJANGO_SECURE_SSL_REDIRECT enabled.
 
 Check service state:
 
