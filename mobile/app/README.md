@@ -92,6 +92,32 @@ npm run build:android:production
 npm run build:ios:production
 ```
 
+### Local iOS development with Xcode
+
+The repository uses Expo prebuild, so the `ios/` Xcode project is generated locally and is not committed. To run a development build against the live backend:
+
+Expo's iOS autolinking command is not safe when the absolute project path contains an apostrophe. Since this project is currently under `Musician's arena`, use a copy or rename it to a path such as `~/Projects/musicians-arena-mobile` before running CocoaPods.
+
+```bash
+mkdir -p "$HOME/Projects"
+rsync -a --exclude node_modules --exclude ios \
+  "/Users/japhetadjetey/Documents/Musician's arena/mobile/app/" \
+  "$HOME/Projects/musicians-arena-mobile/"
+cd "$HOME/Projects/musicians-arena-mobile"
+npm ci
+export APP_VARIANT=development
+export ALLOW_INSECURE_HTTP=false
+export EXPO_PUBLIC_API_BASE_URL=https://api.musicianz.site/api/v1
+export EXPO_PUBLIC_WS_BASE_URL=wss://api.musicianz.site
+npx expo prebuild --platform ios
+cd ios && pod install && cd ..
+open ios/*.xcworkspace
+```
+
+In Xcode, select the `Musician's Arena` scheme, choose an iPhone Simulator or a connected iPhone, and press `Cmd + R`. A simulator does not require a paid Apple Developer membership. A physical iPhone requires an Apple Team under **Signing & Capabilities**; distribution to other testers requires a paid Apple Developer Program membership and TestFlight or Ad Hoc signing.
+
+The complete VPS, Android APK, and iOS/Xcode runbook is in [`DEPLOYMENT.md`](../../DEPLOYMENT.md).
+
 Current mobile build behavior:
 
 - Android and iOS preview builds use `https://api.musicianz.site/api/v1`

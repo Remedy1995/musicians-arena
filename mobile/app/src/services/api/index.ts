@@ -81,7 +81,13 @@ export const api = {
 
   talentCategories: () => apiRequest<TalentCategory[]>("/profiles/categories/"),
   eventTypes: () => apiRequest<EventType[]>("/profiles/event-types/"),
-  talents: () => apiRequest<TalentListItem[]>("/profiles/talents/"),
+  talents: (search = "", primaryCategory = "") => {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set("search", search.trim());
+    if (primaryCategory) params.set("primary_category", primaryCategory);
+    const query = params.toString();
+    return apiRequest<TalentListItem[]>(`/profiles/talents/${query ? `?${query}` : ""}`);
+  },
   talentMedia: (token: string) => apiRequest<TalentMediaItem[]>("/profiles/talent/me/media/", { token }),
   createTalentMedia: (token: string, payload: FormData) =>
     apiRequest<TalentMediaItem>("/profiles/talent/me/media/", { method: "POST", token, body: payload, isMultipart: true }),

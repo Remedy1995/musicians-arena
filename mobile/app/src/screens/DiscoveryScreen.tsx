@@ -1,10 +1,10 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { UserRole } from "../AppShell";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
-import { UserSummary } from "../services/api/types";
+import { TalentListItem, UserSummary } from "../services/api/types";
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
 import { GigCard } from "../components/GigCard";
@@ -27,25 +27,48 @@ export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: Dis
   const [inboxOpen, setInboxOpen] = useState(false);
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string>("All");
-  const filterOptions = ["All", "Church", "Wedding", "31st night", "Outdooring"];
-  const filteredTalents = marketplace.talents.filter((talent) => {
-    const haystack = [talent.display_name, talent.stage_name, talent.username, talent.city, talent.region, talent.primary_category?.name]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    return haystack.includes(search.toLowerCase());
-  });
+  const [activeCategoryId, setActiveCategoryId] = useState("");
+  const [talentResults, setTalentResults] = useState<TalentListItem[]>([]);
+  const [talentSearchLoading, setTalentSearchLoading] = useState(false);
+  const [talentSearchError, setTalentSearchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (role !== "client") return;
+
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      setTalentSearchLoading(true);
+      setTalentSearchError(null);
+      void api
+        .talents(search, activeCategoryId)
+        .then((results) => {
+          if (!cancelled) setTalentResults(results);
+        })
+        .catch((caught) => {
+          if (!cancelled) {
+            setTalentSearchError(caught instanceof ApiError ? caught.message : "Unable to search talents right now.");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setTalentSearchLoading(false);
+        });
+    }, search.trim() ? 350 : 0);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [activeCategoryId, role, search]);
+
+  const filteredTalents = role === "client" ? talentResults : marketplace.talents;
   const filteredGigs = marketplace.gigs.filter((gig) => {
+    if (role !== "talent") return false;
     const matchesSearch = [gig.title, gig.description, gig.city, gig.region, gig.event_type_name]
       .filter(Boolean)
       .join(" ")
       .toLowerCase()
       .includes(search.toLowerCase());
-    if (!matchesSearch) return false;
-    if (activeFilter === "All") return true;
-    const haystack = [gig.title, gig.description, gig.event_type_name, ...gig.required_categories.map((item) => item.name)].join(" ").toLowerCase();
-    return haystack.includes(activeFilter.toLowerCase());
+    return matchesSearch;
   });
   const talents = filteredTalents.slice(0, 5);
   const gigs = filteredGigs.slice(0, 4);
@@ -60,13 +83,13 @@ export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: Dis
           searchTitle: "Who do you want to hire?",
           searchPlaceholder: "Search keyboardists, worship leaders, MCs, brass sections...",
           featuredTitle: "Recommended talents",
-          gigsTitle: "Your live hiring pipeline",
+          gigsTitle: "",
           gigsAction: "Manage gigs",
           heroStats: [
             { value: `${marketplace.gigs.length}`, label: "open gigs" },
             { value: `${marketplace.bookings.length}`, label: "active hires" },
           ],
-          heroCta: "Manage open gigs",
+          heroCta: "Manage opportunity gigs",
         }
       : {
           heroColors: ["#182324", "#141618"] as const,
@@ -124,55 +147,94 @@ export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: Dis
           value={search}
           onChangeText={setSearch}
         />
-        <View style={styles.quickFilters}>
-          {filterOptions.map((filter) => (
-            <Pressable key={filter} onPress={() => setActiveFilter(filter)} style={[styles.quickFilter, activeFilter === filter ? styles.quickFilterActive : undefined]}>
-              <Text style={[styles.quickFilterLabel, activeFilter === filter ? styles.quickFilterLabelActive : undefined]}>{filter}</Text>
-            </Pressable>
-          ))}
-        </View>
+        {role === "client" ? (
+          <View style={styles.categoryFilterGroup}>
+            <Text style={styles.categoryFilterLabel}>Filter by skill</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryFilters}
+            >
+              <Pressable
+                onPress={() => setActiveCategoryId("")}
+                style={[styles.categoryFilter, !activeCategoryId ? styles.categoryFilterActive : undefined]}
+              >
+                <Text style={[styles.categoryFilterText, !activeCategoryId ? styles.categoryFilterTextActive : undefined]}>
+                  All skills
+                </Text>
+              </Pressable>
+              {marketplace.categories.map((category) => {
+                const isActive = activeCategoryId === category.id;
+                return (
+                  <Pressable
+                    key={category.id}
+                    onPress={() => setActiveCategoryId(category.id)}
+                    style={[styles.categoryFilter, isActive ? styles.categoryFilterActive : undefined]}
+                  >
+                    <Text style={[styles.categoryFilterText, isActive ? styles.categoryFilterTextActive : undefined]}>
+                      {category.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        ) : null}
+        {role === "client" && talentSearchLoading ? <Text style={styles.searchStatus}>Searching the talent directory...</Text> : null}
+        {role === "client" && talentSearchError ? <Text style={styles.errorText}>{talentSearchError}</Text> : null}
       </View>
 
       <View style={styles.section}>
-        <SectionHeader title={roleSummary.featuredTitle} action={role === "client" ? "See all" : "Compare"} />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-          {talents.map((talent) => (
-            <TalentCard
-              key={talent.id}
-              name={talent.display_name || talent.stage_name || talent.username}
-              imageUri={talent.profile_image_url}
-              title={talent.primary_category?.name ? `${talent.primary_category.name} ready for live bookings` : "Creative talent ready for live bookings"}
-              city={talent.city || talent.region || "Ghana"}
-              rate={formatRate(talent.fixed_price_min, talent.fixed_price_max)}
-              rating={Number(talent.average_rating || 0)}
-              jobs={talent.booking_count}
-              verified={Boolean(talent.is_featured)}
-              tags={[
-                talent.primary_category?.name ?? "Talent",
-                talent.region || "Live",
-                talent.years_of_experience ? `${talent.years_of_experience} yrs` : "Available",
-              ]}
-            />
-          ))}
-        </ScrollView>
+        <SectionHeader
+          title={role === "client" && (search.trim() || activeCategoryId) ? "Talent search results" : roleSummary.featuredTitle}
+          action={role === "client" ? "See all" : "Compare"}
+        />
+        {talents.length ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+            {talents.map((talent) => (
+              <TalentCard
+                key={talent.id}
+                name={talent.display_name || talent.stage_name || talent.username}
+                imageUri={talent.profile_image_url}
+                title={talent.primary_category?.name ? `${talent.primary_category.name} ready for live bookings` : "Creative talent ready for live bookings"}
+                city={talent.city || talent.region || "Ghana"}
+                rate={formatRate(talent.fixed_price_min, talent.fixed_price_max)}
+                rating={Number(talent.average_rating || 0)}
+                jobs={talent.booking_count}
+                verified={Boolean(talent.is_featured)}
+                tags={[
+                  talent.primary_category?.name ?? "Talent",
+                  talent.region || "Live",
+                  talent.years_of_experience ? `${talent.years_of_experience} yrs` : "Available",
+                ]}
+              />
+            ))}
+          </ScrollView>
+        ) : (
+          <Text style={styles.emptyText}>
+            {search.trim() || activeCategoryId ? "No talents match these filters yet." : "No talents available yet."}
+          </Text>
+        )}
       </View>
 
-      <View style={styles.section}>
-        <SectionHeader title={roleSummary.gigsTitle} action={roleSummary.gigsAction} />
-        <View style={styles.gigList}>
-          {gigs.map((gig) => (
-            <GigCard
-              key={gig.id}
-              title={gig.title}
-              venue={[gig.city, gig.region].filter(Boolean).join(", ")}
-              timing={formatEventMoment(gig.event_date, gig.start_time)}
-              budget={formatBudget(gig.currency_code, gig.budget_min, gig.budget_max)}
-              urgency={gig.is_urgent ? "Urgent" : "Open"}
-              roles={gig.required_categories.map((item) => item.name)}
-            />
-          ))}
+      {role === "talent" ? (
+        <View style={styles.section}>
+          <SectionHeader title={roleSummary.gigsTitle} action={roleSummary.gigsAction} />
+          <View style={styles.gigList}>
+            {gigs.map((gig) => (
+              <GigCard
+                key={gig.id}
+                title={gig.title}
+                venue={[gig.city, gig.region].filter(Boolean).join(", ")}
+                timing={formatEventMoment(gig.event_date, gig.start_time)}
+                budget={formatBudget(gig.currency_code, gig.budget_min, gig.budget_max)}
+                urgency={gig.is_urgent ? "Urgent" : "Open"}
+                roles={gig.required_categories.map((item) => item.name)}
+              />
+            ))}
+          </View>
         </View>
-      </View>
+      ) : null}
 
       <Modal animationType="slide" visible={inboxOpen} onRequestClose={() => setInboxOpen(false)}>
         <View style={styles.modalScreen}>
@@ -343,27 +405,49 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size.md,
     color: theme.semanticColors.textPrimary,
   },
-  quickFilters: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing[2],
-  },
-  quickFilter: {
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: 6,
-    backgroundColor: theme.colors.stone[100],
-  },
-  quickFilterActive: {
-    backgroundColor: theme.colors.ink[900],
-  },
-  quickFilterLabel: {
+  searchStatus: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
     fontSize: theme.typography.size.sm,
     color: theme.semanticColors.textSecondary,
   },
-  quickFilterLabelActive: {
+  categoryFilterGroup: {
+    gap: theme.spacing[2],
+  },
+  categoryFilterLabel: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    color: theme.semanticColors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  categoryFilters: {
+    gap: theme.spacing[2],
+    paddingRight: theme.spacing[4],
+  },
+  categoryFilter: {
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: theme.spacing[2],
+    backgroundColor: theme.colors.stone[100],
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+  },
+  categoryFilterActive: {
+    backgroundColor: theme.colors.ink[900],
+    borderColor: theme.colors.ink[900],
+  },
+  categoryFilterText: {
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    fontSize: theme.typography.size.sm,
+    color: theme.semanticColors.textSecondary,
+  },
+  categoryFilterTextActive: {
     color: theme.semanticColors.textOnDark,
+  },
+  emptyText: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.md,
+    color: theme.semanticColors.textSecondary,
   },
   section: {
     gap: theme.spacing[3],

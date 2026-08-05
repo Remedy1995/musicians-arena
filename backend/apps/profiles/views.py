@@ -1,8 +1,10 @@
 from rest_framework import generics, permissions
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
+from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.accounts.models import User
 from apps.common.throttling import ScopedWriteThrottleMixin
@@ -37,7 +39,21 @@ class EventTypeListView(generics.ListAPIView):
 class TalentProfileListView(generics.ListAPIView):
     serializer_class = TalentProfileListSerializer
     permission_classes = [permissions.AllowAny]
-    search_fields = ["user__username", "user__profile__display_name", "user__profile__city", "user__profile__region"]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = [
+        "user__username",
+        "user__profile__display_name",
+        "user__profile__first_name",
+        "user__profile__last_name",
+        "user__profile__bio",
+        "user__profile__city",
+        "user__profile__region",
+        "user__profile__country",
+        "stage_name",
+        "primary_category__name",
+        "skills__category__name",
+        "event_types__event_type__name",
+    ]
     ordering_fields = ["average_rating", "review_count", "booking_count", "created_at"]
     filterset_class = TalentProfileFilter
 

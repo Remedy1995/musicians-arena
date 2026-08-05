@@ -167,7 +167,7 @@ export function ProfileScreen({ role, token, onSignOut, marketplace }: ProfileSc
               }}
               style={styles.avatarAction}
             >
-              <Text style={styles.avatarActionLabel}>{savingProfilePhoto ? "Uploading..." : localProfilePhotoUri ? "Change photo" : "Add photo"}</Text>
+              <Text style={styles.avatarActionLabel}>{savingProfilePhoto ? "Uploading..." : "Save image"}</Text>
             </Pressable>
           </View>
         </View>
@@ -792,8 +792,7 @@ export function ProfileScreen({ role, token, onSignOut, marketplace }: ProfileSc
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         quality: 0.85,
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: false,
       });
 
       if (result.canceled || !result.assets.length) {

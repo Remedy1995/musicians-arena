@@ -37,6 +37,13 @@ This starts:
 - ASGI API server on `http://127.0.0.1:8000`
 - Celery worker
 
+For a complete fresh-server deployment, use the repository root guide:
+
+- [`DEPLOYMENT.md`](../DEPLOYMENT.md)
+- [`docs/backend-deployment-guide.md`](../docs/backend-deployment-guide.md) for the backend-only VPS runbook.
+
+It documents Docker Compose v2, production environment files, PostgreSQL and Redis, Daphne/WebSockets, Celery, Caddy HTTPS, Hetzner Object Storage, Paystack, backups, restores, and rollback.
+
 ## Initial API Endpoints
 
 - `GET /api/v1/health/`
@@ -180,6 +187,14 @@ Production media uses the same Django file fields with an S3-compatible storage 
 ```bash
 .venv/bin/python backend/manage.py seed_marketplace_reference_data
 ```
+
+For local or staging search demonstrations, create ten talent accounts and ten organizer accounts:
+
+```bash
+.venv/bin/python backend/manage.py seed_demo_users
+```
+
+The command is idempotent. It uses the default password `DemoPass123!` and creates usernames `demo_talent_01` through `demo_talent_10` and `demo_organizer_01` through `demo_organizer_10`. Change it for a different run with `--password`; do not use demo credentials in production.
 
 ## WebSocket Chat
 

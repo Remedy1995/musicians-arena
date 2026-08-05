@@ -170,7 +170,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
         {role === "client" ? (
           <>
             <PrimaryButton
-              label="＋ Create a public gig"
+              label="＋ Create an opportunity gig"
               onPress={() => {
                 setComposerOpen(true);
               }}

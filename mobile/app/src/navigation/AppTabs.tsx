@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
 
 import { UserRole } from "../AppShell";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
@@ -54,7 +55,7 @@ export function AppTabs({ role, currentUser, token, onExit, onSignOut }: AppTabs
   };
 
   return (
-    <>
+    <View style={styles.container}>
       {activeTab === "discover" ? <DiscoveryScreen {...sharedProps} /> : null}
       {activeTab === "gigs" ? <GigsScreen {...sharedProps} /> : null}
       {activeTab === "messages" ? <MessagesScreen {...sharedProps} /> : null}
@@ -69,6 +70,13 @@ export function AppTabs({ role, currentUser, token, onExit, onSignOut }: AppTabs
           bookings: bookingAttentionCount,
         }}
       />
-    </>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+});

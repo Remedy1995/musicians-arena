@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { UserRole } from "../AppShell";
 import { TabKey } from "../navigation/AppTabs";
@@ -14,6 +15,7 @@ type BottomTabBarProps = {
 };
 
 export function BottomTabBar({ role, activeTab, onTabPress, badges = {} }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
   const tabItems: Array<{ key: TabKey; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; activeIcon: keyof typeof MaterialCommunityIcons.glyphMap }> = [
     { key: "discover", label: role === "client" ? "Dashboard" : "Discover", icon: "compass-outline", activeIcon: "compass" },
     { key: "gigs", label: role === "client" ? "My Gigs" : "Gig Board", icon: "music-note-outline", activeIcon: "music-note" },
@@ -23,7 +25,7 @@ export function BottomTabBar({ role, activeTab, onTabPress, badges = {} }: Botto
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, theme.spacing[2]) }]}>
       <View style={styles.bar}>
         {tabItems.map((item) => {
           const isActive = item.key === activeTab;
@@ -76,14 +78,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: theme.spacing[2],
     paddingTop: theme.spacing[2],
-    paddingBottom: theme.spacing[5],
+    paddingBottom: theme.spacing[2],
     gap: theme.spacing[1],
   },
   item: {
     flex: 1,
     alignItems: "center",
     gap: theme.spacing[1],
-    paddingVertical: theme.spacing[2],
+    paddingVertical: theme.spacing[1],
     position: "relative",
   },
   activeIndicator: {
@@ -104,7 +106,10 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
     fontSize: 11,
+    lineHeight: 14,
     color: "rgba(255, 255, 255, 0.7)",
+    includeFontPadding: false,
+    textAlign: "center",
   },
   labelActive: {
     color: theme.colors.gold[300],
