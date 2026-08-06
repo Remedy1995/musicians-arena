@@ -52,6 +52,7 @@ It documents Docker Compose v2, production environment files, PostgreSQL and Red
 - `POST /api/v1/auth/register/`
 - `POST /api/v1/auth/login/`
 - `GET /api/v1/auth/me/`
+- `POST /api/v1/auth/capabilities/` to add the organizer or talent capability to an existing account
 - `GET /api/v1/profiles/me/`
 - `PATCH /api/v1/profiles/me/`
 - `GET /api/v1/profiles/categories/`
@@ -92,6 +93,7 @@ It documents Docker Compose v2, production environment files, PostgreSQL and Red
 - `GET /api/v1/notifications/`
 - `GET /api/v1/notifications/unread-count/`
 - `PATCH /api/v1/notifications/<uuid>/read/`
+- `POST /api/v1/notifications/devices/` to register an Expo native push token
 - `GET /api/v1/payments/`
 - `GET /api/v1/payments/payouts/`
 - `GET /api/v1/payments/bookings/<uuid>/summary/`
@@ -119,6 +121,13 @@ It documents Docker Compose v2, production environment files, PostgreSQL and Red
 - `min_fixed_price`
 - `max_fixed_price`
 - `ordering`
+
+Registration accepts `capabilities: ["talent", "organizer"]`. The legacy `role` field is retained in responses and remains supported for older clients; authorization uses the capability assignments.
+
+Realtime endpoints are served by the same Daphne ASGI process:
+
+- `ws/chat/conversations/<uuid>/?token=<DRF token>`
+- `ws/notifications/?token=<DRF token>`
 
 `GET /api/v1/gigs/` supports:
 - `search`

@@ -25,7 +25,7 @@ export function BottomTabBar({ role, activeTab, onTabPress, badges = {} }: Botto
   ];
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, theme.spacing[2]) }]}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom + theme.spacing[2], theme.spacing[5]) }]}>
       <View style={styles.bar}>
         {tabItems.map((item) => {
           const isActive = item.key === activeTab;

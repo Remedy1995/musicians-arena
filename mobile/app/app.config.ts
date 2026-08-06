@@ -53,6 +53,12 @@ export default (): ExpoConfig => {
       buildNumber: iosBuildNumber,
       infoPlist: {
         ...(baseConfig.ios?.infoPlist || {}),
+        ...(appVariant === "development"
+          ? {
+              NSLocalNetworkUsageDescription:
+                "Musician's Arena uses your local network to connect this development build to Metro on your Mac.",
+            }
+          : {}),
         ...(allowInsecureHttp
           ? {
               NSAppTransportSecurity: {
@@ -65,6 +71,7 @@ export default (): ExpoConfig => {
     android: androidConfig,
     plugins: [
       ...(baseConfig.plugins || []),
+      "expo-notifications",
       ...(allowInsecureHttp ? ["./plugins/withAndroidCleartextTraffic"] : []),
     ],
     extra: {

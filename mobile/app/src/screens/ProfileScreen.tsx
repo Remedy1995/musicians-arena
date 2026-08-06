@@ -10,17 +10,19 @@ import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { TextField } from "../components/TextField";
-import { TopBar } from "../components/TopBar";
+import { ModalSurface } from "../components/ModalSurface";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
-import { UserSummary } from "../services/api/types";
+import { Capability, UserSummary } from "../services/api/types";
 import { theme } from "../theme/theme";
 
 type ProfileScreenProps = {
   role: UserRole;
+  capabilities: Capability[];
   currentUser: UserSummary;
   token: string;
+  onRoleChange: (role: UserRole) => void;
   onExit: () => void;
   onSignOut: () => void;
   onNavigateTab: (tab: "discover" | "gigs" | "messages" | "bookings" | "profile") => void;
@@ -31,7 +33,7 @@ type ProfileScreenProps = {
   marketplace: ReturnType<typeof useMarketplaceData>;
 };
 
-export function ProfileScreen({ role, token, onSignOut, marketplace }: ProfileScreenProps) {
+export function ProfileScreen({ role, capabilities, token, onRoleChange, onSignOut, marketplace }: ProfileScreenProps) {
   const { width } = useWindowDimensions();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,13 +132,45 @@ export function ProfileScreen({ role, token, onSignOut, marketplace }: ProfileSc
 
   return (
     <Screen>
-      <TopBar showNotifications={false} />
+      <View style={styles.screenHeader}>
+        <View style={styles.screenHeaderIcon}>
+          <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
+        </View>
+        <Text style={styles.screenHeaderTitle}>Profile</Text>
+      </View>
 
       <View style={styles.utilityRow}>
         <Pressable onPress={onSignOut} style={styles.signOutButton}>
           <Text style={styles.signOutLabel}>Sign out</Text>
         </Pressable>
       </View>
+
+      {capabilities.length > 1 ? (
+        <View style={styles.modeSwitcher}>
+          <Text style={styles.modeSwitcherLabel}>Your workspaces</Text>
+          <View style={styles.modeSwitcherOptions}>
+            {([
+              ["client", "Organizer", "briefcase-outline"],
+              ["talent", "Talent", "music-note-outline"],
+            ] as const).map(([nextRole, label, icon]) => {
+              const selected = role === nextRole;
+              return (
+                <Pressable
+                  key={nextRole}
+                  onPress={() => {
+                    onRoleChange(nextRole);
+                    setActiveSection("basic");
+                  }}
+                  style={[styles.modeOption, selected ? styles.modeOptionActive : undefined]}
+                >
+                  <MaterialCommunityIcons name={icon} size={16} color={selected ? theme.semanticColors.textOnDark : theme.semanticColors.textSecondary} />
+                  <Text style={[styles.modeOptionLabel, selected ? styles.modeOptionLabelActive : undefined]}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.header}>
         <View style={styles.profileHeroRow}>
@@ -412,7 +446,7 @@ export function ProfileScreen({ role, token, onSignOut, marketplace }: ProfileSc
       </ScrollView>
 
       <Modal animationType="slide" visible={portfolioOpen} onRequestClose={() => setPortfolioOpen(false)}>
-        <View style={styles.modalScreen}>
+        <ModalSurface style={styles.modalScreen}>
           <View style={styles.modalHeader}>
             <View style={styles.modalTitleWrap}>
               <Text style={styles.modalTitle}>Talent portfolio</Text>
@@ -503,10 +537,10 @@ export function ProfileScreen({ role, token, onSignOut, marketplace }: ProfileSc
             </View>
             {portfolioError ? <Text style={styles.error}>{portfolioError}</Text> : null}
           </ScrollView>
-        </View>
+        </ModalSurface>
       </Modal>
       <Modal animationType="slide" visible={Boolean(selectedMedia)} onRequestClose={() => setSelectedMediaId(null)}>
-        <View style={styles.mediaModalScreen}>
+        <ModalSurface style={styles.mediaModalScreen}>
           <View style={styles.modalHeader}>
             <View style={styles.modalTitleWrap}>
               <Text style={[styles.modalTitle, styles.mediaModalTitle]}>{selectedMedia?.title || "Portfolio sample"}</Text>
@@ -592,7 +626,7 @@ export function ProfileScreen({ role, token, onSignOut, marketplace }: ProfileSc
               </View>
             </ScrollView>
           ) : null}
-        </View>
+        </ModalSurface>
       </Modal>
     </Screen>
   );
@@ -943,9 +977,71 @@ async function appendUploadFile(
 }
 
 const styles = StyleSheet.create({
+  screenHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[3],
+    paddingTop: theme.spacing[2],
+  },
+  screenHeaderIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: theme.radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.ink[900],
+  },
+  screenHeaderTitle: {
+    fontFamily: theme.typography.fontFamily.display,
+    fontSize: theme.typography.size["2xl"],
+    color: theme.semanticColors.textPrimary,
+  },
   utilityRow: {
     alignItems: "flex-end",
     paddingTop: theme.spacing[3],
+  },
+  modeSwitcher: {
+    gap: theme.spacing[2],
+    padding: theme.spacing[3],
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.semanticColors.surface,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+  },
+  modeSwitcherLabel: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    color: theme.semanticColors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  modeSwitcherOptions: {
+    flexDirection: "row",
+    gap: theme.spacing[2],
+  },
+  modeOption: {
+    flex: 1,
+    minHeight: 42,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing[2],
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+    backgroundColor: theme.colors.stone[50],
+  },
+  modeOptionActive: {
+    backgroundColor: theme.semanticColors.primary,
+    borderColor: theme.semanticColors.primary,
+  },
+  modeOptionLabel: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.sm,
+    color: theme.semanticColors.textSecondary,
+  },
+  modeOptionLabelActive: {
+    color: theme.semanticColors.textOnDark,
   },
   signOutButton: {
     borderRadius: theme.radius.pill,

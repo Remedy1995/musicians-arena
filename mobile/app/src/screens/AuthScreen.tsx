@@ -5,7 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { AuthMode, UserRole } from "../AppShell";
 import { ApiError } from "../services/api/client";
 import { api } from "../services/api";
-import { AuthResponse } from "../services/api/types";
+import { AuthResponse, Capability } from "../services/api/types";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { SecondaryButton } from "../components/SecondaryButton";
@@ -14,6 +14,7 @@ import { theme } from "../theme/theme";
 
 type AuthScreenProps = {
   role: UserRole;
+  capabilities: Capability[];
   initialMode: AuthMode;
   onAuthenticated: (session: AuthResponse) => void;
   onBack: () => void;
@@ -21,7 +22,7 @@ type AuthScreenProps = {
   onStartRegistration: () => void;
 };
 
-export function AuthScreen({ role, initialMode, onAuthenticated, onBack, onSwitchMode, onStartRegistration }: AuthScreenProps) {
+export function AuthScreen({ role, capabilities, initialMode, onAuthenticated, onBack, onSwitchMode, onStartRegistration }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +39,11 @@ export function AuthScreen({ role, initialMode, onAuthenticated, onBack, onSwitc
   }, [initialMode]);
 
   const title = useMemo(() => (mode === "login" ? "Sign in to your account" : "Create your account"), [mode]);
-  const roleLabel = role === "client" ? "Organizer account" : "Talent account";
+  const roleLabel = capabilities.length > 1
+    ? "Talent + organizer account"
+    : capabilities.includes("organizer")
+      ? "Organizer account"
+      : "Talent account";
   const isLogin = mode === "login";
   const heroTheme = isLogin
     ? {
@@ -48,7 +53,7 @@ export function AuthScreen({ role, initialMode, onAuthenticated, onBack, onSwitc
         roleTitle: "Pick up where your last conversation, booking, or gig left off.",
         roleBody: "Sign in once and the app will detect whether this account belongs to an organizer or a talent.",
       }
-    : role === "client"
+    : capabilities.includes("organizer")
       ? {
           heroColors: ["#241D17", "#121416"] as const,
           accent: theme.colors.gold[400],
@@ -80,6 +85,7 @@ export function AuthScreen({ role, initialMode, onAuthenticated, onBack, onSwitc
               email: form.email,
               phone: form.phone,
               role,
+              capabilities,
               password: form.password,
               display_name: form.displayName,
             });
@@ -121,7 +127,9 @@ export function AuthScreen({ role, initialMode, onAuthenticated, onBack, onSwitc
           <Text style={styles.body}>
             {isLogin
               ? "Sign in and we will automatically open the right account experience for you."
-              : `This account will be created as a ${role === "client" ? "client organizer" : "talent"} profile.`}
+              : capabilities.length > 1
+                ? "This account can work as both a talent and an organizer."
+                : `This account will be created as a ${capabilities.includes("organizer") ? "client organizer" : "talent"} profile.`}
           </Text>
         </View>
 

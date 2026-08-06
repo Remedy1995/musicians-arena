@@ -43,11 +43,13 @@ Key values:
 ## Current Capabilities
 
 - role-aware sign in and registration for clients and talents
+- one account can hold both organizer and talent capabilities, with workspace switching from Profile
 - talent discovery, gig board, gig posting, and applicant review
 - booking negotiation, counteroffers, and payment-summary scaffolding
 - held-funds booking workflow with deposit, balance, completion confirmation, no-show reporting, refund/compensation summaries, and payout-pending states
 - Paystack test checkout for deposit and balance payments with server-side verification
 - messaging APIs with ASGI/WebSocket support via Daphne
+- in-app notification WebSocket updates with HTTP fallback and native Expo push-token registration
 - talent portfolio uploads and hosted-link portfolio items
 - profile photo upload for both clients and talents
 
@@ -114,7 +116,35 @@ cd ios && pod install && cd ..
 open ios/*.xcworkspace
 ```
 
-In Xcode, select the `Musician's Arena` scheme, choose an iPhone Simulator or a connected iPhone, and press `Cmd + R`. A simulator does not require a paid Apple Developer membership. A physical iPhone requires an Apple Team under **Signing & Capabilities**; distribution to other testers requires a paid Apple Developer Program membership and TestFlight or Ad Hoc signing.
+For a physical iPhone Debug build, start Metro in a second terminal from the same safe copy:
+
+```bash
+cd "$HOME/Projects/musicians-arena-mobile"
+export APP_VARIANT=development
+export ALLOW_INSECURE_HTTP=false
+export EXPO_PUBLIC_API_BASE_URL=https://api.musicianz.site/api/v1
+export EXPO_PUBLIC_WS_BASE_URL=wss://api.musicianz.site
+npx expo start --dev-client --host lan --port 8081
+```
+
+Keep the Mac and iPhone on the same Wi-Fi, then in Xcode select the `Musician's Arena` scheme, choose the iPhone, and press `Cmd + R`. On the iPhone, allow **Local Network** access for Musician's Arena under **Settings > Privacy & Security > Local Network**. If the permission does not appear, delete the app from the iPhone, run `npx expo prebuild --platform ios` again, reinstall it from Xcode, and relaunch. Also allow incoming connections for Node/Terminal in the macOS firewall and disable VPN or Wi-Fi client isolation while testing.
+
+The `No script URL provided` message means Debug could not reach Metro; it is not caused by the dSYM warning. Confirm Metro is reachable from the Mac with `curl http://192.168.0.158:8081/status` and use the Mac's current LAN address if it has changed. Do not use `--host localhost` for a physical iPhone. If the Wi-Fi blocks device-to-device traffic, use `npx expo start --dev-client --host tunnel` instead.
+
+To run a standalone local Release build that embeds the JavaScript bundle and does not need Metro, use the live HTTPS endpoints:
+
+```bash
+cd "$HOME/Projects/musicians-arena-mobile"
+export APP_VARIANT=preview
+export ALLOW_INSECURE_HTTP=false
+export EXPO_PUBLIC_API_BASE_URL=https://api.musicianz.site/api/v1
+export EXPO_PUBLIC_WS_BASE_URL=wss://api.musicianz.site
+npx expo prebuild --platform ios
+cd ios && pod install && cd ..
+npx expo run:ios --device --configuration Release
+```
+
+In Xcode, the equivalent is **Product > Scheme > Edit Scheme > Run > Build Configuration > Release**, followed by `Cmd + R`. A simulator does not require a paid Apple Developer membership. A physical iPhone requires an Apple Team under **Signing & Capabilities**; distribution to other testers requires a paid Apple Developer Program membership and TestFlight or Ad Hoc signing.
 
 The complete VPS, Android APK, and iOS/Xcode runbook is in [`DEPLOYMENT.md`](../../DEPLOYMENT.md).
 
@@ -123,6 +153,13 @@ Current mobile build behavior:
 - Android and iOS preview builds use `https://api.musicianz.site/api/v1`
 - websocket chat and notifications use `wss://api.musicianz.site`
 - after native Android config changes, use `npm run build:android:preview:clean`, uninstall the old APK, then install the new APK
+
+Native push setup:
+
+- Build a development or preview binary; Expo Go is not a reliable target for production push testing.
+- Allow notifications on the device when prompted.
+- The app registers its Expo push token at `POST /api/v1/notifications/devices/` after login.
+- Set `EXPO_PUSH_ENABLED=True` on the backend and restart both the API and Celery worker. Keep WebSocket notifications enabled as the realtime fallback.
 
 ## Payment and Media Production Setup
 

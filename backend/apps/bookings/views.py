@@ -35,13 +35,11 @@ class BookingListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPIView
         if getattr(self, "swagger_fake_view", False):
             return Booking.objects.none()
         user = self.request.user
-        if user.role == User.Role.TALENT:
-            return Booking.objects.filter(talent=user).select_related("client", "talent", "event_type")
-        return Booking.objects.filter(client=user).select_related("client", "talent", "event_type")
+        return Booking.objects.filter(Q(client=user) | Q(talent=user)).select_related("client", "talent", "event_type")
 
     def perform_create(self, serializer):
-        if self.request.user.role != User.Role.CLIENT:
-            raise PermissionDenied("Only clients can create bookings.")
+        if not self.request.user.has_capability("organizer"):
+            raise PermissionDenied("Organizer capability is required to create bookings.")
         booking = serializer.save()
         notify_booking_created(booking=booking)
 

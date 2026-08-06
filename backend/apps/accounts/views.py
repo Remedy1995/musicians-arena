@@ -3,7 +3,9 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.serializers import AuthResponseSerializer, LoginSerializer, RegisterSerializer, UserSummarySerializer
+from apps.accounts.models import UserCapability
+from apps.accounts.serializers import AddCapabilitySerializer, AuthResponseSerializer, LoginSerializer, RegisterSerializer, UserSummarySerializer
+from apps.profiles.models import ClientProfile, TalentProfile
 from apps.common.throttling import ScopedWriteThrottleMixin
 
 
@@ -28,6 +30,23 @@ class LoginView(ScopedWriteThrottleMixin, APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(AuthResponseSerializer.from_user(serializer.validated_data["user"]))
+
+
+class AddCapabilityView(ScopedWriteThrottleMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "profile_write"
+
+    @extend_schema(tags=["Auth"], summary="Add a capability to the current account", request=AddCapabilitySerializer, responses=UserSummarySerializer)
+    def post(self, request):
+        serializer = AddCapabilitySerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        capability = serializer.validated_data["capability"]
+        UserCapability.objects.create(user=request.user, capability=capability)
+        if capability == UserCapability.Capability.TALENT:
+            TalentProfile.objects.get_or_create(user=request.user)
+        else:
+            ClientProfile.objects.get_or_create(user=request.user)
+        return Response(UserSummarySerializer(request.user).data, status=status.HTTP_201_CREATED)
 
 
 class MeView(APIView):

@@ -12,6 +12,7 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
+import { ModalSurface } from "../components/ModalSurface";
 import { TextField } from "../components/TextField";
 import { theme } from "../theme/theme";
 
@@ -324,8 +325,12 @@ export function BookingsScreen({
         </View>
       ) : null}
 
-      <Modal animationType="slide" visible={actionOpen} onRequestClose={() => setActionOpen(false)}>
-        <View style={styles.modalScreen}>
+      <Modal
+        animationType="slide"
+        visible={actionOpen && activeActionForm === null && !historyOpen}
+        onRequestClose={() => setActionOpen(false)}
+      >
+        <ModalSurface style={styles.modalScreen}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {role === "talent" && negotiationCanRespond ? "Booking request" : "Booking actions"}
@@ -605,15 +610,18 @@ export function BookingsScreen({
               </View>
             </ScrollView>
           ) : null}
-        </View>
+        </ModalSurface>
       </Modal>
       <Modal
         animationType="fade"
         transparent
         visible={activeActionForm !== null}
-        onRequestClose={() => setActiveActionForm(null)}
+        onRequestClose={() => {
+          setActiveActionForm(null);
+          setActionOpen(true);
+        }}
       >
-        <View style={styles.actionFormOverlay}>
+        <ModalSurface style={styles.actionFormOverlay}>
           <View style={styles.actionFormSheet}>
             <View style={styles.actionFormHeader}>
               <Text style={styles.actionFormTitle}>
@@ -625,10 +633,16 @@ export function BookingsScreen({
                     ? "Send counteroffer"
                     : ""}
               </Text>
-              <Pressable onPress={() => setActiveActionForm(null)}>
+              <Pressable
+                onPress={() => {
+                  setActiveActionForm(null);
+                  setActionOpen(true);
+                }}
+              >
                 <Text style={styles.modalClose}>Close</Text>
               </Pressable>
             </View>
+            {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
             <ScrollView contentContainerStyle={styles.actionFormContent}>
               {activeActionForm === "accept" ? (
                 <>
@@ -651,11 +665,16 @@ export function BookingsScreen({
                     <PrimaryButton
                       label={submitting ? "Working..." : "Submit acceptance"}
                       onPress={() => {
-                        setActiveActionForm(null);
                         void handleBookingAction("accept");
                       }}
                     />
-                    <SecondaryButton label="Cancel" onPress={() => setActiveActionForm(null)} />
+                    <SecondaryButton
+                      label="Cancel"
+                      onPress={() => {
+                        setActiveActionForm(null);
+                        setActionOpen(true);
+                      }}
+                    />
                   </View>
                 </>
               ) : null}
@@ -673,19 +692,37 @@ export function BookingsScreen({
                         void handleCounteroffer();
                       }}
                     />
-                    <SecondaryButton label="Cancel" onPress={() => setActiveActionForm(null)} />
+                    <SecondaryButton
+                      label="Cancel"
+                      onPress={() => {
+                        setActiveActionForm(null);
+                        setActionOpen(true);
+                      }}
+                    />
                   </View>
                 </>
               ) : null}
             </ScrollView>
           </View>
-        </View>
+        </ModalSurface>
       </Modal>
-      <Modal animationType="slide" visible={historyOpen} onRequestClose={() => setHistoryOpen(false)}>
-        <View style={styles.modalScreen}>
+      <Modal
+        animationType="slide"
+        visible={historyOpen}
+        onRequestClose={() => {
+          setHistoryOpen(false);
+          setActionOpen(true);
+        }}
+      >
+        <ModalSurface style={styles.modalScreen}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Counteroffer history</Text>
-            <Pressable onPress={() => setHistoryOpen(false)}>
+            <Pressable
+              onPress={() => {
+                setHistoryOpen(false);
+                setActionOpen(true);
+              }}
+            >
               <Text style={styles.modalClose}>Close</Text>
             </Pressable>
           </View>
@@ -724,7 +761,7 @@ export function BookingsScreen({
               </View>
             )}
           </ScrollView>
-        </View>
+        </ModalSurface>
       </Modal>
     </Screen>
   );

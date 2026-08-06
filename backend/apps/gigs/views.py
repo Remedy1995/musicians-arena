@@ -51,9 +51,11 @@ class GigListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPIView):
         if not user.is_authenticated:
             return queryset.filter(status=Gig.Status.OPEN, visibility=Gig.Visibility.PUBLIC)
 
-        if user.role == User.Role.TALENT:
+        if user.has_capability("talent"):
             queryset = queryset.filter(status=Gig.Status.OPEN).filter(
-                Q(visibility=Gig.Visibility.PUBLIC) | Q(visibility=Gig.Visibility.VERIFIED_ONLY, organizer__isnull=False)
+                Q(visibility=Gig.Visibility.PUBLIC)
+                | Q(visibility=Gig.Visibility.VERIFIED_ONLY, organizer__isnull=False)
+                | Q(organizer=user)
             )
             return queryset.distinct()
 
@@ -66,8 +68,8 @@ class GigListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPIView):
         return GigListSerializer
 
     def create(self, request, *args, **kwargs):
-        if request.user.role != User.Role.CLIENT:
-            raise PermissionDenied("Only client accounts can create gigs.")
+        if not request.user.has_capability("organizer"):
+            raise PermissionDenied("Organizer capability is required to create gigs.")
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         gig = serializer.save()
@@ -83,8 +85,8 @@ class MyGigListView(generics.ListAPIView):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return Gig.objects.none()
-        if self.request.user.role != User.Role.CLIENT:
-            raise PermissionDenied("Only client accounts can view organizer gigs.")
+        if not self.request.user.has_capability("organizer"):
+            raise PermissionDenied("Organizer capability is required to view organizer gigs.")
         return (
             Gig.objects.filter(organizer=self.request.user)
             .select_related("organizer", "organizer__profile", "event_type")
@@ -132,8 +134,8 @@ class GigInterestCreateView(ScopedWriteThrottleMixin, generics.CreateAPIView):
     throttle_scope = "gig_interest_write"
 
     def create(self, request, *args, **kwargs):
-        if request.user.role != User.Role.TALENT:
-            raise PermissionDenied("Only talent accounts can show interest in gigs.")
+        if not request.user.has_capability("talent"):
+            raise PermissionDenied("Talent capability is required to show interest in gigs.")
 
         gig = generics.get_object_or_404(
             Gig.objects.prefetch_related("required_categories__category"),

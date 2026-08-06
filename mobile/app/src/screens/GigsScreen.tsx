@@ -14,6 +14,7 @@ import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { TextField } from "../components/TextField";
+import { ModalSurface } from "../components/ModalSurface";
 import { theme } from "../theme/theme";
 
 type GigsScreenProps = {
@@ -259,7 +260,8 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
       </View>
 
       <Modal animationType="slide" visible={composerOpen} onRequestClose={() => setComposerOpen(false)}>
-        <KeyboardAvoidingView style={styles.modalScreen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ModalSurface style={styles.modalScreen}>
+          <KeyboardAvoidingView style={styles.modalKeyboard} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalHeader}>
             <View style={styles.modalTitleGroup}>
               <View style={styles.modalAccentBar} />
@@ -401,11 +403,13 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
             />
             <View style={styles.formBottomSpacer} />
           </ScrollView>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </ModalSurface>
       </Modal>
 
       <Modal animationType="slide" visible={interestOpen} onRequestClose={() => setInterestOpen(false)}>
-        <KeyboardAvoidingView style={styles.modalScreen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ModalSurface style={styles.modalScreen}>
+          <KeyboardAvoidingView style={styles.modalKeyboard} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalHeader}>
             <View style={styles.modalTitleGroup}>
               <View style={styles.modalAccentBar} />
@@ -552,11 +556,16 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
             ) : null}
             <View style={styles.formBottomSpacer} />
           </ScrollView>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </ModalSurface>
       </Modal>
 
-      <Modal animationType="slide" visible={organizerGigOpen} onRequestClose={() => setOrganizerGigOpen(false)}>
-        <View style={styles.modalScreen}>
+      <Modal
+        animationType="slide"
+        visible={organizerGigOpen && !selectedInterest && !decisionTarget && !profileTarget}
+        onRequestClose={() => setOrganizerGigOpen(false)}
+      >
+        <ModalSurface style={styles.modalScreen}>
           <View style={styles.modalHeader}>
             <View style={styles.modalTitleGroup}>
               <View style={styles.modalAccentBar} />
@@ -698,18 +707,32 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
           ) : (
             <Text style={styles.helperSubtext}>Loading gig details...</Text>
           )}
-        </View>
+        </ModalSurface>
       </Modal>
 
-      <Modal animationType="fade" transparent visible={Boolean(selectedInterest)} onRequestClose={() => setSelectedInterest(null)}>
-        <View style={styles.convertOverlay}>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={Boolean(selectedInterest)}
+        onRequestClose={() => {
+          setSelectedInterest(null);
+          setOrganizerGigOpen(true);
+        }}
+      >
+        <ModalSurface style={styles.convertOverlay}>
           <View style={styles.convertModal}>
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleGroup}>
                 <View style={styles.modalAccentBar} />
                 <Text style={styles.modalTitle}>Booking offer</Text>
               </View>
-              <Pressable onPress={() => setSelectedInterest(null)} style={styles.closeButton}>
+              <Pressable
+                onPress={() => {
+                  setSelectedInterest(null);
+                  setOrganizerGigOpen(true);
+                }}
+                style={styles.closeButton}
+              >
                 <Text style={styles.modalClose}>✕ Close</Text>
               </Pressable>
             </View>
@@ -765,11 +788,19 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
               </ScrollView>
             ) : null}
           </View>
-        </View>
+        </ModalSurface>
       </Modal>
 
-      <Modal transparent animationType="fade" visible={Boolean(decisionTarget)} onRequestClose={() => setDecisionTarget(null)}>
-        <View style={styles.confirmOverlay}>
+      <Modal
+        transparent
+        animationType="fade"
+        visible={Boolean(decisionTarget)}
+        onRequestClose={() => {
+          setDecisionTarget(null);
+          setOrganizerGigOpen(true);
+        }}
+      >
+        <ModalSurface style={styles.confirmOverlay}>
           <View style={styles.confirmCard}>
             <Text style={styles.confirmTitle}>
               {decisionTarget ? getDecisionCopy(decisionTarget.status).title : "Confirm action"}
@@ -778,7 +809,13 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
               {decisionTarget ? getDecisionCopy(decisionTarget.status).body : ""}
             </Text>
             <View style={styles.confirmActions}>
-              <SecondaryButton label="Cancel" onPress={() => setDecisionTarget(null)} />
+              <SecondaryButton
+                label="Cancel"
+                onPress={() => {
+                  setDecisionTarget(null);
+                  setOrganizerGigOpen(true);
+                }}
+              />
               <PrimaryButton
                 label={submitting ? "Applying..." : "Confirm"}
                 onPress={() => {
@@ -786,23 +823,37 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
                   void (async () => {
                     const target = decisionTarget;
                     setDecisionTarget(null);
+                    setOrganizerGigOpen(true);
                     await handleInterestStatus(target.interest, target.status);
                   })();
                 }}
               />
             </View>
           </View>
-        </View>
+        </ModalSurface>
       </Modal>
 
-      <Modal animationType="slide" visible={Boolean(profileTarget)} onRequestClose={() => setProfileTarget(null)}>
-        <View style={styles.modalScreen}>
+      <Modal
+        animationType="slide"
+        visible={Boolean(profileTarget)}
+        onRequestClose={() => {
+          setProfileTarget(null);
+          setOrganizerGigOpen(true);
+        }}
+      >
+        <ModalSurface style={styles.modalScreen}>
           <View style={styles.modalHeader}>
             <View style={styles.modalTitleGroup}>
               <View style={styles.modalAccentBar} />
               <Text style={styles.modalTitle}>Talent profile</Text>
             </View>
-            <Pressable onPress={() => setProfileTarget(null)} style={styles.closeButton}>
+            <Pressable
+              onPress={() => {
+                setProfileTarget(null);
+                setOrganizerGigOpen(true);
+              }}
+              style={styles.closeButton}
+            >
               <Text style={styles.modalClose}>✕ Close</Text>
             </Pressable>
           </View>
@@ -856,7 +907,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
               <Text style={styles.helperSubtext}>Talent profile details are not available yet.</Text>
             )}
           </ScrollView>
-        </View>
+        </ModalSurface>
       </Modal>
     </Screen>
   );
@@ -937,6 +988,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
       const detail = await api.gigDetail(token, gigDetail.id);
       setGigDetail(detail);
       setSelectedInterest(null);
+      setOrganizerGigOpen(true);
       if (response.booking?.id) {
         setFocusedBookingId(response.booking.id);
       }
@@ -1021,6 +1073,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.layout.screenPadding,
     paddingTop: 0,
     gap: theme.spacing[4],
+  },
+  modalKeyboard: {
+    flex: 1,
   },
   modalHeader: {
     flexDirection: "row",

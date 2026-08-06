@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from apps.accounts.models import User
+from apps.accounts.models import User, UserCapability
 from apps.profiles.management.commands.seed_marketplace_reference_data import EVENT_TYPES, TALENT_CATEGORIES
 from apps.profiles.models import (
     ClientProfile,
@@ -98,6 +98,14 @@ class Command(BaseCommand):
         user.is_active = True
         user.set_password(password)
         user.save(update_fields=["email", "phone", "role", "status", "is_active", "password", "updated_at"])
+        UserCapability.objects.get_or_create(
+            user=user,
+            capability=(
+                UserCapability.Capability.TALENT
+                if role == User.Role.TALENT
+                else UserCapability.Capability.ORGANIZER
+            ),
+        )
         UserProfile.objects.update_or_create(
             user=user,
             defaults={

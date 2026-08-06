@@ -61,7 +61,7 @@ class TalentProfileListView(generics.ListAPIView):
         return (
             TalentProfile.objects.select_related("user", "user__profile", "primary_category")
             .prefetch_related("skills__category", "event_types__event_type")
-            .filter(user__role=User.Role.TALENT)
+            .filter(user__capability_assignments__capability="talent")
             .distinct()
             .order_by("-is_featured", "-average_rating", "-created_at")
         )
@@ -110,7 +110,7 @@ class TalentProfileUpdateView(ScopedWriteThrottleMixin, generics.RetrieveUpdateA
 
     def get_object(self):
         user = self.request.user
-        if user.role != User.Role.TALENT:
+        if not user.has_capability("talent"):
             raise PermissionDenied("Only talent accounts can manage talent profiles.")
         return user.talent_profile
 
@@ -125,7 +125,7 @@ class TalentMediaListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPI
         if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
             return TalentMedia.objects.none()
         user = self.request.user
-        if user.role != User.Role.TALENT:
+        if not user.has_capability("talent"):
             raise PermissionDenied("Only talent accounts can manage portfolio media.")
         return TalentMedia.objects.filter(talent_profile=user.talent_profile).order_by("sort_order", "-created_at")
 
@@ -136,7 +136,7 @@ class TalentMediaListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPI
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        if self.request.user.is_authenticated and self.request.user.role == User.Role.TALENT:
+        if self.request.user.is_authenticated and self.request.user.has_capability("talent"):
             context["talent_profile"] = self.request.user.talent_profile
         return context
 
@@ -157,7 +157,7 @@ class TalentMediaDetailView(ScopedWriteThrottleMixin, generics.RetrieveUpdateDes
         if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
             return TalentMedia.objects.none()
         user = self.request.user
-        if user.role != User.Role.TALENT:
+        if not user.has_capability("talent"):
             raise PermissionDenied("Only talent accounts can manage portfolio media.")
         return TalentMedia.objects.filter(talent_profile=user.talent_profile)
 

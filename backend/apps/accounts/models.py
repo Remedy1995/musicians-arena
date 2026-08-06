@@ -28,6 +28,37 @@ class User(TimeStampedUUIDModel, AbstractUser):
     def __str__(self):
         return self.username
 
+    def capability_values(self):
+        values = list(self.capability_assignments.values_list("capability", flat=True))
+        if values:
+            return values
+        if self.role == self.Role.TALENT:
+            return [UserCapability.Capability.TALENT]
+        if self.role == self.Role.CLIENT:
+            return [UserCapability.Capability.ORGANIZER]
+        return []
+
+    def has_capability(self, capability):
+        return capability in self.capability_values()
+
+
+class UserCapability(TimeStampedUUIDModel):
+    class Capability(models.TextChoices):
+        TALENT = "talent", "Talent"
+        ORGANIZER = "organizer", "Organizer"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="capability_assignments")
+    capability = models.CharField(max_length=24, choices=Capability.choices)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "capability"], name="unique_user_capability"),
+        ]
+        indexes = [models.Index(fields=["user", "capability"])]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.capability}"
+
 
 class VerificationRecord(TimeStampedUUIDModel):
     class VerificationType(models.TextChoices):

@@ -1,10 +1,11 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { UserRole } from "../AppShell";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
-import { TalentListItem, UserSummary } from "../services/api/types";
+import { TalentDetailItem, TalentListItem, UserSummary } from "../services/api/types";
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
 import { GigCard } from "../components/GigCard";
@@ -12,7 +13,9 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { TalentCard } from "../components/TalentCard";
+import { ProfileAvatar } from "../components/ProfileAvatar";
 import { TopBar } from "../components/TopBar";
+import { ModalSurface } from "../components/ModalSurface";
 import { theme } from "../theme/theme";
 
 type DiscoveryScreenProps = {
@@ -31,6 +34,23 @@ export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: Dis
   const [talentResults, setTalentResults] = useState<TalentListItem[]>([]);
   const [talentSearchLoading, setTalentSearchLoading] = useState(false);
   const [talentSearchError, setTalentSearchError] = useState<string | null>(null);
+  const [selectedTalent, setSelectedTalent] = useState<TalentDetailItem | null>(null);
+  const [selectedTalentSummary, setSelectedTalentSummary] = useState<TalentListItem | null>(null);
+  const [talentDetailLoading, setTalentDetailLoading] = useState(false);
+  const [talentDetailError, setTalentDetailError] = useState<string | null>(null);
+
+  async function openTalentDetail(talent: TalentListItem) {
+    setSelectedTalentSummary(talent);
+    setTalentDetailLoading(true);
+    setTalentDetailError(null);
+    try {
+      setSelectedTalent(await api.talentDetail(talent.id));
+    } catch (caught) {
+      setTalentDetailError(caught instanceof ApiError ? caught.message : "Unable to load this talent profile.");
+    } finally {
+      setTalentDetailLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (role !== "client") return;
@@ -108,6 +128,24 @@ export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: Dis
           ],
           heroCta: "Manage portfolio",
         };
+
+  if (selectedTalent || talentDetailLoading || talentDetailError) {
+    return (
+      <TalentDetailScreen
+        talent={selectedTalent}
+        loading={talentDetailLoading}
+        error={talentDetailError}
+        onBack={() => {
+          setSelectedTalent(null);
+          setSelectedTalentSummary(null);
+          setTalentDetailError(null);
+        }}
+        onRetry={() => {
+          if (selectedTalentSummary) void openTalentDetail(selectedTalentSummary);
+        }}
+      />
+    );
+  }
 
   return (
     <Screen>
@@ -207,6 +245,9 @@ export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: Dis
                   talent.region || "Live",
                   talent.years_of_experience ? `${talent.years_of_experience} yrs` : "Available",
                 ]}
+                onPress={() => {
+                  void openTalentDetail(talent);
+                }}
               />
             ))}
           </ScrollView>
@@ -237,11 +278,13 @@ export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: Dis
       ) : null}
 
       <Modal animationType="slide" visible={inboxOpen} onRequestClose={() => setInboxOpen(false)}>
-        <View style={styles.modalScreen}>
+        <ModalSurface style={styles.modalScreen}>
           <View style={styles.modalHeader}>
             <View>
               <Text style={styles.modalTitle}>Notification inbox</Text>
-              <Text style={styles.modalSubtitle}>Unread {marketplace.unreadCount}</Text>
+              <Text style={styles.modalSubtitle}>
+                Unread {marketplace.unreadCount} • {marketplace.notificationSocketConnected ? "Live" : "Reconnecting"}
+              </Text>
             </View>
             <Pressable onPress={() => setInboxOpen(false)}>
               <Text style={styles.modalClose}>Close</Text>
@@ -276,7 +319,7 @@ export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: Dis
             ))}
             {notificationError ? <Text style={styles.errorText}>{notificationError}</Text> : null}
           </ScrollView>
-        </View>
+        </ModalSurface>
       </Modal>
 
     </Screen>
@@ -294,6 +337,102 @@ function formatRate(min?: string | null, max?: string | null) {
     return `Up to GHS ${Number(max).toLocaleString()}`;
   }
   return "Rate on request";
+}
+
+function TalentDetailScreen({
+  talent,
+  loading,
+  error,
+  onBack,
+  onRetry,
+}: {
+  talent: TalentDetailItem | null;
+  loading: boolean;
+  error: string | null;
+  onBack: () => void;
+  onRetry: () => void;
+}) {
+  return (
+    <Screen>
+      <View style={styles.detailHeader}>
+        <Pressable onPress={onBack} style={styles.detailBackButton}>
+          <MaterialCommunityIcons name="arrow-left" size={20} color={theme.semanticColors.textPrimary} />
+        </Pressable>
+        <Text style={styles.detailHeaderTitle}>Talent profile</Text>
+      </View>
+
+      {loading ? (
+        <View style={styles.detailLoading}>
+          <ActivityIndicator size="large" color={theme.semanticColors.primary} />
+          <Text style={styles.detailLoadingText}>Loading profile...</Text>
+        </View>
+      ) : error || !talent ? (
+        <View style={styles.detailEmpty}>
+          <MaterialCommunityIcons name="account-alert-outline" size={42} color={theme.semanticColors.primary} />
+          <Text style={styles.detailEmptyTitle}>Profile unavailable</Text>
+          <Text style={styles.detailEmptyBody}>{error || "This talent profile could not be found."}</Text>
+          <PrimaryButton label="Try again" onPress={onRetry} />
+        </View>
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.detailContent}>
+          <LinearGradient colors={["#20252A", "#111315"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.detailHero}>
+            <ProfileAvatar
+              label={talent.display_name || talent.stage_name || talent.username}
+              imageUri={talent.profile_image_url}
+              size={104}
+              borderRadius={52}
+              style={styles.detailAvatar}
+            />
+            <Text style={styles.detailName}>{talent.display_name || talent.stage_name || talent.username}</Text>
+            <Text style={styles.detailRole}>{talent.primary_category?.name || "Creative talent"}</Text>
+            <Text style={styles.detailLocation}>
+              {[talent.city, talent.region].filter(Boolean).join(", ") || "Location not set"}
+            </Text>
+            <View style={styles.detailStatsRow}>
+              <View style={styles.detailStat}>
+                <Text style={styles.detailStatValue}>{Number(talent.average_rating || 0).toFixed(1)}</Text>
+                <Text style={styles.detailStatLabel}>Rating</Text>
+              </View>
+              <View style={styles.detailStat}>
+                <Text style={styles.detailStatValue}>{talent.booking_count}</Text>
+                <Text style={styles.detailStatLabel}>Bookings</Text>
+              </View>
+              <View style={styles.detailStat}>
+                <Text style={styles.detailStatValue}>{talent.years_of_experience || 0}</Text>
+                <Text style={styles.detailStatLabel}>Years</Text>
+              </View>
+            </View>
+          </LinearGradient>
+
+          <View style={styles.detailSectionCard}>
+            <Text style={styles.detailSectionTitle}>About this talent</Text>
+            <Text style={styles.detailBody}>{talent.profile.bio || talent.bio || "No bio has been added yet."}</Text>
+          </View>
+
+          <View style={styles.detailSectionCard}>
+            <Text style={styles.detailSectionTitle}>Skills and event experience</Text>
+            <View style={styles.detailChips}>
+              {talent.skills.length > 0 ? talent.skills.map((skill) => (
+                <View key={skill.id} style={styles.detailChip}>
+                  <Text style={styles.detailChipLabel}>{skill.name}</Text>
+                </View>
+              )) : <Text style={styles.detailBody}>No skills added yet.</Text>}
+            </View>
+            {talent.event_types.length > 0 ? (
+              <Text style={styles.detailMeta}>Experienced with {talent.event_types.map((item) => item.name).join(", ")}</Text>
+            ) : null}
+          </View>
+
+          <View style={styles.detailSectionCard}>
+            <Text style={styles.detailSectionTitle}>Engagement details</Text>
+            <Text style={styles.detailMeta}>Typical rate: {formatRate(talent.fixed_price_min, talent.fixed_price_max)}</Text>
+            <Text style={styles.detailMeta}>Response time: {talent.response_time_minutes || "Not specified"} minutes</Text>
+            <Text style={styles.detailMeta}>Portfolio samples: {talent.media.length}</Text>
+          </View>
+        </ScrollView>
+      )}
+    </Screen>
+  );
 }
 
 function formatBudget(currencyCode: string, min?: string | null, max?: string | null) {
@@ -325,6 +464,151 @@ function formatTimeAgo(timestamp: string) {
 }
 
 const styles = StyleSheet.create({
+  detailHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[3],
+    paddingTop: theme.spacing[2],
+  },
+  detailBackButton: {
+    width: 42,
+    height: 42,
+    borderRadius: theme.radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.semanticColors.surface,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+  },
+  detailHeaderTitle: {
+    fontFamily: theme.typography.fontFamily.display,
+    fontSize: theme.typography.size["2xl"],
+    color: theme.semanticColors.textPrimary,
+  },
+  detailContent: {
+    gap: theme.spacing[4],
+    paddingBottom: theme.spacing[8],
+  },
+  detailHero: {
+    alignItems: "center",
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing[6],
+    gap: theme.spacing[2],
+    ...theme.shadows.floating,
+  },
+  detailAvatar: {
+    borderWidth: 3,
+    borderColor: theme.colors.gold[400],
+  },
+  detailName: {
+    marginTop: theme.spacing[2],
+    fontFamily: theme.typography.fontFamily.display,
+    fontSize: theme.typography.size["2xl"],
+    color: theme.semanticColors.textOnDark,
+    textAlign: "center",
+  },
+  detailRole: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.md,
+    color: theme.colors.gold[300],
+  },
+  detailLocation: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.sm,
+    color: "rgba(255,255,255,0.72)",
+  },
+  detailStatsRow: {
+    width: "100%",
+    flexDirection: "row",
+    gap: theme.spacing[2],
+    marginTop: theme.spacing[3],
+  },
+  detailStat: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: theme.spacing[3],
+    borderRadius: theme.radius.lg,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  detailStatValue: {
+    fontFamily: theme.typography.fontFamily.displayMedium,
+    fontSize: theme.typography.size.lg,
+    color: theme.semanticColors.textOnDark,
+  },
+  detailStatLabel: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.xs,
+    color: "rgba(255,255,255,0.68)",
+  },
+  detailSectionCard: {
+    gap: theme.spacing[3],
+    padding: theme.spacing[4],
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.semanticColors.surface,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+  },
+  detailSectionTitle: {
+    fontFamily: theme.typography.fontFamily.displayMedium,
+    fontSize: theme.typography.size.lg,
+    color: theme.semanticColors.textPrimary,
+  },
+  detailBody: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.md,
+    lineHeight: theme.typography.lineHeight.md,
+    color: theme.semanticColors.textSecondary,
+  },
+  detailMeta: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.sm,
+    lineHeight: theme.typography.lineHeight.sm,
+    color: theme.semanticColors.textSecondary,
+  },
+  detailChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing[2],
+  },
+  detailChip: {
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: theme.spacing[2],
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.stone[100],
+  },
+  detailChipLabel: {
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    fontSize: theme.typography.size.sm,
+    color: theme.semanticColors.textSecondary,
+  },
+  detailLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing[3],
+  },
+  detailLoadingText: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.md,
+    color: theme.semanticColors.textSecondary,
+  },
+  detailEmpty: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing[3],
+    paddingVertical: theme.spacing[10],
+  },
+  detailEmptyTitle: {
+    fontFamily: theme.typography.fontFamily.displayMedium,
+    fontSize: theme.typography.size.xl,
+    color: theme.semanticColors.textPrimary,
+  },
+  detailEmptyBody: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.md,
+    color: theme.semanticColors.textSecondary,
+    textAlign: "center",
+  },
   heroCard: {
     overflow: "hidden",
     borderRadius: theme.radius.xl,

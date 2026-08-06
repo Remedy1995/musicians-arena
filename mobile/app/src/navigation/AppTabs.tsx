@@ -15,13 +15,15 @@ export type TabKey = "discover" | "gigs" | "messages" | "bookings" | "profile";
 
 type AppTabsProps = {
   role: UserRole;
+  capabilities: Array<"talent" | "organizer">;
   currentUser: UserSummary;
   token: string;
+  onRoleChange: (role: UserRole) => void;
   onExit: () => void;
   onSignOut: () => void;
 };
 
-export function AppTabs({ role, currentUser, token, onExit, onSignOut }: AppTabsProps) {
+export function AppTabs({ role, capabilities, currentUser, token, onRoleChange, onExit, onSignOut }: AppTabsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>(role === "client" ? "gigs" : "discover");
   const [focusedConversationId, setFocusedConversationId] = useState<string | null>(null);
   const [focusedBookingId, setFocusedBookingId] = useState<string | null>(null);
@@ -41,9 +43,11 @@ export function AppTabs({ role, currentUser, token, onExit, onSignOut }: AppTabs
   }, [role]);
 
   const sharedProps = {
-    role,
-    currentUser,
-    token,
+        role,
+        capabilities,
+        currentUser,
+        token,
+        onRoleChange,
     onExit,
     onSignOut,
     onNavigateTab: setActiveTab,

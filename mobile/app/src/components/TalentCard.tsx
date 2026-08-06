@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { theme } from "../theme/theme";
 import { ProfileAvatar } from "./ProfileAvatar";
@@ -15,17 +15,18 @@ type TalentCardProps = {
   jobs: number;
   verified: boolean;
   tags: string[];
+  onPress?: () => void;
 };
 
-export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, verified, tags }: TalentCardProps) {
-  return (
+export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, verified, tags, onPress }: TalentCardProps) {
+  const card = (
     <LinearGradient colors={["#20252A", "#111315"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
       <View style={styles.header}>
         <ProfileAvatar
           label={name}
           imageUri={imageUri}
-          size={56}
-          borderRadius={theme.radius.lg}
+          size={60}
+          borderRadius={30}
           style={styles.heroMark}
           textStyle={styles.heroInitials}
         />
@@ -51,6 +52,8 @@ export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, ve
       </View>
     </LinearGradient>
   );
+
+  return onPress ? <Pressable onPress={onPress}>{card}</Pressable> : card;
 }
 
 const styles = StyleSheet.create({

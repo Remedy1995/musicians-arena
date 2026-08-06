@@ -1,4 +1,5 @@
 export type UserRole = "client" | "talent";
+export type Capability = "organizer" | "talent";
 
 export type UserSummary = {
   id: string;
@@ -7,6 +8,7 @@ export type UserSummary = {
   phone: string;
   role: UserRole;
   status: string;
+  capabilities: Capability[];
 };
 
 export type AuthResponse = {
@@ -35,6 +37,11 @@ export type MeResponse = {
   phone: string;
   role: UserRole;
   status: string;
+  capabilities: Capability[];
+  profiles: {
+    talent: { exists: boolean };
+    organizer: { exists: boolean };
+  };
   profile: UserProfile;
 };
 
@@ -115,6 +122,17 @@ export type TalentListItem = {
   review_count: number;
   booking_count: number;
   is_featured: boolean;
+};
+
+export type TalentDetailItem = TalentListItem & {
+  travel_radius_km: number;
+  response_time_minutes: number;
+  reliability_score: string | number;
+  verified_at: string | null;
+  profile: UserProfile;
+  skills: TalentSkillItem[];
+  event_types: TalentEventTypeItem[];
+  media: TalentMediaItem[];
 };
 
 export type GigCategory = {
@@ -374,4 +392,15 @@ export type NotificationItem = {
 
 export type NotificationUnreadCount = {
   unread_count: number;
+};
+
+export type PushDevice = {
+  id: string;
+  expo_push_token: string;
+  platform: "ios" | "android";
+  device_name: string;
+  is_active: boolean;
+  last_seen_at: string | null;
+  created_at: string;
+  updated_at: string;
 };

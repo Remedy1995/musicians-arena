@@ -10,6 +10,7 @@ import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
 import { toMessageItem } from "../services/realtime/types";
 import { ConversationCard } from "../components/ConversationCard";
+import { ModalSurface } from "../components/ModalSurface";
 import { ProfileAvatar } from "../components/ProfileAvatar";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
@@ -166,11 +167,12 @@ export function MessagesScreen({
       </View>
 
       <Modal animationType="slide" visible={detailOpen} onRequestClose={() => setDetailOpen(false)}>
-        <KeyboardAvoidingView
-          style={styles.modalScreen}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
-        >
+        <ModalSurface style={styles.modalScreen}>
+          <KeyboardAvoidingView
+            style={styles.modalKeyboard}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+          >
           <View style={styles.modalHeader}>
             <View style={styles.modalHeaderContent}>
               <ProfileAvatar
@@ -206,7 +208,8 @@ export function MessagesScreen({
               }}
             />
           </View>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </ModalSurface>
       </Modal>
     </Screen>
   );
@@ -373,6 +376,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[1],
     paddingTop: theme.spacing[2],
     paddingBottom: theme.spacing[1],
+  },
+  modalKeyboard: {
+    flex: 1,
   },
   modalHeader: {
     flexDirection: "row",

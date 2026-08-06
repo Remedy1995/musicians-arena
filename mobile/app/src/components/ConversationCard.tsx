@@ -16,7 +16,7 @@ type ConversationCardProps = {
 export function ConversationCard({ name, imageUri, message, time, unread, badge }: ConversationCardProps) {
   return (
     <View style={styles.card}>
-      <ProfileAvatar label={name} imageUri={imageUri} size={52} borderRadius={theme.radius.lg} />
+      <ProfileAvatar label={name} imageUri={imageUri} size={52} borderRadius={26} />
       <View style={styles.body}>
         <View style={styles.headerRow}>
           <Text style={styles.name}>{name}</Text>
@@ -43,16 +43,17 @@ export function ConversationCard({ name, imageUri, message, time, unread, badge 
 const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
-    gap: theme.spacing[4],
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[4],
-    backgroundColor: theme.semanticColors.surface,
-    borderWidth: 1,
+    alignItems: "flex-start",
+    gap: theme.spacing[3],
+    paddingVertical: theme.spacing[3],
+    paddingHorizontal: theme.spacing[1],
+    backgroundColor: "transparent",
+    borderBottomWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
   },
   body: {
     flex: 1,
-    gap: 2,
+    gap: theme.spacing[1],
   },
   headerRow: {
     flexDirection: "row",
@@ -73,24 +74,24 @@ const styles = StyleSheet.create({
   },
   previewRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
     gap: theme.spacing[3],
-    marginTop: 1,
   },
   message: {
     flex: 1,
     fontFamily: theme.typography.fontFamily.body,
-    fontSize: theme.typography.size.sm,
-    lineHeight: theme.typography.lineHeight.sm,
+    fontSize: theme.typography.size.md,
+    lineHeight: theme.typography.lineHeight.md,
     color: theme.semanticColors.textSecondary,
   },
   sideMeta: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "flex-end",
     gap: theme.spacing[2],
-    minWidth: 92,
+    minWidth: 0,
+    flexShrink: 0,
   },
   unreadBubble: {
     minWidth: 26,

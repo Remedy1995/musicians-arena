@@ -111,7 +111,7 @@ class GigListSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.STR)
     def get_my_interest_status(self, obj):
         request = self.context.get("request")
-        if not request or not request.user.is_authenticated or request.user.role != User.Role.TALENT:
+        if not request or not request.user.is_authenticated or not request.user.has_capability("talent"):
             return None
         interest = obj.interests.filter(talent=request.user).only("status").first()
         return interest.status if interest else None
@@ -119,7 +119,7 @@ class GigListSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.UUID)
     def get_my_interest_id(self, obj):
         request = self.context.get("request")
-        if not request or not request.user.is_authenticated or request.user.role != User.Role.TALENT:
+        if not request or not request.user.is_authenticated or not request.user.has_capability("talent"):
             return None
         interest = obj.interests.filter(talent=request.user).only("id").first()
         return str(interest.id) if interest else None

@@ -1,22 +1,31 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
-import { UserRole } from "../AppShell";
+import { Capability } from "../services/api/types";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { RoleCard } from "../components/RoleCard";
 import { Screen } from "../components/Screen";
 import { theme } from "../theme/theme";
 
 type OnboardingScreenProps = {
-  selectedRole: UserRole;
-  onRoleChange: (role: UserRole) => void;
+  selectedCapabilities: Capability[];
+  onCapabilitiesChange: (capabilities: Capability[]) => void;
   onContinue: () => void;
 };
 
-export function OnboardingScreen({ selectedRole, onRoleChange, onContinue }: OnboardingScreenProps) {
+export function OnboardingScreen({ selectedCapabilities, onCapabilitiesChange, onContinue }: OnboardingScreenProps) {
   const { height } = useWindowDimensions();
   const compact = height < 820;
   const tight = height < 740;
+
+  function toggleCapability(capability: Capability) {
+    if (selectedCapabilities.includes(capability)) {
+      if (selectedCapabilities.length === 1) return;
+      onCapabilitiesChange(selectedCapabilities.filter((item) => item !== capability));
+      return;
+    }
+    onCapabilitiesChange([...selectedCapabilities, capability]);
+  }
 
   return (
     <Screen
@@ -40,22 +49,25 @@ export function OnboardingScreen({ selectedRole, onRoleChange, onContinue }: Onb
             role="client"
             title="I want to hire"
             body="Post gigs, browse talent, and manage bookings for services, weddings, and events."
-            selected={selectedRole === "client"}
-            onPress={() => onRoleChange("client")}
+            selected={selectedCapabilities.includes("organizer")}
+            onPress={() => toggleCapability("organizer")}
             compact={compact}
           />
           <RoleCard
             role="talent"
             title="I am a talent"
             body="Showcase your work, receive direct bookings, and respond to open event opportunities."
-            selected={selectedRole === "talent"}
-            onPress={() => onRoleChange("talent")}
+            selected={selectedCapabilities.includes("talent")}
+            onPress={() => toggleCapability("talent")}
             compact={compact}
           />
         </View>
       </View>
 
-      <PrimaryButton label={selectedRole === "client" ? "Enter as organizer" : "Enter as talent"} onPress={onContinue} />
+      <PrimaryButton
+        label={selectedCapabilities.length > 1 ? "Continue with both" : selectedCapabilities.includes("organizer") ? "Continue as organizer" : "Continue as talent"}
+        onPress={onContinue}
+      />
     </Screen>
   );
 }

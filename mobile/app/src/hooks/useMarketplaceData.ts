@@ -48,6 +48,7 @@ export function useMarketplaceData(token: string) {
   const [data, setData] = useState<MarketplaceDataState>(initialState);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notificationSocketConnected, setNotificationSocketConnected] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -56,7 +57,7 @@ export function useMarketplaceData(token: string) {
       const me = await api.me(token);
       const [talentsResult, gigsResult, bookingsResult, conversationsResult, notificationsResult, unreadResult, categoriesResult, eventTypesResult] =
         await Promise.allSettled([
-          me.role === "talent" ? api.talents() : Promise.resolve([]),
+          me.capabilities?.includes("organizer") ? api.talents() : Promise.resolve([]),
           api.gigs(token),
           api.bookings(token),
           api.conversations(token),
@@ -67,7 +68,7 @@ export function useMarketplaceData(token: string) {
         ]);
 
       const [talentProfileResult, talentMediaResult] =
-        me.role === "talent"
+        me.capabilities?.includes("talent")
           ? await Promise.allSettled([api.talentMe(token), api.talentMedia(token)])
           : [null, null];
 
@@ -84,13 +85,13 @@ export function useMarketplaceData(token: string) {
         talentProfile:
           talentProfileResult && talentProfileResult.status === "fulfilled"
             ? talentProfileResult.value
-            : me.role === "talent"
+            : me.capabilities?.includes("talent")
               ? current.talentProfile
               : null,
         talentMedia:
           talentMediaResult && talentMediaResult.status === "fulfilled"
             ? talentMediaResult.value
-            : me.role === "talent"
+            : me.capabilities?.includes("talent")
               ? current.talentMedia
               : [],
       }));
@@ -126,6 +127,7 @@ export function useMarketplaceData(token: string) {
 
       socket.onopen = () => {
         reconnectAttempts = 0;
+        if (isMounted) setNotificationSocketConnected(true);
       };
 
       socket.onmessage = (messageEvent) => {
@@ -141,9 +143,14 @@ export function useMarketplaceData(token: string) {
 
       socket.onclose = () => {
         if (!isMounted) return;
+        setNotificationSocketConnected(false);
         const delay = Math.min(1000 * 2 ** reconnectAttempts, 8000);
         reconnectAttempts += 1;
         reconnectTimeout = setTimeout(connect, delay);
+      };
+
+      socket.onerror = () => {
+        if (isMounted) setNotificationSocketConnected(false);
       };
     };
 
@@ -155,6 +162,7 @@ export function useMarketplaceData(token: string) {
         clearTimeout(reconnectTimeout);
       }
       socket?.close();
+      setNotificationSocketConnected(false);
     };
   }, [token]);
 
@@ -219,5 +227,6 @@ export function useMarketplaceData(token: string) {
     refresh,
     applyChatEvent,
     markNotificationReadLocal,
+    notificationSocketConnected,
   };
 }

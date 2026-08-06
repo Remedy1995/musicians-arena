@@ -6,12 +6,21 @@ import { useEffect, useState } from "react";
 import { AuthScreen } from "./screens/AuthScreen";
 import { AppTabs } from "./navigation/AppTabs";
 import { OnboardingScreen } from "./screens/OnboardingScreen";
-import { AuthResponse, UserSummary } from "./services/api/types";
+import { AuthResponse, Capability, UserSummary } from "./services/api/types";
+import { registerForPushNotifications } from "./services/pushNotifications";
 import { clearSession, loadRole, loadSession, loadStarted, saveRole, saveSession, saveStarted } from "./services/sessionStorage";
 import { theme } from "./theme/theme";
 
 export type UserRole = "client" | "talent";
 export type AuthMode = "login" | "register";
+
+export function roleToCapability(role: UserRole): Capability {
+  return role === "client" ? "organizer" : "talent";
+}
+
+export function capabilityToRole(capability: Capability): UserRole {
+  return capability === "organizer" ? "client" : "talent";
+}
 
 export function AppShell() {
   const [fontsLoaded] = useFonts({
@@ -23,10 +32,20 @@ export function AppShell() {
   });
   const [hasStarted, setHasStarted] = useState(false);
   const [role, setRole] = useState<UserRole>("client");
+  const [selectedCapabilities, setSelectedCapabilities] = useState<Capability[]>(["organizer"]);
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
-  const effectiveRole = (session?.user.role as UserRole | undefined) ?? role;
+  const sessionCapabilities = session?.user.capabilities?.length
+    ? session.user.capabilities
+    : session?.user.role
+      ? [roleToCapability(session.user.role)]
+      : selectedCapabilities;
+  const effectiveRole = session
+    ? sessionCapabilities.includes(roleToCapability(role))
+      ? role
+      : capabilityToRole(sessionCapabilities[0])
+    : role;
 
   useEffect(() => {
     async function bootstrap() {
@@ -61,6 +80,13 @@ export function AppShell() {
     void clearSession();
   }, [bootstrapped, session]);
 
+  useEffect(() => {
+    if (!session) return;
+    void registerForPushNotifications(session.token).catch(() => {
+      // Push is optional; the in-app inbox and WebSocket notifications remain available.
+    });
+  }, [session]);
+
   if (!fontsLoaded || !bootstrapped) {
     return (
       <View
@@ -79,8 +105,13 @@ export function AppShell() {
   if (!hasStarted) {
     return (
       <OnboardingScreen
-        selectedRole={effectiveRole}
-        onRoleChange={setRole}
+        selectedCapabilities={selectedCapabilities}
+        onCapabilitiesChange={(capabilities) => {
+          setSelectedCapabilities(capabilities);
+          if (capabilities.length > 0) {
+            setRole(capabilityToRole(capabilities.includes(roleToCapability(role)) ? roleToCapability(role) : capabilities[0]));
+          }
+        }}
         onContinue={() => {
           setHasStarted(true);
         }}
@@ -92,10 +123,16 @@ export function AppShell() {
     return (
       <AuthScreen
         role={effectiveRole}
+        capabilities={selectedCapabilities}
         initialMode={authMode}
         onAuthenticated={(nextSession) => {
           setSession(nextSession);
           setRole(nextSession.user.role as UserRole);
+          setSelectedCapabilities(
+            nextSession.user.capabilities?.length
+              ? nextSession.user.capabilities
+              : [roleToCapability(nextSession.user.role as UserRole)],
+          );
         }}
         onBack={() => {
           setHasStarted(false);
@@ -113,8 +150,10 @@ export function AppShell() {
   return (
       <AppTabs
         role={effectiveRole}
+        capabilities={sessionCapabilities}
         currentUser={session.user as UserSummary}
         token={session.token}
+        onRoleChange={setRole}
       onExit={() => {
         setSession(null);
         setHasStarted(false);

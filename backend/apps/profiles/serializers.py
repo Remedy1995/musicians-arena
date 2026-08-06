@@ -386,11 +386,23 @@ class TalentProfileUpdateSerializer(serializers.ModelSerializer):
 
 class MeSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer()
+    capabilities = serializers.SerializerMethodField()
+    profiles = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "phone", "role", "status", "profile"]
+        fields = ["id", "username", "email", "phone", "role", "status", "capabilities", "profiles", "profile"]
         read_only_fields = ["id", "role", "status"]
+
+    def get_capabilities(self, obj):
+        return obj.capability_values()
+
+    def get_profiles(self, obj):
+        capabilities = set(obj.capability_values())
+        return {
+            "talent": {"exists": "talent" in capabilities},
+            "organizer": {"exists": "organizer" in capabilities},
+        }
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop("profile", {})

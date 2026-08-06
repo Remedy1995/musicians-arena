@@ -12,11 +12,15 @@ import {
   MeResponse,
   NotificationItem,
   NotificationUnreadCount,
+  PushDevice,
   PayoutItem,
   TalentCategory,
   TalentMediaItem,
   TalentProfileMe,
   TalentListItem,
+  TalentDetailItem,
+  Capability,
+  UserSummary,
 } from "./types";
 
 type CreateGigPayload = {
@@ -44,13 +48,17 @@ export const api = {
     username: string;
     email: string;
     phone: string;
-    role: "client" | "talent";
+    role?: "client" | "talent";
+    capabilities: Capability[];
     password: string;
     display_name: string;
   }) => apiRequest<AuthResponse>("/auth/register/", { method: "POST", body: payload }),
 
   login: (payload: { username: string; password: string }) =>
     apiRequest<AuthResponse>("/auth/login/", { method: "POST", body: payload }),
+
+  addCapability: (token: string, capability: Capability) =>
+    apiRequest<UserSummary>("/auth/capabilities/", { method: "POST", token, body: { capability } }),
 
   me: (token: string) => apiRequest<MeResponse>("/profiles/me/", { token }),
   updateMe: (
@@ -88,6 +96,7 @@ export const api = {
     const query = params.toString();
     return apiRequest<TalentListItem[]>(`/profiles/talents/${query ? `?${query}` : ""}`);
   },
+  talentDetail: (talentId: string) => apiRequest<TalentDetailItem>(`/profiles/talents/${talentId}/`),
   talentMedia: (token: string) => apiRequest<TalentMediaItem[]>("/profiles/talent/me/media/", { token }),
   createTalentMedia: (token: string, payload: FormData) =>
     apiRequest<TalentMediaItem>("/profiles/talent/me/media/", { method: "POST", token, body: payload, isMultipart: true }),
@@ -141,6 +150,10 @@ export const api = {
   notifications: (token: string) => apiRequest<NotificationItem[]>("/notifications/", { token }),
   unreadNotificationCount: (token: string) =>
     apiRequest<NotificationUnreadCount>("/notifications/unread-count/", { token }),
+  registerPushDevice: (
+    token: string,
+    payload: { expo_push_token: string; platform: "ios" | "android"; device_name?: string },
+  ) => apiRequest<PushDevice>("/notifications/devices/", { method: "POST", token, body: payload }),
   markNotificationRead: (token: string, notificationId: string) =>
     apiRequest(`/notifications/${notificationId}/read/`, { method: "PATCH", token }),
   createGig: (token: string, payload: CreateGigPayload) => apiRequest("/gigs/", { method: "POST", token, body: payload }),
