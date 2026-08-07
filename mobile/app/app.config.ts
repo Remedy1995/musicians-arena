@@ -23,6 +23,7 @@ export default (): ExpoConfig => {
   const androidVersionCode = parseInteger(process.env.ANDROID_VERSION_CODE, 1);
   const easProjectId = process.env.EAS_PROJECT_ID || "d87d4395-c737-433e-a7b5-00b37877b66b";
   const appVariant = process.env.APP_VARIANT || "development";
+  const nativePushEnabled = parseBoolean(process.env.ENABLE_NATIVE_PUSH, appVariant !== "development");
   const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || null;
   const wsBaseUrl = process.env.EXPO_PUBLIC_WS_BASE_URL || null;
   const usesPlainHttp = Boolean(apiBaseUrl?.startsWith("http://") || wsBaseUrl?.startsWith("ws://"));
@@ -71,7 +72,8 @@ export default (): ExpoConfig => {
     android: androidConfig,
     plugins: [
       ...(baseConfig.plugins || []),
-      "expo-notifications",
+      ...(nativePushEnabled ? ["expo-notifications"] : []),
+      "./plugins/withIosPushCapability",
       ...(allowInsecureHttp ? ["./plugins/withAndroidCleartextTraffic"] : []),
     ],
     extra: {
@@ -80,6 +82,7 @@ export default (): ExpoConfig => {
       apiBaseUrl,
       wsBaseUrl,
       allowInsecureHttp,
+      nativePushEnabled,
       ...(easProjectId
         ? {
             eas: {

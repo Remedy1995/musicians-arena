@@ -16,6 +16,9 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotifications(token: string) {
   if (Platform.OS !== "ios" && Platform.OS !== "android") return;
 
+  const nativePushEnabled = Constants.expoConfig?.extra?.nativePushEnabled !== false;
+  if (!nativePushEnabled) return;
+
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {
       name: "Default",
