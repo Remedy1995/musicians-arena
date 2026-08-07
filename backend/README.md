@@ -122,7 +122,7 @@ It documents Docker Compose v2, production environment files, PostgreSQL and Red
 - `max_fixed_price`
 - `ordering`
 
-Registration accepts `capabilities: ["talent", "organizer"]`. The legacy `role` field is retained in responses and remains supported for older clients; authorization uses the capability assignments.
+Registration creates a neutral account by default and does not require a role. Older clients may still send `role`, and the legacy field remains supported in responses. Use `POST /api/v1/auth/capabilities/` to add an organizer or talent capability and create that profile under the existing account. Authorization uses capability assignments.
 
 Realtime endpoints are served by the same Daphne ASGI process:
 

@@ -2,8 +2,15 @@
 
 ## Recommended User Journey
 
+### Account And Workspace Onboarding
+1. User creates one neutral account or signs in to an existing account
+2. User can explore public opportunities and talent profiles without creating a workspace
+3. User creates a talent profile, an organizer profile, or both when a role-specific action is needed
+4. The selected profile becomes the active workspace
+5. The authenticated header and Profile tab provide workspace switching and profile creation for any missing capability
+
 ### Path A: Client Searches for Talent
-1. Client opens the app and signs in
+1. Organizer opens the app, signs in, and enters the organizer workspace
 2. Client searches by talent type, location, event type, date, and budget
 3. Client reviews talent profile, media, pricing, and reviews
 4. Client starts chat or sends booking request
@@ -22,7 +29,7 @@
 6. Client converts one or more into direct bookings
 
 ### Talent Journey
-1. Talent signs up
+1. User creates or opens the talent workspace
 2. Talent completes profile and verification
 3. Talent uploads samples and sets availability
 4. Talent receives direct requests or sees public gigs
@@ -73,5 +80,7 @@ Why:
 - Django backend with realtime messaging
 - Deposit-backed booking model
 - Public gig board as an added acquisition channel
+- One account with optional talent and organizer workspaces
+- Profile-free browsing with capability gates for transactional actions
 - Swagger-documented APIs
 - Search, chat, booking, and payouts as the core operating loop

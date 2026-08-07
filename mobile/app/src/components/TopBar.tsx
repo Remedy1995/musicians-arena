@@ -8,9 +8,11 @@ type TopBarProps = {
   unreadCount?: number;
   onNotificationPress?: () => void;
   showNotifications?: boolean;
+  workspaceLabel?: string;
+  onWorkspacePress?: () => void;
 };
 
-export function TopBar({ unreadCount = 0, onNotificationPress, showNotifications = true }: TopBarProps) {
+export function TopBar({ unreadCount = 0, onNotificationPress, showNotifications = true, workspaceLabel, onWorkspacePress }: TopBarProps) {
   return (
     <View style={styles.row}>
       <View style={styles.brandGroup}>
@@ -27,22 +29,30 @@ export function TopBar({ unreadCount = 0, onNotificationPress, showNotifications
           <Text style={styles.title}>Find the right sound.</Text>
         </View>
       </View>
-      {showNotifications ? (
-        <Pressable style={styles.notificationButton} onPress={onNotificationPress}>
-          <MaterialCommunityIcons
-            name={unreadCount > 0 ? "bell-ring" : "bell-outline"}
-            size={20}
-            color={unreadCount > 0 ? theme.colors.gold[500] : theme.colors.ink[800]}
-          />
-          {unreadCount > 0 ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeLabel}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
-            </View>
-          ) : null}
-        </Pressable>
-      ) : (
-        <View style={styles.notificationSpacer} />
-      )}
+      <View style={styles.actions}>
+        {workspaceLabel ? (
+          <Pressable style={styles.workspaceButton} onPress={onWorkspacePress}>
+            <MaterialCommunityIcons name="account-switch-outline" size={17} color={theme.semanticColors.primary} />
+            <Text style={styles.workspaceLabel} numberOfLines={1}>{workspaceLabel}</Text>
+          </Pressable>
+        ) : null}
+        {showNotifications ? (
+          <Pressable style={styles.notificationButton} onPress={onNotificationPress}>
+            <MaterialCommunityIcons
+              name={unreadCount > 0 ? "bell-ring" : "bell-outline"}
+              size={20}
+              color={unreadCount > 0 ? theme.colors.gold[500] : theme.colors.ink[800]}
+            />
+            {unreadCount > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeLabel}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        ) : (
+          <View style={styles.notificationSpacer} />
+        )}
+      </View>
     </View>
   );
 }
@@ -59,6 +69,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[3],
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[2],
+  },
+  workspaceButton: {
+    maxWidth: 112,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: theme.spacing[2],
+    height: 36,
+    borderRadius: theme.radius.pill,
+    backgroundColor: "#FFF8E8",
+    borderWidth: 1,
+    borderColor: theme.colors.gold[300],
+  },
+  workspaceLabel: {
+    flexShrink: 1,
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    color: theme.semanticColors.textPrimary,
   },
   logoMark: {
     width: 38,

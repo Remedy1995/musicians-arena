@@ -2,9 +2,12 @@
 
 ## Accounts
 
-- Register a `client` account
-- Register a `talent` account
-- Sign in with both accounts
+- Register a neutral account without selecting a role
+- Confirm the account can browse public opportunities before creating a profile
+- Create a talent profile from the workspace setup screen
+- Add an organizer profile from the Profile tab without creating a second account
+- Switch between the talent and organizer workspaces
+- Sign out and sign back in; confirm the active capabilities are restored
 - Confirm profile data loads correctly
 
 ## Discovery And Search

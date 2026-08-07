@@ -6,6 +6,7 @@ from apps.common.models import TimeStampedUUIDModel
 
 class User(TimeStampedUUIDModel, AbstractUser):
     class Role(models.TextChoices):
+        ACCOUNT = "account", "Account"
         CLIENT = "client", "Client"
         TALENT = "talent", "Talent"
         ADMIN = "admin", "Admin"
@@ -18,7 +19,7 @@ class User(TimeStampedUUIDModel, AbstractUser):
     username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(unique=True, null=True, blank=True)
     phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    role = models.CharField(max_length=20, choices=Role.choices, default=Role.CLIENT)
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.ACCOUNT)
     status = models.CharField(max_length=32, choices=Status.choices, default=Status.PENDING_VERIFICATION)
     phone_verified_at = models.DateTimeField(null=True, blank=True)
     email_verified_at = models.DateTimeField(null=True, blank=True)

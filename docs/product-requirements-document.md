@@ -98,7 +98,10 @@ Create a trusted platform where:
 ## 6. Functional Requirements
 
 ### 6.1 Authentication and Identity
-- Users can sign up as client or talent
+- Users create one neutral account without choosing a role during signup
+- Users can optionally create a talent profile, an organizer profile, or both under the same account
+- The workspace switcher is available from the authenticated header and Profile tab
+- Users without a role profile can browse public opportunities and talent profiles, but role-specific actions require the relevant profile
 - Users can log in with phone number, email, or social providers later
 - OTP verification is required for phone onboarding
 - Talents must complete identity verification before receiving bookings

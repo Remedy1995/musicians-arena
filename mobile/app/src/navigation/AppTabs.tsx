@@ -6,6 +6,7 @@ import { useMarketplaceData } from "../hooks/useMarketplaceData";
 import { UserSummary } from "../services/api/types";
 import { BottomTabBar } from "../components/BottomTabBar";
 import { BookingsScreen } from "../screens/BookingsScreen";
+import { AccountHomeScreen } from "../screens/AccountHomeScreen";
 import { DiscoveryScreen } from "../screens/DiscoveryScreen";
 import { GigsScreen } from "../screens/GigsScreen";
 import { MessagesScreen } from "../screens/MessagesScreen";
@@ -14,22 +15,24 @@ import { ProfileScreen } from "../screens/ProfileScreen";
 export type TabKey = "discover" | "gigs" | "messages" | "bookings" | "profile";
 
 type AppTabsProps = {
-  role: UserRole;
+  role: UserRole | null;
   capabilities: Array<"talent" | "organizer">;
   currentUser: UserSummary;
   token: string;
   onRoleChange: (role: UserRole) => void;
+  onCapabilityAdded: (user: UserSummary) => void;
   onExit: () => void;
   onSignOut: () => void;
 };
 
-export function AppTabs({ role, capabilities, currentUser, token, onRoleChange, onExit, onSignOut }: AppTabsProps) {
+export function AppTabs({ role, capabilities, currentUser, token, onRoleChange, onCapabilityAdded, onExit, onSignOut }: AppTabsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>(role === "client" ? "gigs" : "discover");
   const [focusedConversationId, setFocusedConversationId] = useState<string | null>(null);
   const [focusedBookingId, setFocusedBookingId] = useState<string | null>(null);
+  const [focusedGigId, setFocusedGigId] = useState<string | null>(null);
   const marketplace = useMarketplaceData(token);
   const bookingAttentionCount = marketplace.bookings.filter((booking) =>
-    role === "talent" ? ["pending", "countered"].includes(booking.status) : ["awaiting_deposit"].includes(booking.status),
+    role === "talent" ? ["pending", "countered"].includes(booking.status) : role === "client" ? ["awaiting_deposit"].includes(booking.status) : false,
   ).length;
   const messageUnreadCount = marketplace.conversations.filter(
     (conversation) =>
@@ -42,29 +45,58 @@ export function AppTabs({ role, capabilities, currentUser, token, onRoleChange, 
     setActiveTab(role === "client" ? "gigs" : "discover");
   }, [role]);
 
+  function handleCapabilityAdded(user: UserSummary) {
+    onCapabilityAdded(user);
+    void marketplace.refresh();
+  }
+
   const sharedProps = {
-        role,
-        capabilities,
+    role,
+    capabilities,
         currentUser,
         token,
-        onRoleChange,
+    onRoleChange,
+    onCapabilityAdded: handleCapabilityAdded,
     onExit,
     onSignOut,
     onNavigateTab: setActiveTab,
+    onWorkspacePress: () => setActiveTab("profile"),
     focusedConversationId,
     setFocusedConversationId,
     focusedBookingId,
     setFocusedBookingId,
+    focusedGigId,
+    setFocusedGigId,
+    onOpenGig: (gigId: string) => {
+      setFocusedGigId(gigId);
+      setActiveTab("gigs");
+    },
     marketplace,
   };
+  const roleProps = { ...sharedProps, role: role as UserRole };
 
   return (
     <View style={styles.container}>
-      {activeTab === "discover" ? <DiscoveryScreen {...sharedProps} /> : null}
-      {activeTab === "gigs" ? <GigsScreen {...sharedProps} /> : null}
-      {activeTab === "messages" ? <MessagesScreen {...sharedProps} /> : null}
-      {activeTab === "bookings" ? <BookingsScreen {...sharedProps} /> : null}
-      {activeTab === "profile" ? <ProfileScreen {...sharedProps} /> : null}
+      {!role ? (
+        activeTab === "profile" ? (
+          <ProfileScreen {...sharedProps} />
+        ) : (
+          <AccountHomeScreen
+            activeTab={activeTab}
+            capabilities={capabilities}
+            currentUser={currentUser}
+            marketplace={marketplace}
+            token={token}
+            onCapabilityAdded={handleCapabilityAdded}
+            onOpenProfile={() => setActiveTab("profile")}
+          />
+        )
+      ) : null}
+      {role && activeTab === "discover" ? <DiscoveryScreen {...roleProps} /> : null}
+      {role && activeTab === "gigs" ? <GigsScreen {...roleProps} /> : null}
+      {role && activeTab === "messages" ? <MessagesScreen {...roleProps} /> : null}
+      {role && activeTab === "bookings" ? <BookingsScreen {...roleProps} /> : null}
+      {role && activeTab === "profile" ? <ProfileScreen {...sharedProps} /> : null}
       <BottomTabBar
         role={role}
         activeTab={activeTab}

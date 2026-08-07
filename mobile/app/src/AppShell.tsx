@@ -31,20 +31,21 @@ export function AppShell() {
     IBMPlexSans_600SemiBold,
   });
   const [hasStarted, setHasStarted] = useState(false);
-  const [role, setRole] = useState<UserRole>("client");
-  const [selectedCapabilities, setSelectedCapabilities] = useState<Capability[]>(["organizer"]);
+  const [role, setRole] = useState<UserRole | null>(null);
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const sessionCapabilities = session?.user.capabilities?.length
     ? session.user.capabilities
-    : session?.user.role
+    : session?.user.role === "client" || session?.user.role === "talent"
       ? [roleToCapability(session.user.role)]
-      : selectedCapabilities;
+      : [];
   const effectiveRole = session
-    ? sessionCapabilities.includes(roleToCapability(role))
+    ? role && sessionCapabilities.includes(roleToCapability(role))
       ? role
-      : capabilityToRole(sessionCapabilities[0])
+      : sessionCapabilities.length > 0
+        ? capabilityToRole(sessionCapabilities[0])
+        : null
     : role;
 
   useEffect(() => {
@@ -62,7 +63,7 @@ export function AppShell() {
   }, []);
 
   useEffect(() => {
-    if (!bootstrapped) return;
+    if (!bootstrapped || !role) return;
     void saveRole(role);
   }, [bootstrapped, role]);
 
@@ -105,13 +106,6 @@ export function AppShell() {
   if (!hasStarted) {
     return (
       <OnboardingScreen
-        selectedCapabilities={selectedCapabilities}
-        onCapabilitiesChange={(capabilities) => {
-          setSelectedCapabilities(capabilities);
-          if (capabilities.length > 0) {
-            setRole(capabilityToRole(capabilities.includes(roleToCapability(role)) ? roleToCapability(role) : capabilities[0]));
-          }
-        }}
         onContinue={() => {
           setHasStarted(true);
         }}
@@ -122,16 +116,16 @@ export function AppShell() {
   if (!session) {
     return (
       <AuthScreen
-        role={effectiveRole}
-        capabilities={selectedCapabilities}
         initialMode={authMode}
         onAuthenticated={(nextSession) => {
           setSession(nextSession);
-          setRole(nextSession.user.role as UserRole);
-          setSelectedCapabilities(
-            nextSession.user.capabilities?.length
-              ? nextSession.user.capabilities
-              : [roleToCapability(nextSession.user.role as UserRole)],
+          const capabilities = nextSession.user.capabilities || [];
+          setRole(
+            capabilities.includes("organizer")
+              ? "client"
+              : capabilities.includes("talent")
+                ? "talent"
+                : null,
           );
         }}
         onBack={() => {
@@ -139,10 +133,6 @@ export function AppShell() {
           setAuthMode("login");
         }}
         onSwitchMode={setAuthMode}
-        onStartRegistration={() => {
-          setAuthMode("register");
-          setHasStarted(false);
-        }}
       />
     );
   }
@@ -154,13 +144,19 @@ export function AppShell() {
         currentUser={session.user as UserSummary}
         token={session.token}
         onRoleChange={setRole}
+        onCapabilityAdded={(nextUser) => {
+          setSession((current) => (current ? { ...current, user: nextUser } : current));
+          setRole(nextUser.capabilities.includes("organizer") ? "client" : "talent");
+        }}
       onExit={() => {
         setSession(null);
+        setRole(null);
         setHasStarted(false);
         setAuthMode("login");
       }}
       onSignOut={() => {
         setSession(null);
+        setRole(null);
         setAuthMode("login");
       }}
     />

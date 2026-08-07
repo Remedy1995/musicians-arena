@@ -44,3 +44,22 @@ class RegistrationCapabilityTests(TestCase):
         self.assertEqual(user.capability_values(), ["talent"])
         self.assertTrue(TalentProfile.objects.filter(user=user).exists())
         self.assertFalse(ClientProfile.objects.filter(user=user).exists())
+
+    def test_registration_creates_a_neutral_account_without_a_profile(self):
+        serializer = RegisterSerializer(
+            data={
+                "username": "neutral_user",
+                "email": "neutral@example.com",
+                "phone": "233200000097",
+                "password": "Password123",
+                "display_name": "Neutral User",
+            }
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        user = serializer.save()
+
+        self.assertEqual(user.role, User.Role.ACCOUNT)
+        self.assertEqual(user.capability_values(), [])
+        self.assertFalse(TalentProfile.objects.filter(user=user).exists())
+        self.assertFalse(ClientProfile.objects.filter(user=user).exists())

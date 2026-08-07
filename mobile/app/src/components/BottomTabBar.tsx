@@ -8,7 +8,7 @@ import { TabKey } from "../navigation/AppTabs";
 import { theme } from "../theme/theme";
 
 type BottomTabBarProps = {
-  role: UserRole;
+  role: UserRole | null;
   activeTab: TabKey;
   onTabPress: (tab: TabKey) => void;
   badges?: Partial<Record<TabKey, number>>;
@@ -18,7 +18,7 @@ export function BottomTabBar({ role, activeTab, onTabPress, badges = {} }: Botto
   const insets = useSafeAreaInsets();
   const tabItems: Array<{ key: TabKey; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; activeIcon: keyof typeof MaterialCommunityIcons.glyphMap }> = [
     { key: "discover", label: role === "client" ? "Dashboard" : "Discover", icon: "compass-outline", activeIcon: "compass" },
-    { key: "gigs", label: role === "client" ? "My Gigs" : "Gig Board", icon: "music-note-outline", activeIcon: "music-note" },
+    { key: "gigs", label: role === "client" ? "My Gigs" : role === "talent" ? "Gig Board" : "Opportunities", icon: "music-note-outline", activeIcon: "music-note" },
     { key: "messages", label: "Messages", icon: "message-text-outline", activeIcon: "message-text" },
     { key: "bookings", label: "Bookings", icon: "clipboard-text-outline", activeIcon: "clipboard-text" },
     { key: "profile", label: "Profile", icon: "account-circle-outline", activeIcon: "account-circle" },

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { UserRole } from "../AppShell";
@@ -15,6 +15,7 @@ import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { TextField } from "../components/TextField";
 import { ModalSurface } from "../components/ModalSurface";
+import { WorkspaceButton } from "../components/WorkspaceButton";
 import { theme } from "../theme/theme";
 
 type GigsScreenProps = {
@@ -28,10 +29,13 @@ type GigsScreenProps = {
   setFocusedConversationId: (conversationId: string | null) => void;
   focusedBookingId: string | null;
   setFocusedBookingId: (bookingId: string | null) => void;
+  focusedGigId: string | null;
+  setFocusedGigId: (gigId: string | null) => void;
+  onWorkspacePress?: () => void;
   marketplace: ReturnType<typeof useMarketplaceData>;
 };
 
-export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocusedConversationId, setFocusedBookingId }: GigsScreenProps) {
+export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGigId, setFocusedGigId, onWorkspacePress, setFocusedConversationId, setFocusedBookingId }: GigsScreenProps) {
   const [composerOpen, setComposerOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
   const [organizerGigOpen, setOrganizerGigOpen] = useState(false);
@@ -90,6 +94,21 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
     if (!profileTarget) return null;
     return marketplace.talents.find((talent) => talent.user_id === profileTarget.talent_id) ?? null;
   }, [marketplace.talents, profileTarget]);
+
+  useEffect(() => {
+    if (!focusedGigId) return;
+    const gig = marketplace.gigs.find((item) => item.id === focusedGigId);
+    if (gig) {
+      setSelectedGigId(gig.id);
+      setInterestError(null);
+      setInterestForm({
+        note: gig.my_interest_status ? "Your interest has already been submitted for this gig." : "",
+        proposedAmount: "",
+      });
+      setInterestOpen(true);
+    }
+    setFocusedGigId(null);
+  }, [focusedGigId, marketplace.gigs, setFocusedGigId]);
 
   function getInterestStatusLabel(status: string | null | undefined) {
     switch (status) {
@@ -156,8 +175,11 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, setFocused
   return (
     <Screen>
       <View style={styles.header}>
-        <View style={styles.headerBadge}>
-          <Text style={styles.headerBadgeText}>{role === "client" ? "🎙 Organizer" : "🎵 Talent"}</Text>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeText}>{role === "client" ? "Organizer" : "Talent"}</Text>
+          </View>
+          <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} />
         </View>
         <Text style={styles.title}>{role === "client" ? "Your gig board" : "Available gigs"}</Text>
         <Text style={styles.body}>
@@ -1040,6 +1062,12 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing[1],
     borderRadius: theme.radius.pill,
     backgroundColor: theme.semanticColors.accentSoft,
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing[3],
   },
   headerBadgeText: {
     fontFamily: theme.typography.fontFamily.bodySemibold,

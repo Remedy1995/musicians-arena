@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { theme } from "../theme/theme";
@@ -20,7 +19,7 @@ type TalentCardProps = {
 
 export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, verified, tags, onPress }: TalentCardProps) {
   const card = (
-    <LinearGradient colors={["#20252A", "#111315"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
+    <View style={styles.card}>
       <View style={styles.header}>
         <ProfileAvatar
           label={name}
@@ -32,17 +31,17 @@ export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, ve
         />
         {verified ? <StatusBadge label="Verified" tone="accent" /> : null}
       </View>
-      <Text style={styles.name}>{name}</Text>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.name} numberOfLines={1}>{name}</Text>
+      <Text style={styles.title} numberOfLines={1}>{title}</Text>
       <View style={styles.metaRow}>
         <Text style={styles.meta}>{city}</Text>
         <Text style={styles.meta}>{"\u2605"} {rating.toFixed(1)}</Text>
         <Text style={styles.meta}>{jobs} jobs</Text>
       </View>
       <View style={styles.tags}>
-        {tags.map((tag) => (
+        {tags.slice(0, 2).map((tag) => (
           <View key={tag} style={styles.tag}>
-            <Text style={styles.tagLabel}>{tag}</Text>
+            <Text style={styles.tagLabel} numberOfLines={1}>{tag}</Text>
           </View>
         ))}
       </View>
@@ -50,7 +49,7 @@ export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, ve
         <Text style={styles.rate}>{rate}</Text>
         <Text style={styles.cta}>View profile</Text>
       </View>
-    </LinearGradient>
+    </View>
   );
 
   return onPress ? <Pressable onPress={onPress}>{card}</Pressable> : card;
@@ -59,9 +58,14 @@ export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, ve
 const styles = StyleSheet.create({
   card: {
     width: 270,
+    height: 250,
     borderRadius: theme.radius.xl,
     padding: theme.spacing[4],
     gap: theme.spacing[2],
+    backgroundColor: theme.semanticColors.surface,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+    overflow: "hidden",
     ...theme.shadows.floating,
   },
   header: {
@@ -70,47 +74,52 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   heroMark: {
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: theme.colors.stone[100],
   },
   heroInitials: {
     fontSize: theme.typography.size.lg,
+    color: theme.semanticColors.textPrimary,
   },
   name: {
     fontFamily: theme.typography.fontFamily.display,
     fontSize: theme.typography.size["2xl"],
     lineHeight: theme.typography.lineHeight["2xl"],
-    color: theme.semanticColors.textOnDark,
+    color: theme.semanticColors.textPrimary,
   },
   title: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.md,
     lineHeight: theme.typography.lineHeight.md,
-    color: "rgba(255, 255, 255, 0.78)",
+    color: theme.semanticColors.textSecondary,
   },
   metaRow: {
     flexDirection: "row",
     gap: theme.spacing[4],
+    minHeight: 20,
   },
   meta: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
     fontSize: theme.typography.size.sm,
-    color: "rgba(255, 255, 255, 0.72)",
+    color: theme.semanticColors.textMuted,
   },
   tags: {
+    height: 30,
     flexDirection: "row",
-    flexWrap: "wrap",
+    overflow: "hidden",
     gap: theme.spacing[2],
   },
   tag: {
     paddingHorizontal: theme.spacing[3],
     paddingVertical: theme.spacing[2],
     borderRadius: theme.radius.pill,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: theme.colors.stone[50],
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
   },
   tagLabel: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
     fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.textOnDark,
+    color: theme.semanticColors.textSecondary,
   },
   footer: {
     flexDirection: "row",
@@ -120,11 +129,11 @@ const styles = StyleSheet.create({
   rate: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.md,
-    color: theme.colors.gold[300],
+    color: theme.colors.gold[600],
   },
   cta: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.sm,
-    color: theme.colors.stone[100],
+    color: theme.semanticColors.primary,
   },
 });

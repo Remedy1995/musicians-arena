@@ -14,6 +14,7 @@ import { ModalSurface } from "../components/ModalSurface";
 import { ProfileAvatar } from "../components/ProfileAvatar";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
+import { WorkspaceButton } from "../components/WorkspaceButton";
 import { theme } from "../theme/theme";
 
 type MessagesScreenProps = {
@@ -26,6 +27,7 @@ type MessagesScreenProps = {
   setFocusedConversationId: (conversationId: string | null) => void;
   focusedBookingId: string | null;
   setFocusedBookingId: (bookingId: string | null) => void;
+  onWorkspacePress?: () => void;
   marketplace: ReturnType<typeof useMarketplaceData>;
 };
 
@@ -36,6 +38,7 @@ export function MessagesScreen({
   token,
   focusedConversationId,
   setFocusedConversationId,
+  onWorkspacePress,
 }: MessagesScreenProps) {
   const [detailDraft, setDetailDraft] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
@@ -129,7 +132,10 @@ export function MessagesScreen({
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>Messages</Text>
+        <View style={styles.headerTopRow}>
+          <Text style={styles.title}>Messages</Text>
+          <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} />
+        </View>
         <Text style={styles.body}>
           {role === "client"
             ? "Move from discovery into real coordination without leaving the platform."
@@ -341,6 +347,12 @@ const styles = StyleSheet.create({
   header: {
     gap: theme.spacing[3],
     paddingTop: theme.spacing[3],
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing[3],
   },
   title: {
     fontFamily: theme.typography.fontFamily.display,

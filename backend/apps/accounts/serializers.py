@@ -23,7 +23,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     capabilities = serializers.ListField(
         child=serializers.ChoiceField(choices=UserCapability.Capability.values),
         required=False,
-        allow_empty=False,
+        allow_empty=True,
     )
 
     class Meta:
@@ -45,11 +45,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         requested = attrs.get("capabilities")
         legacy_role = attrs.get("role")
         if not requested:
-            requested = [
-                UserCapability.Capability.TALENT
-                if legacy_role == User.Role.TALENT
-                else UserCapability.Capability.ORGANIZER
-            ]
+            requested = []
+            if legacy_role == User.Role.TALENT:
+                requested = [UserCapability.Capability.TALENT]
+            elif legacy_role == User.Role.CLIENT:
+                requested = [UserCapability.Capability.ORGANIZER]
         attrs["capabilities"] = list(dict.fromkeys(requested))
         return attrs
 
@@ -59,8 +59,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         capabilities = validated_data.pop("capabilities", [])
         validated_data["role"] = (
             User.Role.TALENT
-            if capabilities[0] == UserCapability.Capability.TALENT
+            if capabilities and capabilities[0] == UserCapability.Capability.TALENT
             else User.Role.CLIENT
+            if capabilities
+            else User.Role.ACCOUNT
         )
 
         user = User(**validated_data)

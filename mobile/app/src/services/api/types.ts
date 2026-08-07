@@ -1,4 +1,4 @@
-export type UserRole = "client" | "talent";
+export type UserRole = "account" | "client" | "talent";
 export type Capability = "organizer" | "talent";
 
 export type UserSummary = {

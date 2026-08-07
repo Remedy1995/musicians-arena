@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { AuthMode, UserRole } from "../AppShell";
+import { AuthMode } from "../AppShell";
 import { ApiError } from "../services/api/client";
 import { api } from "../services/api";
-import { AuthResponse, Capability } from "../services/api/types";
+import { AuthResponse } from "../services/api/types";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { SecondaryButton } from "../components/SecondaryButton";
@@ -13,16 +13,13 @@ import { TextField } from "../components/TextField";
 import { theme } from "../theme/theme";
 
 type AuthScreenProps = {
-  role: UserRole;
-  capabilities: Capability[];
   initialMode: AuthMode;
   onAuthenticated: (session: AuthResponse) => void;
   onBack: () => void;
   onSwitchMode: (mode: AuthMode) => void;
-  onStartRegistration: () => void;
 };
 
-export function AuthScreen({ role, capabilities, initialMode, onAuthenticated, onBack, onSwitchMode, onStartRegistration }: AuthScreenProps) {
+export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,11 +36,6 @@ export function AuthScreen({ role, capabilities, initialMode, onAuthenticated, o
   }, [initialMode]);
 
   const title = useMemo(() => (mode === "login" ? "Sign in to your account" : "Create your account"), [mode]);
-  const roleLabel = capabilities.length > 1
-    ? "Talent + organizer account"
-    : capabilities.includes("organizer")
-      ? "Organizer account"
-      : "Talent account";
   const isLogin = mode === "login";
   const heroTheme = isLogin
     ? {
@@ -51,23 +43,15 @@ export function AuthScreen({ role, capabilities, initialMode, onAuthenticated, o
         accent: theme.colors.gold[400],
         icon: "🔐",
         roleTitle: "Pick up where your last conversation, booking, or gig left off.",
-        roleBody: "Sign in once and the app will detect whether this account belongs to an organizer or a talent.",
+        roleBody: "Sign in once and the app will open the workspaces already connected to your account.",
       }
-    : capabilities.includes("organizer")
-      ? {
-          heroColors: ["#241D17", "#121416"] as const,
-          accent: theme.colors.gold[400],
-          icon: "📋",
-          roleTitle: "Create your organizer workspace.",
-          roleBody: "Post gigs, review applicants, and keep every service or event booking organized.",
-        }
-      : {
-          heroColors: ["#133033", "#121416"] as const,
-          accent: theme.colors.teal[400],
-          icon: "🎹",
-          roleTitle: "Create your talent profile.",
-          roleBody: "Show your work, find matching opportunities, and turn interest into confirmed bookings.",
-        };
+    : {
+        heroColors: ["#133033", "#121416"] as const,
+        accent: theme.colors.teal[400],
+        icon: "✦",
+        roleTitle: "One account. More ways to participate.",
+        roleBody: "Create your account first, then add a talent profile, an organizer profile, or both whenever you are ready.",
+      };
 
   async function handleSubmit() {
     setLoading(true);
@@ -84,8 +68,6 @@ export function AuthScreen({ role, capabilities, initialMode, onAuthenticated, o
               username: form.username,
               email: form.email,
               phone: form.phone,
-              role,
-              capabilities,
               password: form.password,
               display_name: form.displayName,
             });
@@ -110,11 +92,9 @@ export function AuthScreen({ role, capabilities, initialMode, onAuthenticated, o
           <View style={[styles.heroBadge, { backgroundColor: heroTheme.accent }]}>
             <Text style={styles.heroBadgeIcon}>{heroTheme.icon}</Text>
           </View>
-          {!isLogin ? (
-            <View style={[styles.rolePill, role === "client" ? styles.rolePillClient : styles.rolePillTalent]}>
-              <Text style={styles.rolePillText}>{roleLabel}</Text>
-            </View>
-          ) : null}
+          <View style={styles.accountPill}>
+            <Text style={styles.accountPillText}>{isLogin ? "Account access" : "New account"}</Text>
+          </View>
         </View>
         <Text style={styles.heroTitle}>{heroTheme.roleTitle}</Text>
         <Text style={styles.heroBody}>{heroTheme.roleBody}</Text>
@@ -122,14 +102,12 @@ export function AuthScreen({ role, capabilities, initialMode, onAuthenticated, o
 
       <View style={styles.authCard}>
         <View style={styles.header}>
-          <Text style={styles.kicker}>{isLogin ? "Welcome back" : roleLabel}</Text>
+          <Text style={styles.kicker}>{isLogin ? "Welcome back" : "Start neutral"}</Text>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.body}>
             {isLogin
-              ? "Sign in and we will automatically open the right account experience for you."
-              : capabilities.length > 1
-                ? "This account can work as both a talent and an organizer."
-                : `This account will be created as a ${capabilities.includes("organizer") ? "client organizer" : "talent"} profile.`}
+              ? "Your account determines which workspaces are available after you sign in."
+              : "Your account can later include a talent profile, an organizer profile, or both. No second registration is needed."}
           </Text>
         </View>
 
@@ -145,10 +123,6 @@ export function AuthScreen({ role, capabilities, initialMode, onAuthenticated, o
           </Pressable>
           <Pressable
             onPress={() => {
-              if (mode === "login") {
-                onStartRegistration();
-                return;
-              }
               setMode("register");
               onSwitchMode("register");
             }}
@@ -178,7 +152,7 @@ export function AuthScreen({ role, capabilities, initialMode, onAuthenticated, o
 
         <View style={styles.actions}>
           <PrimaryButton label={loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"} onPress={() => void handleSubmit()} />
-          {mode === "register" ? <SecondaryButton label="Back to role selection" onPress={onBack} /> : null}
+          {mode === "register" ? <SecondaryButton label="Back to welcome" onPress={onBack} /> : null}
         </View>
       </View>
     </Screen>
@@ -208,6 +182,17 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: theme.semanticColors.textOnDark,
   },
+  accountPill: {
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: 6,
+    backgroundColor: "rgba(255,255,255,0.14)",
+  },
+  accountPillText: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    color: "rgba(255,255,255,0.86)",
+  },
   heroTitle: {
     maxWidth: 320,
     fontFamily: theme.typography.fontFamily.display,
@@ -233,23 +218,6 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: theme.spacing[2],
-  },
-  rolePill: {
-    alignSelf: "flex-start",
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: 6,
-  },
-  rolePillClient: {
-    backgroundColor: theme.colors.gold[400],
-  },
-  rolePillTalent: {
-    backgroundColor: theme.colors.teal[500],
-  },
-  rolePillText: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.textOnDark,
   },
   kicker: {
     fontFamily: theme.typography.fontFamily.bodySemibold,

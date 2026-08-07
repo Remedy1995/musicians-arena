@@ -23,10 +23,12 @@ type DiscoveryScreenProps = {
   currentUser: UserSummary;
   token: string;
   onNavigateTab: (tab: "discover" | "gigs" | "messages" | "bookings" | "profile") => void;
+  onWorkspacePress?: () => void;
+  onOpenGig?: (gigId: string) => void;
   marketplace: ReturnType<typeof useMarketplaceData>;
 };
 
-export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: DiscoveryScreenProps) {
+export function DiscoveryScreen({ role, token, onNavigateTab, onWorkspacePress, onOpenGig, marketplace }: DiscoveryScreenProps) {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -149,7 +151,12 @@ export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: Dis
 
   return (
     <Screen>
-      <TopBar unreadCount={marketplace.unreadCount} onNotificationPress={() => setInboxOpen(true)} />
+      <TopBar
+        unreadCount={marketplace.unreadCount}
+        onNotificationPress={() => setInboxOpen(true)}
+        workspaceLabel={role === "client" ? "Organizer" : "Talent"}
+        onWorkspacePress={onWorkspacePress}
+      />
 
       <LinearGradient colors={roleSummary.heroColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
         <View style={styles.heroGlow} />
@@ -263,15 +270,17 @@ export function DiscoveryScreen({ role, token, onNavigateTab, marketplace }: Dis
           <SectionHeader title={roleSummary.gigsTitle} action={roleSummary.gigsAction} />
           <View style={styles.gigList}>
             {gigs.map((gig) => (
-              <GigCard
-                key={gig.id}
-                title={gig.title}
-                venue={[gig.city, gig.region].filter(Boolean).join(", ")}
-                timing={formatEventMoment(gig.event_date, gig.start_time)}
-                budget={formatBudget(gig.currency_code, gig.budget_min, gig.budget_max)}
-                urgency={gig.is_urgent ? "Urgent" : "Open"}
-                roles={gig.required_categories.map((item) => item.name)}
-              />
+              <Pressable key={gig.id} onPress={() => onOpenGig?.(gig.id)}>
+                <GigCard
+                  title={gig.title}
+                  venue={[gig.city, gig.region].filter(Boolean).join(", ")}
+                  timing={formatEventMoment(gig.event_date, gig.start_time)}
+                  budget={formatBudget(gig.currency_code, gig.budget_min, gig.budget_max)}
+                  urgency={gig.is_urgent ? "Urgent" : "Open"}
+                  roles={gig.required_categories.map((item) => item.name)}
+                  metaLabel="Tap to view opportunity details."
+                />
+              </Pressable>
             ))}
           </View>
         </View>

@@ -14,6 +14,7 @@ import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { ModalSurface } from "../components/ModalSurface";
 import { TextField } from "../components/TextField";
+import { WorkspaceButton } from "../components/WorkspaceButton";
 import { theme } from "../theme/theme";
 
 type BookingsScreenProps = {
@@ -27,6 +28,7 @@ type BookingsScreenProps = {
   setFocusedConversationId: (conversationId: string | null) => void;
   focusedBookingId: string | null;
   setFocusedBookingId: (bookingId: string | null) => void;
+  onWorkspacePress?: () => void;
   marketplace: ReturnType<typeof useMarketplaceData>;
 };
 
@@ -38,6 +40,7 @@ export function BookingsScreen({
   onNavigateTab,
   focusedBookingId,
   setFocusedBookingId,
+  onWorkspacePress,
 }: BookingsScreenProps) {
   const bookings = marketplace.bookings;
   type ClientTabOption = {
@@ -160,7 +163,10 @@ export function BookingsScreen({
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>Bookings</Text>
+        <View style={styles.headerTopRow}>
+          <Text style={styles.title}>Bookings</Text>
+          <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} />
+        </View>
         <Text style={styles.body}>
           {role === "client"
             ? "Track deposits, confirmations, and event readiness from one place."
@@ -1098,6 +1104,12 @@ const styles = StyleSheet.create({
   header: {
     gap: theme.spacing[3],
     paddingTop: theme.spacing[3],
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing[3],
   },
   title: {
     fontFamily: theme.typography.fontFamily.display,

@@ -1,174 +1,140 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { StyleSheet, Text, View } from "react-native";
 
-import { Capability } from "../services/api/types";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { RoleCard } from "../components/RoleCard";
 import { Screen } from "../components/Screen";
 import { theme } from "../theme/theme";
 
 type OnboardingScreenProps = {
-  selectedCapabilities: Capability[];
-  onCapabilitiesChange: (capabilities: Capability[]) => void;
   onContinue: () => void;
 };
 
-export function OnboardingScreen({ selectedCapabilities, onCapabilitiesChange, onContinue }: OnboardingScreenProps) {
-  const { height } = useWindowDimensions();
-  const compact = height < 820;
-  const tight = height < 740;
-
-  function toggleCapability(capability: Capability) {
-    if (selectedCapabilities.includes(capability)) {
-      if (selectedCapabilities.length === 1) return;
-      onCapabilitiesChange(selectedCapabilities.filter((item) => item !== capability));
-      return;
-    }
-    onCapabilitiesChange([...selectedCapabilities, capability]);
-  }
-
+export function OnboardingScreen({ onContinue }: OnboardingScreenProps) {
   return (
-    <Screen
-      contentContainerStyle={[styles.screenContent, tight ? styles.screenContentTight : undefined]}
-      innerStyle={tight ? styles.innerTight : compact ? styles.innerCompact : styles.innerRegular}
-    >
-      <LinearGradient colors={["#1B1F23", "#111315"]} style={[styles.hero, tight ? styles.heroTight : compact ? styles.heroCompact : undefined]}>
+    <Screen contentContainerStyle={styles.content} innerStyle={styles.inner}>
+      <LinearGradient colors={["#1B1F23", "#111315"]} style={styles.hero}>
+        <View style={styles.logoMark}>
+          <MaterialCommunityIcons name="music-clef-treble" size={28} color={theme.semanticColors.textOnDark} />
+        </View>
         <Text style={styles.brand}>Musician's Arena</Text>
-        <Text style={[styles.title, tight ? styles.titleTight : compact ? styles.titleCompact : undefined]}>Where creative talent meets real opportunity.</Text>
-        {!tight ? (
-          <Text style={[styles.body, compact ? styles.bodyCompact : undefined]} numberOfLines={2}>
-            Discover talent, post gigs, and keep every booking conversation in one trusted place.
-          </Text>
-        ) : null}
+        <Text style={styles.title}>Where creative talent meets real opportunity.</Text>
+        <Text style={styles.body}>
+          Discover opportunities, meet trusted talent, and keep every booking conversation in one place.
+        </Text>
       </LinearGradient>
 
-      <View style={[styles.section, tight ? styles.sectionTight : compact ? styles.sectionCompact : undefined]}>
-        <Text style={[styles.sectionTitle, tight ? styles.sectionTitleTight : compact ? styles.sectionTitleCompact : undefined]}>Choose how you want to enter</Text>
-        <View style={[styles.roleRow, tight ? styles.roleRowTight : compact ? styles.roleRowCompact : undefined]}>
-          <RoleCard
-            role="client"
-            title="I want to hire"
-            body="Post gigs, browse talent, and manage bookings for services, weddings, and events."
-            selected={selectedCapabilities.includes("organizer")}
-            onPress={() => toggleCapability("organizer")}
-            compact={compact}
-          />
-          <RoleCard
-            role="talent"
-            title="I am a talent"
-            body="Showcase your work, receive direct bookings, and respond to open event opportunities."
-            selected={selectedCapabilities.includes("talent")}
-            onPress={() => toggleCapability("talent")}
-            compact={compact}
-          />
+      <View style={styles.introCard}>
+        <Text style={styles.kicker}>A flexible account</Text>
+        <Text style={styles.cardTitle}>Start with one account. Choose your workspace later.</Text>
+        <Text style={styles.cardBody}>
+          You can become a talent, an organizer, or both. We will never make you create a second account to unlock another way to participate.
+        </Text>
+        <View style={styles.points}>
+          <Benefit icon="account-multiple-outline" label="One sign-in for every capability" />
+          <Benefit icon="swap-horizontal-circle-outline" label="Switch workspaces whenever you need" />
+          <Benefit icon="compass-outline" label="Explore before creating a profile" />
         </View>
       </View>
 
-      <PrimaryButton
-        label={selectedCapabilities.length > 1 ? "Continue with both" : selectedCapabilities.includes("organizer") ? "Continue as organizer" : "Continue as talent"}
-        onPress={onContinue}
-      />
+      <PrimaryButton label="Continue to account access" onPress={onContinue} />
     </Screen>
   );
 }
 
+function Benefit({ icon, label }: { icon: keyof typeof MaterialCommunityIcons.glyphMap; label: string }) {
+  return (
+    <View style={styles.benefit}>
+      <MaterialCommunityIcons name={icon} size={20} color={theme.semanticColors.primary} />
+      <Text style={styles.benefitLabel}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  screenContent: {
+  content: {
     flexGrow: 1,
     paddingBottom: theme.spacing[6],
   },
-  screenContentTight: {
-    paddingBottom: theme.spacing[4],
-  },
-  innerRegular: {
+  inner: {
     flexGrow: 1,
     justifyContent: "space-between",
-  },
-  innerCompact: {
-    flexGrow: 1,
-    justifyContent: "space-between",
-    gap: theme.spacing[5],
-  },
-  innerTight: {
-    flexGrow: 1,
-    justifyContent: "space-between",
-    gap: theme.spacing[4],
   },
   hero: {
     borderRadius: theme.radius.xl,
     padding: theme.spacing[6],
-    gap: theme.spacing[4],
+    gap: theme.spacing[3],
     ...theme.shadows.floating,
   },
-  heroCompact: {
-    padding: theme.spacing[5],
-    gap: theme.spacing[3],
-  },
-  heroTight: {
-    padding: theme.spacing[4],
-    gap: theme.spacing[2],
+  logoMark: {
+    width: 54,
+    height: 54,
+    borderRadius: theme.radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.gold[400],
   },
   brand: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.sm,
     color: theme.colors.gold[300],
+    letterSpacing: 0.4,
   },
   title: {
-    maxWidth: 300,
+    maxWidth: 310,
     fontFamily: theme.typography.fontFamily.display,
     fontSize: theme.typography.size["3xl"],
     lineHeight: theme.typography.lineHeight["3xl"],
     color: theme.semanticColors.textOnDark,
   },
-  titleCompact: {
-    fontSize: theme.typography.size["2xl"],
-    lineHeight: theme.typography.lineHeight["2xl"],
-    maxWidth: 280,
-  },
-  titleTight: {
-    fontSize: theme.typography.size.xl,
-    lineHeight: theme.typography.lineHeight.xl,
-    maxWidth: 260,
-  },
   body: {
-    maxWidth: 290,
+    maxWidth: 310,
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.md,
     lineHeight: theme.typography.lineHeight.md,
-    color: "rgba(255, 255, 255, 0.78)",
+    color: "rgba(255,255,255,0.78)",
   },
-  bodyCompact: {
-    maxWidth: 270,
-    fontSize: theme.typography.size.sm,
-    lineHeight: theme.typography.lineHeight.sm,
-  },
-  section: {
+  introCard: {
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing[5],
     gap: theme.spacing[3],
+    backgroundColor: theme.semanticColors.surface,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+    ...theme.shadows.card,
   },
-  sectionCompact: {
-    gap: theme.spacing[2],
+  kicker: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    color: theme.semanticColors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
-  sectionTight: {
-    gap: theme.spacing[1],
-  },
-  sectionTitle: {
+  cardTitle: {
     fontFamily: theme.typography.fontFamily.displayMedium,
     fontSize: theme.typography.size.xl,
+    lineHeight: theme.typography.lineHeight.xl,
     color: theme.semanticColors.textPrimary,
   },
-  sectionTitleCompact: {
-    fontSize: theme.typography.size.lg,
+  cardBody: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.sm,
+    lineHeight: theme.typography.lineHeight.sm,
+    color: theme.semanticColors.textSecondary,
   },
-  sectionTitleTight: {
-    fontSize: theme.typography.size.md,
+  points: {
+    gap: theme.spacing[3],
+    paddingTop: theme.spacing[1],
   },
-  roleRow: {
+  benefit: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: theme.spacing[3],
   },
-  roleRowCompact: {
-    gap: theme.spacing[2],
-  },
-  roleRowTight: {
-    gap: theme.spacing[1],
+  benefitLabel: {
+    flex: 1,
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    fontSize: theme.typography.size.sm,
+    color: theme.semanticColors.textPrimary,
   },
 });

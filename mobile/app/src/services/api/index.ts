@@ -48,8 +48,6 @@ export const api = {
     username: string;
     email: string;
     phone: string;
-    role?: "client" | "talent";
-    capabilities: Capability[];
     password: string;
     display_name: string;
   }) => apiRequest<AuthResponse>("/auth/register/", { method: "POST", body: payload }),

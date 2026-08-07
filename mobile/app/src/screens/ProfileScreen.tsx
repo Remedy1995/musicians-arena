@@ -15,14 +15,16 @@ import { useMarketplaceData } from "../hooks/useMarketplaceData";
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
 import { Capability, UserSummary } from "../services/api/types";
+import { WorkspaceSetupPanel } from "./WorkspaceSetupScreen";
 import { theme } from "../theme/theme";
 
 type ProfileScreenProps = {
-  role: UserRole;
+  role: UserRole | null;
   capabilities: Capability[];
   currentUser: UserSummary;
   token: string;
   onRoleChange: (role: UserRole) => void;
+  onCapabilityAdded: (user: UserSummary) => void;
   onExit: () => void;
   onSignOut: () => void;
   onNavigateTab: (tab: "discover" | "gigs" | "messages" | "bookings" | "profile") => void;
@@ -33,7 +35,7 @@ type ProfileScreenProps = {
   marketplace: ReturnType<typeof useMarketplaceData>;
 };
 
-export function ProfileScreen({ role, capabilities, token, onRoleChange, onSignOut, marketplace }: ProfileScreenProps) {
+export function ProfileScreen({ role, capabilities, token, onRoleChange, onCapabilityAdded, onSignOut, marketplace }: ProfileScreenProps) {
   const { width } = useWindowDimensions();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,6 +132,30 @@ export function ProfileScreen({ role, capabilities, token, onRoleChange, onSignO
     return () => clearTimeout(timeout);
   }, [successMessage]);
 
+  if (!role) {
+    return (
+      <Screen>
+        <View style={styles.screenHeader}>
+          <View style={styles.screenHeaderIcon}>
+            <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
+          </View>
+          <Text style={styles.screenHeaderTitle}>Profile</Text>
+        </View>
+        <View style={styles.utilityRow}>
+          <Pressable onPress={onSignOut} style={styles.signOutButton}>
+            <Text style={styles.signOutLabel}>Sign out</Text>
+          </Pressable>
+        </View>
+        <View style={styles.header}>
+          <Text style={styles.eyebrow}>Personal account</Text>
+          <Text style={styles.title}>{marketplace.me?.profile.display_name || marketplace.me?.username || "Your account"}</Text>
+          <Text style={styles.body}>Create a workspace when you are ready to apply for opportunities or organize an event.</Text>
+        </View>
+        <WorkspaceSetupPanel token={token} capabilities={capabilities} onCapabilityAdded={onCapabilityAdded} />
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <View style={styles.screenHeader}>
@@ -170,6 +196,10 @@ export function ProfileScreen({ role, capabilities, token, onRoleChange, onSignO
             })}
           </View>
         </View>
+      ) : null}
+
+      {capabilities.length === 1 ? (
+        <WorkspaceSetupPanel token={token} capabilities={capabilities} onCapabilityAdded={onCapabilityAdded} />
       ) : null}
 
       <View style={styles.header}>

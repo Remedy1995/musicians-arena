@@ -17,7 +17,7 @@ Stores core account information for all user types.
 | Column | Type | Notes |
 |---|---|---|
 | id | UUID PK | Primary key |
-| role | ENUM | `client`, `talent`, `admin` |
+| role | ENUM | Legacy compatibility field: `account`, `client`, `talent`, `admin` |
 | phone | VARCHAR(20) | Unique, nullable if email-based |
 | email | VARCHAR(255) | Unique, nullable |
 | password_hash | TEXT | Nullable for OTP-only auth |
@@ -27,6 +27,19 @@ Stores core account information for all user types.
 | last_login_at | TIMESTAMP | Last login |
 | created_at | TIMESTAMP | Audit |
 | updated_at | TIMESTAMP | Audit |
+
+### user_capabilities
+Tracks optional workspaces attached to one account.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | Primary key |
+| user_id | UUID FK | References users.id |
+| capability | ENUM | `talent`, `organizer` |
+| created_at | TIMESTAMP | Audit |
+| updated_at | TIMESTAMP | Audit |
+
+Each capability is unique per user. A user may have neither capability, one capability, or both capabilities. The `role` field must not be used for authorization.
 
 ### user_profiles
 Shared profile data.

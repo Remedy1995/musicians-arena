@@ -57,7 +57,7 @@ export function useMarketplaceData(token: string) {
       const me = await api.me(token);
       const [talentsResult, gigsResult, bookingsResult, conversationsResult, notificationsResult, unreadResult, categoriesResult, eventTypesResult] =
         await Promise.allSettled([
-          me.capabilities?.includes("organizer") ? api.talents() : Promise.resolve([]),
+          api.talents(),
           api.gigs(token),
           api.bookings(token),
           api.conversations(token),
