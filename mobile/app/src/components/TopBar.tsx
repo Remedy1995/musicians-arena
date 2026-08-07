@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { WorkspaceButton } from "./WorkspaceButton";
 import { theme } from "../theme/theme";
 
 type TopBarProps = {
@@ -14,50 +15,50 @@ type TopBarProps = {
 
 export function TopBar({ unreadCount = 0, onNotificationPress, showNotifications = true, workspaceLabel, onWorkspacePress }: TopBarProps) {
   return (
-    <View style={styles.row}>
-      <View style={styles.brandGroup}>
-        <LinearGradient
-          colors={[theme.colors.ember[500], theme.colors.gold[400]]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.logoMark}
-        >
-          <MaterialCommunityIcons name="music-clef-treble" size={24} color={theme.semanticColors.textOnDark} />
-        </LinearGradient>
-        <View>
-          <Text style={styles.kicker}>Musician's Arena</Text>
-          <Text style={styles.title}>Find the right sound.</Text>
+    <View style={styles.container}>
+      <View style={styles.row}>
+        <View style={styles.brandGroup}>
+          <LinearGradient
+            colors={[theme.colors.ember[500], theme.colors.gold[400]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.logoMark}
+          >
+            <MaterialCommunityIcons name="music-clef-treble" size={24} color={theme.semanticColors.textOnDark} />
+          </LinearGradient>
+          <View>
+            <Text style={styles.kicker}>Musician's Arena</Text>
+            <Text style={styles.title}>Find the right sound.</Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.actions}>
-        {workspaceLabel ? (
-          <Pressable style={styles.workspaceButton} onPress={onWorkspacePress}>
-            <MaterialCommunityIcons name="account-switch-outline" size={17} color={theme.semanticColors.primary} />
-            <Text style={styles.workspaceLabel} numberOfLines={1}>{workspaceLabel}</Text>
-          </Pressable>
-        ) : null}
-        {showNotifications ? (
-          <Pressable style={styles.notificationButton} onPress={onNotificationPress}>
-            <MaterialCommunityIcons
-              name={unreadCount > 0 ? "bell-ring" : "bell-outline"}
-              size={20}
-              color={unreadCount > 0 ? theme.colors.gold[500] : theme.colors.ink[800]}
-            />
-            {unreadCount > 0 ? (
-              <View style={styles.badge}>
-                <Text style={styles.badgeLabel}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
-              </View>
-            ) : null}
-          </Pressable>
-        ) : (
-          <View style={styles.notificationSpacer} />
-        )}
+        <View style={styles.actions}>
+          {workspaceLabel ? <WorkspaceButton label={workspaceLabel} onPress={onWorkspacePress} /> : null}
+          {showNotifications ? (
+            <Pressable style={styles.notificationButton} onPress={onNotificationPress}>
+              <MaterialCommunityIcons
+                name={unreadCount > 0 ? "bell-ring" : "bell-outline"}
+                size={20}
+                color={unreadCount > 0 ? theme.colors.gold[500] : theme.colors.ink[800]}
+              />
+              {unreadCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeLabel}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ) : (
+            <View style={styles.notificationSpacer} />
+          )}
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    gap: theme.spacing[1],
+  },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -74,24 +75,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[2],
-  },
-  workspaceButton: {
-    maxWidth: 112,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: theme.spacing[2],
-    height: 36,
-    borderRadius: theme.radius.pill,
-    backgroundColor: "#FFF8E8",
-    borderWidth: 1,
-    borderColor: theme.colors.gold[300],
-  },
-  workspaceLabel: {
-    flexShrink: 1,
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.textPrimary,
   },
   logoMark: {
     width: 38,

@@ -13,22 +13,26 @@ type OnboardingScreenProps = {
 export function OnboardingScreen({ onContinue }: OnboardingScreenProps) {
   return (
     <Screen contentContainerStyle={styles.content} innerStyle={styles.inner}>
-      <LinearGradient colors={["#1B1F23", "#111315"]} style={styles.hero}>
+      <LinearGradient colors={["#FFF2CF", "#FFE3D8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+        <View style={styles.heroGlow} />
         <View style={styles.logoMark}>
           <MaterialCommunityIcons name="music-clef-treble" size={28} color={theme.semanticColors.textOnDark} />
         </View>
-        <Text style={styles.brand}>Musician's Arena</Text>
-        <Text style={styles.title}>Where creative talent meets real opportunity.</Text>
+        <View style={styles.brandRow}>
+          <Text style={styles.brand}>Musician's Arena</Text>
+          <Text style={styles.brandPill}>ONE ACCOUNT</Text>
+        </View>
+        <Text style={styles.title}>Find your sound. Build your next opportunity.</Text>
         <Text style={styles.body}>
-          Discover opportunities, meet trusted talent, and keep every booking conversation in one place.
+          Discover talent, find gigs, and keep every booking conversation in one place.
         </Text>
       </LinearGradient>
 
       <View style={styles.introCard}>
         <Text style={styles.kicker}>A flexible account</Text>
-        <Text style={styles.cardTitle}>Start with one account. Choose your workspace later.</Text>
+        <Text style={styles.cardTitle}>One account, two ways to participate.</Text>
         <Text style={styles.cardBody}>
-          You can become a talent, an organizer, or both. We will never make you create a second account to unlock another way to participate.
+          Start exploring now, then create a talent profile, an organizer profile, or both when you are ready.
         </Text>
         <View style={styles.points}>
           <Benefit icon="account-multiple-outline" label="One sign-in for every capability" />
@@ -61,10 +65,23 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   hero: {
+    position: "relative",
+    overflow: "hidden",
     borderRadius: theme.radius.xl,
     padding: theme.spacing[6],
     gap: theme.spacing[3],
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
     ...theme.shadows.floating,
+  },
+  heroGlow: {
+    position: "absolute",
+    top: -72,
+    right: -34,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(217,181,83,0.26)",
   },
   logoMark: {
     width: 54,
@@ -77,22 +94,34 @@ const styles = StyleSheet.create({
   brand: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.sm,
-    color: theme.colors.gold[300],
+    color: theme.semanticColors.primary,
     letterSpacing: 0.4,
+  },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing[2],
+  },
+  brandPill: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: 10,
+    color: theme.colors.gold[600],
+    letterSpacing: 0.7,
   },
   title: {
     maxWidth: 310,
     fontFamily: theme.typography.fontFamily.display,
     fontSize: theme.typography.size["3xl"],
     lineHeight: theme.typography.lineHeight["3xl"],
-    color: theme.semanticColors.textOnDark,
+    color: theme.semanticColors.textPrimary,
   },
   body: {
     maxWidth: 310,
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.md,
     lineHeight: theme.typography.lineHeight.md,
-    color: "rgba(255,255,255,0.78)",
+    color: theme.semanticColors.textSecondary,
   },
   introCard: {
     borderRadius: theme.radius.xl,

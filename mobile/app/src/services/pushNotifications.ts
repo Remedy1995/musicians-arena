@@ -1,23 +1,25 @@
-import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 import { api } from "./api";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
-
 export async function registerForPushNotifications(token: string) {
   if (Platform.OS !== "ios" && Platform.OS !== "android") return;
 
-  const nativePushEnabled = Constants.expoConfig?.extra?.nativePushEnabled !== false;
+  // Development clients intentionally do not include the native push module.
+  // Keep the import lazy so ExpoPushTokenManager is never initialized there.
+  const nativePushEnabled = Constants.expoConfig?.extra?.nativePushEnabled === true;
   if (!nativePushEnabled) return;
+
+  const Notifications = await import("expo-notifications");
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
 
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {

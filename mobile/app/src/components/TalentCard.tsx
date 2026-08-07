@@ -24,8 +24,8 @@ export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, ve
         <ProfileAvatar
           label={name}
           imageUri={imageUri}
-          size={60}
-          borderRadius={30}
+          size={52}
+          borderRadius={26}
           style={styles.heroMark}
           textStyle={styles.heroInitials}
         />
@@ -57,11 +57,11 @@ export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, ve
 
 const styles = StyleSheet.create({
   card: {
-    width: 270,
-    height: 250,
+    width: 248,
+    height: 224,
     borderRadius: theme.radius.xl,
-    padding: theme.spacing[4],
-    gap: theme.spacing[2],
+    padding: theme.spacing[3],
+    gap: theme.spacing[1],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
@@ -82,8 +82,8 @@ const styles = StyleSheet.create({
   },
   name: {
     fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size["2xl"],
-    lineHeight: theme.typography.lineHeight["2xl"],
+    fontSize: theme.typography.size.xl,
+    lineHeight: theme.typography.lineHeight.xl,
     color: theme.semanticColors.textPrimary,
   },
   title: {
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: "row",
-    gap: theme.spacing[4],
+    gap: theme.spacing[2],
     minHeight: 20,
   },
   meta: {
@@ -103,14 +103,14 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textMuted,
   },
   tags: {
-    height: 30,
+    height: 26,
     flexDirection: "row",
     overflow: "hidden",
     gap: theme.spacing[2],
   },
   tag: {
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
+    paddingHorizontal: theme.spacing[2],
+    paddingVertical: 4,
     borderRadius: theme.radius.pill,
     backgroundColor: theme.colors.stone[50],
     borderWidth: 1,

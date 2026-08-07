@@ -176,12 +176,9 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
     <Screen>
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          <View style={styles.headerBadge}>
-            <Text style={styles.headerBadgeText}>{role === "client" ? "Organizer" : "Talent"}</Text>
-          </View>
+          <Text style={styles.title}>{role === "client" ? "Your gig board" : "Available gigs"}</Text>
           <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} />
         </View>
-        <Text style={styles.title}>{role === "client" ? "Your gig board" : "Available gigs"}</Text>
         <Text style={styles.body}>
           {role === "client"
             ? "Post event needs, review interested talents, and move promising matches into chat or booking."
@@ -191,23 +188,12 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
 
       <View style={styles.heroActions}>
         {role === "client" ? (
-          <>
-            <PrimaryButton
-              label="＋ Create an opportunity gig"
-              onPress={() => {
-                setComposerOpen(true);
-              }}
-            />
-            <SecondaryButton
-              label="Review applicants"
-              onPress={() => {
-                const ownGig = renderedGigs.find((gig) => gig.interests_count > 0) ?? renderedGigs[0];
-                if (ownGig) {
-                  void openOrganizerGig(ownGig.id);
-                }
-              }}
-            />
-          </>
+          <PrimaryButton
+            label="＋ Create an opportunity gig"
+            onPress={() => {
+              setComposerOpen(true);
+            }}
+          />
         ) : (
           <PrimaryButton
             label="Open messages"
@@ -1056,23 +1042,11 @@ const styles = StyleSheet.create({
     gap: theme.spacing[1],
     paddingTop: theme.spacing[1],
   },
-  headerBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.semanticColors.accentSoft,
-  },
   headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: theme.spacing[3],
-  },
-  headerBadgeText: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.xs,
-    color: theme.colors.gold[600],
   },
   title: {
     fontFamily: theme.typography.fontFamily.display,
@@ -1109,7 +1083,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: theme.spacing[8],
     paddingBottom: theme.spacing[4],
     borderBottomWidth: 1,
     borderBottomColor: theme.semanticColors.borderSoft,

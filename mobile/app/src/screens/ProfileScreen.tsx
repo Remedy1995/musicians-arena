@@ -11,6 +11,7 @@ import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { TextField } from "../components/TextField";
 import { ModalSurface } from "../components/ModalSurface";
+import { WorkspaceButton } from "../components/WorkspaceButton";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
@@ -23,8 +24,8 @@ type ProfileScreenProps = {
   capabilities: Capability[];
   currentUser: UserSummary;
   token: string;
-  onRoleChange: (role: UserRole) => void;
   onCapabilityAdded: (user: UserSummary) => void;
+  onWorkspacePress?: () => void;
   onExit: () => void;
   onSignOut: () => void;
   onNavigateTab: (tab: "discover" | "gigs" | "messages" | "bookings" | "profile") => void;
@@ -35,7 +36,7 @@ type ProfileScreenProps = {
   marketplace: ReturnType<typeof useMarketplaceData>;
 };
 
-export function ProfileScreen({ role, capabilities, token, onRoleChange, onCapabilityAdded, onSignOut, marketplace }: ProfileScreenProps) {
+export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, onWorkspacePress, onSignOut, marketplace }: ProfileScreenProps) {
   const { width } = useWindowDimensions();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,11 +141,7 @@ export function ProfileScreen({ role, capabilities, token, onRoleChange, onCapab
             <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
           </View>
           <Text style={styles.screenHeaderTitle}>Profile</Text>
-        </View>
-        <View style={styles.utilityRow}>
-          <Pressable onPress={onSignOut} style={styles.signOutButton}>
-            <Text style={styles.signOutLabel}>Sign out</Text>
-          </Pressable>
+          <WorkspaceButton label="Account" onPress={onWorkspacePress} />
         </View>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Personal account</Text>
@@ -152,6 +149,15 @@ export function ProfileScreen({ role, capabilities, token, onRoleChange, onCapab
           <Text style={styles.body}>Create a workspace when you are ready to apply for opportunities or organize an event.</Text>
         </View>
         <WorkspaceSetupPanel token={token} capabilities={capabilities} onCapabilityAdded={onCapabilityAdded} />
+        <View style={styles.accountActions}>
+          <Text style={styles.accountActionsLabel}>Account actions</Text>
+          <View style={styles.signOutRow}>
+            <MaterialCommunityIcons name="logout-variant" size={18} color={theme.colors.ember[600]} />
+            <Pressable onPress={onSignOut} style={styles.signOutButton}>
+              <Text style={styles.signOutLabel}>Sign out</Text>
+            </Pressable>
+          </View>
+        </View>
       </Screen>
     );
   }
@@ -163,40 +169,8 @@ export function ProfileScreen({ role, capabilities, token, onRoleChange, onCapab
           <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
         </View>
         <Text style={styles.screenHeaderTitle}>Profile</Text>
+        <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} />
       </View>
-
-      <View style={styles.utilityRow}>
-        <Pressable onPress={onSignOut} style={styles.signOutButton}>
-          <Text style={styles.signOutLabel}>Sign out</Text>
-        </Pressable>
-      </View>
-
-      {capabilities.length > 1 ? (
-        <View style={styles.modeSwitcher}>
-          <Text style={styles.modeSwitcherLabel}>Your workspaces</Text>
-          <View style={styles.modeSwitcherOptions}>
-            {([
-              ["client", "Organizer", "briefcase-outline"],
-              ["talent", "Talent", "music-note-outline"],
-            ] as const).map(([nextRole, label, icon]) => {
-              const selected = role === nextRole;
-              return (
-                <Pressable
-                  key={nextRole}
-                  onPress={() => {
-                    onRoleChange(nextRole);
-                    setActiveSection("basic");
-                  }}
-                  style={[styles.modeOption, selected ? styles.modeOptionActive : undefined]}
-                >
-                  <MaterialCommunityIcons name={icon} size={16} color={selected ? theme.semanticColors.textOnDark : theme.semanticColors.textSecondary} />
-                  <Text style={[styles.modeOptionLabel, selected ? styles.modeOptionLabelActive : undefined]}>{label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      ) : null}
 
       {capabilities.length === 1 ? (
         <WorkspaceSetupPanel token={token} capabilities={capabilities} onCapabilityAdded={onCapabilityAdded} />
@@ -474,6 +448,16 @@ export function ProfileScreen({ role, capabilities, token, onRoleChange, onCapab
           />
         ) : null}
       </ScrollView>
+
+      <View style={styles.accountActions}>
+        <Text style={styles.accountActionsLabel}>Account actions</Text>
+        <View style={styles.signOutRow}>
+          <MaterialCommunityIcons name="logout-variant" size={18} color={theme.colors.ember[600]} />
+          <Pressable onPress={onSignOut} style={styles.signOutButton}>
+            <Text style={styles.signOutLabel}>Sign out</Text>
+          </Pressable>
+        </View>
+      </View>
 
       <Modal animationType="slide" visible={portfolioOpen} onRequestClose={() => setPortfolioOpen(false)}>
         <ModalSurface style={styles.modalScreen}>
@@ -1022,64 +1006,32 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.ink[900],
   },
   screenHeaderTitle: {
+    flex: 1,
     fontFamily: theme.typography.fontFamily.display,
     fontSize: theme.typography.size["2xl"],
     color: theme.semanticColors.textPrimary,
   },
-  utilityRow: {
-    alignItems: "flex-end",
-    paddingTop: theme.spacing[3],
-  },
-  modeSwitcher: {
+  accountActions: {
     gap: theme.spacing[2],
-    padding: theme.spacing[3],
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.semanticColors.surface,
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
+    marginTop: theme.spacing[4],
+    paddingTop: theme.spacing[4],
+    borderTopWidth: 1,
+    borderTopColor: theme.semanticColors.borderSoft,
   },
-  modeSwitcherLabel: {
+  accountActionsLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
     color: theme.semanticColors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
-  modeSwitcherOptions: {
-    flexDirection: "row",
-    gap: theme.spacing[2],
-  },
-  modeOption: {
-    flex: 1,
-    minHeight: 42,
+  signOutRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: theme.spacing[2],
-    borderRadius: theme.radius.pill,
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
-    backgroundColor: theme.colors.stone[50],
-  },
-  modeOptionActive: {
-    backgroundColor: theme.semanticColors.primary,
-    borderColor: theme.semanticColors.primary,
-  },
-  modeOptionLabel: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.textSecondary,
-  },
-  modeOptionLabelActive: {
-    color: theme.semanticColors.textOnDark,
   },
   signOutButton: {
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    backgroundColor: "#FFF2EE",
-    borderWidth: 1,
-    borderColor: theme.colors.ember[300],
+    paddingVertical: theme.spacing[1],
   },
   signOutLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -1513,7 +1465,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    paddingTop: theme.spacing[6],
     gap: theme.spacing[3],
   },
   modalTitleWrap: {

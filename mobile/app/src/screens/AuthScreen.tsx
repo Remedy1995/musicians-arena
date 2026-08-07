@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { AuthMode } from "../AppShell";
 import { ApiError } from "../services/api/client";
@@ -23,37 +23,54 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
   const [form, setForm] = useState({
     username: "",
     password: "",
-    displayName: "",
     email: "",
     phone: "",
   });
 
   useEffect(() => {
     setMode(initialMode);
+    setPasswordTouched(false);
+    setError(null);
   }, [initialMode]);
 
   const title = useMemo(() => (mode === "login" ? "Sign in to your account" : "Create your account"), [mode]);
   const isLogin = mode === "login";
-  const heroTheme = isLogin
-    ? {
-        heroColors: ["#241D17", "#121416"] as const,
-        accent: theme.colors.gold[400],
-        icon: "🔐",
-        roleTitle: "Pick up where your last conversation, booking, or gig left off.",
-        roleBody: "Sign in once and the app will open the workspaces already connected to your account.",
-      }
-    : {
-        heroColors: ["#133033", "#121416"] as const,
-        accent: theme.colors.teal[400],
-        icon: "✦",
-        roleTitle: "One account. More ways to participate.",
-        roleBody: "Create your account first, then add a talent profile, an organizer profile, or both whenever you are ready.",
-      };
+  const passwordRules = [
+    { label: "8 or more characters", valid: form.password.length >= 8 },
+    { label: "At least one letter", valid: /[A-Za-z]/.test(form.password) },
+    { label: "At least one number", valid: /\d/.test(form.password) },
+  ];
+  const passwordIsValid = passwordRules.every((rule) => rule.valid) && !/^\d+$/.test(form.password);
+  const showPasswordGuide = mode === "register" && passwordTouched && Boolean(form.password) && !passwordIsValid;
+
+  function switchMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setPasswordTouched(false);
+    setError(null);
+    onSwitchMode(nextMode);
+  }
 
   async function handleSubmit() {
+    if (!form.username.trim()) {
+      setError("Username is required.");
+      return;
+    }
+    if (!form.password) {
+      if (mode === "register") setPasswordTouched(true);
+      setError("Password is required.");
+      return;
+    }
+    if (mode === "register" && !passwordIsValid) {
+      setPasswordTouched(true);
+      setError("Use a medium-strength password with 8 characters, a letter, and a number.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -69,7 +86,7 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
               email: form.email,
               phone: form.phone,
               password: form.password,
-              display_name: form.displayName,
+              display_name: form.username,
             });
       onAuthenticated(session);
     } catch (caught) {
@@ -86,36 +103,38 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
   }
 
   return (
-    <Screen>
-      <LinearGradient colors={heroTheme.heroColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
-        <View style={styles.heroTopRow}>
-          <View style={[styles.heroBadge, { backgroundColor: heroTheme.accent }]}>
-            <Text style={styles.heroBadgeIcon}>{heroTheme.icon}</Text>
-          </View>
-          <View style={styles.accountPill}>
-            <Text style={styles.accountPillText}>{isLogin ? "Account access" : "New account"}</Text>
-          </View>
+    <Screen contentContainerStyle={[styles.screenContent, isLogin ? styles.loginScreenContent : undefined]}>
+      <View style={styles.brandHeader}>
+        <View style={styles.brandMark}>
+          <MaterialCommunityIcons name="music-clef-treble" size={24} color={theme.semanticColors.textOnDark} />
         </View>
-        <Text style={styles.heroTitle}>{heroTheme.roleTitle}</Text>
-        <Text style={styles.heroBody}>{heroTheme.roleBody}</Text>
-      </LinearGradient>
+        <View style={styles.brandCopy}>
+          <Text style={styles.brandName}>Musician's Arena</Text>
+          <Text style={styles.brandTagline}>Creative work, one account.</Text>
+        </View>
+      </View>
 
       <View style={styles.authCard}>
         <View style={styles.header}>
-          <Text style={styles.kicker}>{isLogin ? "Welcome back" : "Start neutral"}</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.kicker}>{isLogin ? "Welcome back" : "Join the community"}</Text>
+            <View style={styles.secureLabel}>
+              <MaterialCommunityIcons name="shield-check-outline" size={14} color={theme.colors.teal[600]} />
+              <Text style={styles.secureLabelText}>Secure access</Text>
+            </View>
+          </View>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.body}>
             {isLogin
-              ? "Your account determines which workspaces are available after you sign in."
-              : "Your account can later include a talent profile, an organizer profile, or both. No second registration is needed."}
+              ? "Sign in once to access your available workspaces."
+              : "Create one account, then add a talent profile, an organizer profile, or both later."}
           </Text>
         </View>
 
         <View style={styles.modeSwitch}>
           <Pressable
             onPress={() => {
-              setMode("login");
-              onSwitchMode("login");
+              switchMode("login");
             }}
             style={[styles.modeChip, mode === "login" ? styles.modeChipActive : undefined]}
           >
@@ -123,8 +142,7 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
           </Pressable>
           <Pressable
             onPress={() => {
-              setMode("register");
-              onSwitchMode("register");
+              switchMode("register");
             }}
             style={[styles.modeChip, mode === "register" ? styles.modeChipActive : undefined]}
           >
@@ -133,20 +151,51 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
         </View>
 
         <View style={styles.form}>
+          <TextField
+            label="Username"
+            value={form.username}
+            onChangeText={(value) => setForm((current) => ({ ...current, username: value }))}
+            placeholder="Choose a username"
+          />
           {mode === "register" ? (
             <>
-              <TextField label="Display name" value={form.displayName} onChangeText={(value) => setForm((current) => ({ ...current, displayName: value }))} />
               <TextField label="Email" value={form.email} onChangeText={(value) => setForm((current) => ({ ...current, email: value }))} keyboardType="email-address" />
               <TextField label="Phone" value={form.phone} onChangeText={(value) => setForm((current) => ({ ...current, phone: value }))} keyboardType="phone-pad" />
             </>
           ) : null}
-          <TextField label="Username" value={form.username} onChangeText={(value) => setForm((current) => ({ ...current, username: value }))} />
           <TextField
             label="Password"
             value={form.password}
-            onChangeText={(value) => setForm((current) => ({ ...current, password: value }))}
-            secureTextEntry
+            onChangeText={(value) => {
+              setPasswordTouched(true);
+              setError(null);
+              setForm((current) => ({ ...current, password: value }));
+            }}
+            secureTextEntry={!showPassword}
+            placeholder="Enter your password"
+            rightAccessory={
+              <Pressable onPress={() => setShowPassword((current) => !current)} accessibilityLabel={showPassword ? "Hide password" : "Show password"}>
+                <MaterialCommunityIcons name={showPassword ? "eye-off-outline" : "eye-outline"} size={21} color={theme.semanticColors.textMuted} />
+              </Pressable>
+            }
           />
+          {showPasswordGuide ? (
+            <View style={styles.passwordGuide}>
+              <Text style={styles.passwordGuideTitle}>Medium password</Text>
+              <View style={styles.passwordRules}>
+                {passwordRules.map((rule) => (
+                  <View key={rule.label} style={styles.passwordRule}>
+                    <MaterialCommunityIcons
+                      name={rule.valid ? "check-circle" : "circle-outline"}
+                      size={15}
+                      color={rule.valid ? theme.colors.verdant[500] : theme.semanticColors.textMuted}
+                    />
+                    <Text style={[styles.passwordRuleLabel, rule.valid ? styles.passwordRuleLabelValid : undefined]}>{rule.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </View>
 
@@ -160,57 +209,44 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
 }
 
 const styles = StyleSheet.create({
-  heroCard: {
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[5],
-    gap: theme.spacing[3],
-    ...theme.shadows.floating,
+  screenContent: {
+    flexGrow: 1,
   },
-  heroTopRow: {
+  loginScreenContent: {
+    justifyContent: "center",
+    paddingVertical: theme.spacing[5],
+  },
+  brandHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: theme.spacing[3],
   },
-  heroBadge: {
+  brandMark: {
     width: 48,
     height: 48,
     borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: theme.semanticColors.primary,
+    ...theme.shadows.card,
   },
-  heroBadgeIcon: {
-    fontSize: 22,
-    color: theme.semanticColors.textOnDark,
+  brandCopy: {
+    gap: 2,
   },
-  accountPill: {
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: 6,
-    backgroundColor: "rgba(255,255,255,0.14)",
+  brandName: {
+    fontFamily: theme.typography.fontFamily.displayMedium,
+    fontSize: theme.typography.size.lg,
+    color: theme.semanticColors.textPrimary,
   },
-  accountPillText: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.xs,
-    color: "rgba(255,255,255,0.86)",
-  },
-  heroTitle: {
-    maxWidth: 320,
-    fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size.xl,
-    lineHeight: theme.typography.lineHeight.xl,
-    color: theme.semanticColors.textOnDark,
-  },
-  heroBody: {
-    maxWidth: 320,
+  brandTagline: {
     fontFamily: theme.typography.fontFamily.body,
-    fontSize: theme.typography.size.sm,
-    lineHeight: theme.typography.lineHeight.sm,
-    color: "rgba(255,255,255,0.78)",
+    fontSize: theme.typography.size.xs,
+    color: theme.semanticColors.textMuted,
   },
   authCard: {
     borderRadius: theme.radius.xl,
-    padding: theme.spacing[5],
-    gap: theme.spacing[4],
+    padding: theme.spacing[4],
+    gap: theme.spacing[5],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
@@ -219,10 +255,16 @@ const styles = StyleSheet.create({
   header: {
     gap: theme.spacing[2],
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing[2],
+  },
   kicker: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.textSecondary,
+    color: theme.semanticColors.primary,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
@@ -237,6 +279,20 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
     color: theme.semanticColors.textSecondary,
+  },
+  secureLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: theme.spacing[2],
+    paddingVertical: 5,
+    borderRadius: theme.radius.pill,
+    backgroundColor: "#E8F4F1",
+  },
+  secureLabelText: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: 10,
+    color: theme.colors.teal[600],
   },
   modeSwitch: {
     flexDirection: "row",
@@ -265,7 +321,38 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textOnDark,
   },
   form: {
-    gap: theme.spacing[4],
+    gap: theme.spacing[3],
+  },
+  passwordGuide: {
+    gap: theme.spacing[2],
+    padding: theme.spacing[3],
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.stone[50],
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+  },
+  passwordGuideTitle: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    color: theme.semanticColors.textSecondary,
+  },
+  passwordRules: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing[2],
+  },
+  passwordRule: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  passwordRuleLabel: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.xs,
+    color: theme.semanticColors.textMuted,
+  },
+  passwordRuleLabelValid: {
+    color: theme.colors.verdant[600],
   },
   error: {
     fontFamily: theme.typography.fontFamily.bodyMedium,

@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
@@ -16,6 +17,7 @@ type AccountHomeScreenProps = {
   token: string;
   onCapabilityAdded: (user: UserSummary) => void;
   onOpenProfile: () => void;
+  onWorkspacePress: () => void;
 };
 
 export function AccountHomeScreen({
@@ -26,26 +28,27 @@ export function AccountHomeScreen({
   token,
   onCapabilityAdded,
   onOpenProfile,
+  onWorkspacePress,
 }: AccountHomeScreenProps) {
   return (
     <Screen>
       <TopBar
         unreadCount={marketplace.unreadCount}
         workspaceLabel="Account"
-        onWorkspacePress={onOpenProfile}
+        onWorkspacePress={onWorkspacePress}
       />
       {activeTab === "discover" || activeTab === "gigs" ? (
         <>
-          <View style={styles.hero}>
+          <LinearGradient colors={["#FFF2CF", "#FFE3D8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
             <View style={styles.heroIcon}>
               <MaterialCommunityIcons name="compass-outline" size={25} color={theme.semanticColors.textOnDark} />
             </View>
             <Text style={styles.eyebrow}>Personal account</Text>
-            <Text style={styles.title}>Explore first, then choose your workspace.</Text>
+            <Text style={styles.title}>Explore first. Choose your workspace when ready.</Text>
             <Text style={styles.body}>
-              Welcome, {currentUser.username}. Public opportunities and talent profiles are available now. Create a profile when you are ready to apply or hire.
+              Welcome, {currentUser.username}. Browse public opportunities and profiles, then create a workspace when you are ready.
             </Text>
-          </View>
+          </LinearGradient>
           <WorkspaceSetupPanel token={token} capabilities={capabilities} onCapabilityAdded={onCapabilityAdded} />
           <View style={styles.publicSection}>
             <Text style={styles.sectionTitle}>{activeTab === "gigs" ? "Public opportunities" : "Explore the marketplace"}</Text>
@@ -83,10 +86,12 @@ export function AccountHomeScreen({
 
 const styles = StyleSheet.create({
   hero: {
+    marginHorizontal: theme.spacing[1],
     gap: theme.spacing[2],
     padding: theme.spacing[5],
     borderRadius: theme.radius.xl,
-    backgroundColor: theme.colors.ink[900],
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
     ...theme.shadows.floating,
   },
   heroIcon: {
@@ -101,7 +106,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing[2],
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: theme.colors.gold[300],
+    color: theme.semanticColors.primary,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
@@ -109,13 +114,13 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.display,
     fontSize: theme.typography.size["2xl"],
     lineHeight: theme.typography.lineHeight["2xl"],
-    color: theme.semanticColors.textOnDark,
+    color: theme.semanticColors.textPrimary,
   },
   body: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
-    color: "rgba(255,255,255,0.76)",
+    color: theme.semanticColors.textSecondary,
   },
   publicSection: {
     gap: theme.spacing[2],

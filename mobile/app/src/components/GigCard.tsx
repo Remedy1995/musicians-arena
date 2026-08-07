@@ -96,6 +96,7 @@ export function GigCard({
 
 const styles = StyleSheet.create({
   card: {
+    marginHorizontal: theme.spacing[1],
     borderRadius: theme.radius.xl,
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
@@ -104,8 +105,8 @@ const styles = StyleSheet.create({
     ...theme.shadows.card,
   },
   cardContent: {
-    padding: theme.spacing[4],
-    gap: theme.spacing[3],
+    padding: theme.spacing[3],
+    gap: theme.spacing[2],
   },
   header: {
     flexDirection: "row",
@@ -115,16 +116,16 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
-    gap: theme.spacing[2],
+    gap: theme.spacing[1],
   },
   kickerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing[2],
+    gap: theme.spacing[1],
   },
   liveDot: {
-    width: 8,
-    height: 8,
+    width: 6,
+    height: 6,
     borderRadius: theme.radius.pill,
     backgroundColor: theme.colors.teal[500],
   },
@@ -137,12 +138,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: theme.typography.fontFamily.displayMedium,
-    fontSize: theme.typography.size.lg,
-    lineHeight: theme.typography.lineHeight.lg,
+    fontSize: theme.typography.size.md,
+    lineHeight: theme.typography.lineHeight.md,
     color: theme.semanticColors.textPrimary,
   },
   metaStack: {
-    gap: theme.spacing[1],
+    gap: 2,
   },
   metaLine: {
     fontFamily: theme.typography.fontFamily.body,
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
   },
   summaryRow: {
     flexDirection: "row",
-    gap: theme.spacing[3],
+    gap: theme.spacing[2],
     alignItems: "center",
     justifyContent: "space-between",
   },
@@ -166,13 +167,13 @@ const styles = StyleSheet.create({
   },
   budget: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.lg,
+    fontSize: theme.typography.size.md,
     color: theme.semanticColors.textPrimary,
   },
   applicantBadge: {
     borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: 6,
+    paddingHorizontal: theme.spacing[2],
+    paddingVertical: 5,
     backgroundColor: theme.colors.stone[100],
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
@@ -184,8 +185,8 @@ const styles = StyleSheet.create({
   },
   interestStatusBadge: {
     borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: 6,
+    paddingHorizontal: theme.spacing[2],
+    paddingVertical: 5,
     borderWidth: 1,
   },
   interestStatusBadgeLabel: {
@@ -195,12 +196,12 @@ const styles = StyleSheet.create({
   roles: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: theme.spacing[2],
+    gap: theme.spacing[1],
   },
   roleChip: {
     borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: 5,
+    paddingHorizontal: theme.spacing[2],
+    paddingVertical: 4,
     backgroundColor: "#F6F1E8",
     borderWidth: 1,
     borderColor: "#E4D8C8",
@@ -212,8 +213,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     fontFamily: theme.typography.fontFamily.body,
-    fontSize: theme.typography.size.sm,
-    lineHeight: theme.typography.lineHeight.sm,
+    fontSize: theme.typography.size.xs,
+    lineHeight: theme.typography.lineHeight.xs,
     color: theme.semanticColors.textMuted,
   },
 });

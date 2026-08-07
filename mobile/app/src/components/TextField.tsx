@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
 import { theme } from "../theme/theme";
@@ -13,6 +13,7 @@ type TextFieldProps = {
   keyboardType?: "default" | "email-address" | "phone-pad" | "url";
   secureTextEntry?: boolean;
   editable?: boolean;
+  rightAccessory?: ReactNode;
 };
 
 export function TextField({
@@ -25,31 +26,36 @@ export function TextField({
   keyboardType = "default",
   secureTextEntry = false,
   editable = true,
+  rightAccessory,
 }: TextFieldProps) {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
     <View style={styles.fieldWrap}>
       <Text style={[styles.fieldLabel, isFocused ? styles.fieldLabelFocused : undefined]}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        secureTextEntry={secureTextEntry}
-        editable={editable}
-        placeholder={placeholder || label}
-        placeholderTextColor={theme.semanticColors.textMuted}
-        style={[
-          styles.input,
-          multiline ? styles.inputMultiline : undefined,
-          isFocused ? styles.inputFocused : undefined,
-          !editable ? styles.inputDisabled : undefined,
-        ]}
-        multiline={multiline}
-        autoCapitalize="none"
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-      />
+      <View style={styles.inputWrap}>
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          keyboardType={keyboardType}
+          secureTextEntry={secureTextEntry}
+          editable={editable}
+          placeholder={placeholder || label}
+          placeholderTextColor={theme.semanticColors.textMuted}
+          style={[
+            styles.input,
+            rightAccessory ? styles.inputWithAccessory : undefined,
+            multiline ? styles.inputMultiline : undefined,
+            isFocused ? styles.inputFocused : undefined,
+            !editable ? styles.inputDisabled : undefined,
+          ]}
+          multiline={multiline}
+          autoCapitalize="none"
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+        />
+        {rightAccessory ? <View style={styles.accessory}>{rightAccessory}</View> : null}
+      </View>
       {helperText ? <Text style={styles.helperText}>{helperText}</Text> : null}
     </View>
   );
@@ -67,6 +73,9 @@ const styles = StyleSheet.create({
   fieldLabelFocused: {
     color: theme.semanticColors.primary,
   },
+  inputWrap: {
+    position: "relative",
+  },
   input: {
     minHeight: theme.layout.inputHeight,
     borderRadius: theme.radius.lg,
@@ -77,6 +86,9 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.md,
     color: theme.semanticColors.textPrimary,
+  },
+  inputWithAccessory: {
+    paddingRight: 54,
   },
   inputFocused: {
     borderColor: theme.semanticColors.primary,
@@ -90,6 +102,14 @@ const styles = StyleSheet.create({
   inputDisabled: {
     backgroundColor: theme.colors.stone[50],
     color: theme.semanticColors.textSecondary,
+  },
+  accessory: {
+    position: "absolute",
+    top: 0,
+    right: theme.spacing[2],
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
   },
   helperText: {
     fontFamily: theme.typography.fontFamily.body,

@@ -1248,7 +1248,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: theme.spacing[6],
   },
   modalTitle: {
     fontFamily: theme.typography.fontFamily.displayMedium,
