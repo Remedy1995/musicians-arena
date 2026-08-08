@@ -3,7 +3,7 @@ from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
 from apps.accounts.models import User, UserCapability
-from apps.profiles.models import ClientProfile, TalentProfile, UserProfile
+from apps.profiles.models import ClientProfile, TalentCategory, TalentProfile, TalentSkill, UserProfile
 
 
 class UserSummarySerializer(serializers.ModelSerializer):
@@ -101,11 +101,43 @@ class LoginSerializer(serializers.Serializer):
 
 class AddCapabilitySerializer(serializers.Serializer):
     capability = serializers.ChoiceField(choices=UserCapability.Capability.values)
+    display_name = serializers.CharField(required=False, allow_blank=False, max_length=150)
+    organization_name = serializers.CharField(required=False, allow_blank=False, max_length=255)
+    organization_location = serializers.CharField(required=False, allow_blank=False, max_length=255)
+    organization_description = serializers.CharField(required=False, allow_blank=False)
+    skill_category_ids = serializers.PrimaryKeyRelatedField(
+        queryset=TalentCategory.objects.all(),
+        many=True,
+        required=False,
+    )
 
     def validate_capability(self, value):
         if UserCapability.objects.filter(user=self.context["request"].user, capability=value).exists():
             raise serializers.ValidationError("This capability is already enabled on your account.")
         return value
+
+    def validate(self, attrs):
+        capability = attrs["capability"]
+        if capability == UserCapability.Capability.ORGANIZER:
+            required_fields = {
+                "organization_name": "Organization name is required.",
+                "organization_location": "Organization location is required.",
+                "organization_description": "Organization description is required.",
+            }
+        else:
+            required_fields = {
+                "display_name": "Display name is required.",
+                "skill_category_ids": "Select at least one talent category.",
+            }
+
+        errors = {}
+        for field, message in required_fields.items():
+            value = attrs.get(field)
+            if not value:
+                errors[field] = message
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs
 
 
 class AuthResponseSerializer(serializers.Serializer):

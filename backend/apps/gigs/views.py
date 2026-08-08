@@ -14,6 +14,8 @@ from apps.gigs.serializers import (
     GigDetailSerializer,
     GigInterestCreateSerializer,
     GigInterestConversionSerializer,
+    GigInvitationCreateSerializer,
+    GigInvitationResponseSerializer,
     GigInterestSerializer,
     GigInterestStatusSerializer,
     GigListSerializer,
@@ -22,6 +24,8 @@ from apps.messaging.models import Conversation
 from apps.messaging.serializers import ConversationSerializer
 from apps.messaging.services import create_system_message, get_or_create_conversation
 from apps.notifications.services import (
+    notify_gig_invitation_response,
+    notify_gig_invitation_sent,
     notify_gig_interest_converted_to_booking,
     notify_gig_interest_status_changed,
     notify_gig_interest_submitted,
@@ -195,6 +199,82 @@ class GigInterestStatusUpdateView(ScopedWriteThrottleMixin, generics.UpdateAPIVi
             {
                 "interest": GigInterestSerializer(interest, context={"request": request}).data,
                 "conversation": conversation_payload,
+            }
+        )
+
+
+@extend_schema(tags=["Gigs"], summary="Organizer invites a talent to an opportunity gig")
+class GigInvitationCreateView(ScopedWriteThrottleMixin, generics.CreateAPIView):
+    serializer_class = GigInvitationCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "gig_management_write"
+
+    def create(self, request, *args, **kwargs):
+        if not request.user.has_capability("organizer"):
+            raise PermissionDenied("Organizer capability is required to invite talent.")
+        gig = generics.get_object_or_404(
+            Gig.objects.select_related("organizer").prefetch_related("required_categories__category"),
+            id=self.kwargs["gig_id"],
+            organizer=request.user,
+            status=Gig.Status.OPEN,
+        )
+        serializer = self.get_serializer(data=request.data, context={"request": request, "gig": gig})
+        serializer.is_valid(raise_exception=True)
+        interest = serializer.save()
+        notify_gig_invitation_sent(interest=interest)
+        conversation, created = get_or_create_conversation(
+            initiated_by=request.user,
+            participant=interest.talent,
+            gig=gig,
+            conversation_type=Conversation.ConversationType.GIG,
+        )
+        if created:
+            create_system_message(
+                conversation=conversation,
+                body=f"You have been invited to the opportunity gig: {gig.title}.",
+            )
+        return Response(
+            {
+                "interest": GigInterestSerializer(interest, context={"request": request}).data,
+                "conversation": ConversationSerializer(conversation, context={"request": request}).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+@extend_schema(tags=["Gigs"], summary="Talent responds to an opportunity invitation")
+class GigInvitationResponseView(ScopedWriteThrottleMixin, generics.UpdateAPIView):
+    serializer_class = GigInvitationResponseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = GigInterest.objects.select_related("gig", "talent", "talent__profile")
+    throttle_scope = "gig_interest_write"
+
+    def update(self, request, *args, **kwargs):
+        interest = self.get_object()
+        if request.user.id != interest.talent_id:
+            raise PermissionDenied("Only the invited talent can respond to this invitation.")
+        if interest.status != GigInterest.Status.INVITED or interest.initiated_by != GigInterest.InitiatedBy.ORGANIZER:
+            raise ValidationError("This invitation is no longer awaiting a response.")
+        serializer = self.get_serializer(interest, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        interest.status = serializer.validated_data["status"]
+        interest.save(update_fields=["status", "updated_at"])
+        notify_gig_invitation_response(interest=interest)
+        conversation, created = get_or_create_conversation(
+            initiated_by=interest.gig.organizer,
+            participant=interest.talent,
+            gig=interest.gig,
+            conversation_type=Conversation.ConversationType.GIG,
+        )
+        if created:
+            create_system_message(
+                conversation=conversation,
+                body=f"Your invitation response for '{interest.gig.title}' is ready for review.",
+            )
+        return Response(
+            {
+                "interest": GigInterestSerializer(interest, context={"request": request}).data,
+                "conversation": ConversationSerializer(conversation, context={"request": request}).data,
             }
         )
 

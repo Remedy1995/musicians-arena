@@ -2,6 +2,8 @@ class NotificationType:
     GIG_INTEREST_SUBMITTED = "gig_interest_submitted"
     GIG_INTEREST_SHORTLISTED = "gig_interest_shortlisted"
     GIG_INTEREST_INVITED = "gig_interest_invited"
+    GIG_INVITATION_ACCEPTED = "gig_invitation_accepted"
+    GIG_INVITATION_DECLINED = "gig_invitation_declined"
     GIG_INTEREST_DECLINED = "gig_interest_declined"
     GIG_INTEREST_CONVERTED_TO_BOOKING = "gig_interest_converted_to_booking"
     BOOKING_CREATED = "booking_created"

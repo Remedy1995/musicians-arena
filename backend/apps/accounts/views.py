@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import UserCapability
 from apps.accounts.serializers import AddCapabilitySerializer, AuthResponseSerializer, LoginSerializer, RegisterSerializer, UserSummarySerializer
-from apps.profiles.models import ClientProfile, TalentProfile
+from apps.profiles.models import ClientProfile, TalentProfile, TalentSkill, UserProfile
 from apps.common.throttling import ScopedWriteThrottleMixin
 
 
@@ -43,9 +43,31 @@ class AddCapabilityView(ScopedWriteThrottleMixin, APIView):
         capability = serializer.validated_data["capability"]
         UserCapability.objects.create(user=request.user, capability=capability)
         if capability == UserCapability.Capability.TALENT:
-            TalentProfile.objects.get_or_create(user=request.user)
+            display_name = serializer.validated_data["display_name"]
+            categories = serializer.validated_data["skill_category_ids"]
+            profile, _ = UserProfile.objects.get_or_create(user=request.user, defaults={"display_name": display_name})
+            if profile.display_name != display_name:
+                profile.display_name = display_name
+                profile.save(update_fields=["display_name", "updated_at"])
+            talent_profile, _ = TalentProfile.objects.get_or_create(
+                user=request.user,
+                defaults={"primary_category": categories[0]},
+            )
+            talent_profile.primary_category = categories[0]
+            talent_profile.save(update_fields=["primary_category", "updated_at"])
+            TalentSkill.objects.bulk_create(
+                [TalentSkill(talent_profile=talent_profile, category=category) for category in categories],
+                ignore_conflicts=True,
+            )
         else:
-            ClientProfile.objects.get_or_create(user=request.user)
+            ClientProfile.objects.get_or_create(
+                user=request.user,
+                defaults={
+                    "organization_name": serializer.validated_data["organization_name"],
+                    "location": serializer.validated_data["organization_location"],
+                    "description": serializer.validated_data["organization_description"],
+                },
+            )
         return Response(UserSummarySerializer(request.user).data, status=status.HTTP_201_CREATED)
 
 

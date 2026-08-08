@@ -69,6 +69,8 @@ class ClientProfile(TimeStampedUUIDModel):
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="client_profile")
     organization_name = models.CharField(max_length=255, blank=True)
+    location = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
     client_type = models.CharField(max_length=32, choices=ClientType.choices, default=ClientType.INDIVIDUAL)
 
     def __str__(self):

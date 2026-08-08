@@ -4,26 +4,30 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
-import { Capability, UserSummary } from "../services/api/types";
+import { Capability, TalentCategory, UserSummary } from "../services/api/types";
+import { CapabilitySetupModal, CapabilitySetupPayload } from "../components/CapabilitySetupModal";
 import { Screen } from "../components/Screen";
 import { theme } from "../theme/theme";
 
 type WorkspaceSetupProps = {
   token: string;
   capabilities: Capability[];
+  categories?: TalentCategory[];
   onCapabilityAdded: (user: UserSummary) => void;
 };
 
-export function WorkspaceSetupPanel({ token, capabilities, onCapabilityAdded }: WorkspaceSetupProps) {
+export function WorkspaceSetupPanel({ token, capabilities, categories = [], onCapabilityAdded }: WorkspaceSetupProps) {
   const [loadingCapability, setLoadingCapability] = useState<Capability | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [setupCapability, setSetupCapability] = useState<Capability | null>(null);
 
-  async function createProfile(capability: Capability) {
+  async function createProfile(capability: Capability, payload: CapabilitySetupPayload) {
     setLoadingCapability(capability);
     setError(null);
     try {
-      const user = await api.addCapability(token, capability);
+      const user = await api.addCapability(token, capability, payload);
       onCapabilityAdded(user);
+      setSetupCapability(null);
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : caught instanceof Error ? caught.message : "Unable to create this profile.");
     } finally {
@@ -50,7 +54,7 @@ export function WorkspaceSetupPanel({ token, capabilities, onCapabilityAdded }: 
           description="Show your work, discover opportunities, and respond to bookings."
           exists={capabilities.includes("talent")}
           loading={loadingCapability === "talent"}
-          onPress={() => void createProfile("talent")}
+          onPress={() => setSetupCapability("talent")}
         />
         <WorkspaceOption
           capability="organizer"
@@ -58,10 +62,26 @@ export function WorkspaceSetupPanel({ token, capabilities, onCapabilityAdded }: 
           description="Post opportunity gigs, find talent, and manage event bookings."
           exists={capabilities.includes("organizer")}
           loading={loadingCapability === "organizer"}
-          onPress={() => void createProfile("organizer")}
+          onPress={() => setSetupCapability("organizer")}
         />
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      <CapabilitySetupModal
+        visible={Boolean(setupCapability)}
+        capability={setupCapability}
+        categories={categories}
+        submitting={Boolean(loadingCapability)}
+        error={error}
+        onClose={() => {
+          if (!loadingCapability) {
+            setSetupCapability(null);
+            setError(null);
+          }
+        }}
+        onSubmit={(payload) => {
+          if (setupCapability) void createProfile(setupCapability, payload);
+        }}
+      />
     </View>
   );
 }
@@ -101,7 +121,7 @@ function WorkspaceOption({
   );
 }
 
-export function WorkspaceSetupScreen({ token, capabilities, onCapabilityAdded }: WorkspaceSetupProps) {
+export function WorkspaceSetupScreen({ token, capabilities, categories = [], onCapabilityAdded }: WorkspaceSetupProps) {
   return (
     <Screen>
       <View style={styles.screenHeader}>
@@ -111,7 +131,7 @@ export function WorkspaceSetupScreen({ token, capabilities, onCapabilityAdded }:
         <Text style={styles.screenHeaderTitle}>Set up your account</Text>
       </View>
       <Text style={styles.screenLead}>You can explore first, then create the workspace that matches what you want to do.</Text>
-      <WorkspaceSetupPanel token={token} capabilities={capabilities} onCapabilityAdded={onCapabilityAdded} />
+      <WorkspaceSetupPanel token={token} capabilities={capabilities} categories={categories} onCapabilityAdded={onCapabilityAdded} />
       <View style={styles.exploreCard}>
         <MaterialCommunityIcons name="compass-outline" size={22} color={theme.semanticColors.primary} />
         <View style={styles.exploreCopy}>

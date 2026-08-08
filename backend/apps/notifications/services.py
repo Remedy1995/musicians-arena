@@ -55,6 +55,43 @@ def notify_gig_interest_status_changed(*, interest):
         )
 
 
+def notify_gig_invitation_sent(*, interest):
+    dispatch_notification(
+        user_id=interest.talent_id,
+        notification_type=NotificationType.GIG_INTEREST_INVITED,
+        title="New opportunity invitation",
+        body=f"{interest.gig.organizer.profile.display_name} invited you to '{interest.gig.title}'.",
+        payload={
+            "gig_id": str(interest.gig_id),
+            "interest_id": str(interest.id),
+            "status": interest.status,
+        },
+    )
+
+
+def notify_gig_invitation_response(*, interest):
+    accepted = interest.status == interest.Status.INVITE_ACCEPTED
+    dispatch_notification(
+        user_id=interest.gig.organizer_id,
+        notification_type=(
+            NotificationType.GIG_INVITATION_ACCEPTED
+            if accepted
+            else NotificationType.GIG_INVITATION_DECLINED
+        ),
+        title="Invitation accepted" if accepted else "Invitation declined",
+        body=(
+            f"{interest.talent.profile.display_name} accepted your invitation to '{interest.gig.title}'."
+            if accepted
+            else f"{interest.talent.profile.display_name} declined your invitation to '{interest.gig.title}'."
+        ),
+        payload={
+            "gig_id": str(interest.gig_id),
+            "interest_id": str(interest.id),
+            "status": interest.status,
+        },
+    )
+
+
 def notify_gig_interest_converted_to_booking(*, interest, booking):
     dispatch_notification(
         user_id=interest.talent_id,

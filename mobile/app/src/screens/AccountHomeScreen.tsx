@@ -49,7 +49,7 @@ export function AccountHomeScreen({
               Welcome, {currentUser.username}. Browse public opportunities and profiles, then create a workspace when you are ready.
             </Text>
           </LinearGradient>
-          <WorkspaceSetupPanel token={token} capabilities={capabilities} onCapabilityAdded={onCapabilityAdded} />
+          <WorkspaceSetupPanel token={token} capabilities={capabilities} categories={marketplace.categories} onCapabilityAdded={onCapabilityAdded} />
           <View style={styles.publicSection}>
             <Text style={styles.sectionTitle}>{activeTab === "gigs" ? "Public opportunities" : "Explore the marketplace"}</Text>
             <Text style={styles.sectionBody}>

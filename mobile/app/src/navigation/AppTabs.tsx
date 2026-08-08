@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 
 import { UserRole } from "../AppShell";
 import { WorkspaceSwitcherModal } from "../components/WorkspaceSwitcherModal";
+import { CapabilitySetupModal, CapabilitySetupPayload } from "../components/CapabilitySetupModal";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
 import { api } from "../services/api";
 import { UserSummary } from "../services/api/types";
@@ -35,6 +36,7 @@ export function AppTabs({ role, capabilities, currentUser, token, onRoleChange, 
   const [workspaceSwitcherOpen, setWorkspaceSwitcherOpen] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [creatingCapability, setCreatingCapability] = useState<"talent" | "organizer" | null>(null);
+  const [capabilitySetup, setCapabilitySetup] = useState<"talent" | "organizer" | null>(null);
   const marketplace = useMarketplaceData(token);
   const bookingAttentionCount = marketplace.bookings.filter((booking) =>
     role === "talent" ? ["pending", "countered"].includes(booking.status) : role === "client" ? ["awaiting_deposit"].includes(booking.status) : false,
@@ -55,12 +57,13 @@ export function AppTabs({ role, capabilities, currentUser, token, onRoleChange, 
     void marketplace.refresh();
   }
 
-  async function handleCreateCapability(capability: "talent" | "organizer") {
+  async function handleCreateCapability(capability: "talent" | "organizer", payload: CapabilitySetupPayload) {
     setCreatingCapability(capability);
     setWorkspaceError(null);
     try {
-      const nextUser = await api.addCapability(token, capability);
+      const nextUser = await api.addCapability(token, capability, payload);
       handleCapabilityAdded(nextUser);
+      setCapabilitySetup(null);
       setWorkspaceSwitcherOpen(false);
     } catch (caught) {
       setWorkspaceError(caught instanceof Error ? caught.message : "Unable to create this workspace.");
@@ -144,7 +147,25 @@ export function AppTabs({ role, capabilities, currentUser, token, onRoleChange, 
           setWorkspaceSwitcherOpen(false);
         }}
         onCreateCapability={(capability) => {
-          void handleCreateCapability(capability);
+          setWorkspaceError(null);
+          setWorkspaceSwitcherOpen(false);
+          setCapabilitySetup(capability);
+        }}
+      />
+      <CapabilitySetupModal
+        visible={Boolean(capabilitySetup)}
+        capability={capabilitySetup}
+        categories={marketplace.categories}
+        submitting={Boolean(creatingCapability)}
+        error={workspaceError}
+        onClose={() => {
+          if (!creatingCapability) {
+            setCapabilitySetup(null);
+            setWorkspaceError(null);
+          }
+        }}
+        onSubmit={(payload) => {
+          if (capabilitySetup) void handleCreateCapability(capabilitySetup, payload);
         }}
       />
     </View>

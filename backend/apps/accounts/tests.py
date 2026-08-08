@@ -1,8 +1,9 @@
 from django.test import TestCase
+from rest_framework.test import APIClient
 
 from apps.accounts.models import User, UserCapability
 from apps.accounts.serializers import RegisterSerializer
-from apps.profiles.models import ClientProfile, TalentProfile
+from apps.profiles.models import ClientProfile, TalentCategory, TalentProfile, TalentSkill
 
 
 class RegistrationCapabilityTests(TestCase):
@@ -63,3 +64,57 @@ class RegistrationCapabilityTests(TestCase):
         self.assertEqual(user.capability_values(), [])
         self.assertFalse(TalentProfile.objects.filter(user=user).exists())
         self.assertFalse(ClientProfile.objects.filter(user=user).exists())
+
+
+class CapabilityDueDiligenceTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="multi_workspace_user",
+            email="workspace@example.com",
+            phone="233200000100",
+            password="Password123",
+        )
+        self.keyboardist = TalentCategory.objects.create(name="Keyboardist", slug="keyboardist")
+        self.bassist = TalentCategory.objects.create(name="Bassist", slug="bassist")
+
+    def test_organizer_setup_persists_organization_due_diligence(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.post(
+            "/api/v1/auth/capabilities/",
+            {
+                "capability": "organizer",
+                "organization_name": "Grace Chapel",
+                "organization_location": "East Legon, Accra",
+                "organization_description": "A church that hosts worship services and community events.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        profile = ClientProfile.objects.get(user=self.user)
+        self.assertEqual(profile.organization_name, "Grace Chapel")
+        self.assertEqual(profile.location, "East Legon, Accra")
+        self.assertIn("community events", profile.description)
+
+    def test_talent_setup_persists_display_name_and_all_categories(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.post(
+            "/api/v1/auth/capabilities/",
+            {
+                "capability": "talent",
+                "display_name": "Ama Keys",
+                "skill_category_ids": [str(self.keyboardist.id), str(self.bassist.id)],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.profile.display_name, "Ama Keys")
+        self.assertEqual(
+            set(TalentSkill.objects.filter(talent_profile=self.user.talent_profile).values_list("category_id", flat=True)),
+            {self.keyboardist.id, self.bassist.id},
+        )

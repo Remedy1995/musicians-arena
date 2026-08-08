@@ -55,14 +55,24 @@ export const api = {
   login: (payload: { username: string; password: string }) =>
     apiRequest<AuthResponse>("/auth/login/", { method: "POST", body: payload }),
 
-  addCapability: (token: string, capability: Capability) =>
-    apiRequest<UserSummary>("/auth/capabilities/", { method: "POST", token, body: { capability } }),
+  addCapability: (
+    token: string,
+    capability: Capability,
+    payload: {
+      display_name?: string;
+      organization_name?: string;
+      organization_location?: string;
+      organization_description?: string;
+      skill_category_ids?: string[];
+    },
+  ) => apiRequest<UserSummary>("/auth/capabilities/", { method: "POST", token, body: { capability, ...payload } }),
 
   me: (token: string) => apiRequest<MeResponse>("/profiles/me/", { token }),
   updateMe: (
     token: string,
     payload: Partial<Pick<MeResponse, "username" | "email" | "phone">> & {
       profile?: Partial<MeResponse["profile"]>;
+      organizer_profile?: Partial<NonNullable<MeResponse["organizer_profile"]>>;
     },
   ) => apiRequest<MeResponse>("/profiles/me/", { method: "PATCH", token, body: payload }),
   uploadProfilePhoto: (token: string, payload: FormData) =>
@@ -159,6 +169,10 @@ export const api = {
     apiRequest(`/gigs/${gigId}/interests/`, { method: "POST", token, body: payload }),
   updateGigInterestStatus: (token: string, interestId: string, payload: { status: "shortlisted" | "invited" | "declined" }) =>
     apiRequest(`/gigs/interests/${interestId}/`, { method: "PATCH", token, body: payload }),
+  inviteTalentToGig: (token: string, gigId: string, payload: { talent_id: string; note?: string }) =>
+    apiRequest(`/gigs/${gigId}/invitations/`, { method: "POST", token, body: payload }),
+  respondToGigInvitation: (token: string, interestId: string, status: "invite_accepted" | "declined") =>
+    apiRequest(`/gigs/interests/${interestId}/response/`, { method: "PATCH", token, body: { status } }),
   convertGigInterestToBooking: (
     token: string,
     interestId: string,

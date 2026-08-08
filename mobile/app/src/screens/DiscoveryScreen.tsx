@@ -5,7 +5,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 
 import { UserRole } from "../AppShell";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
-import { TalentDetailItem, TalentListItem, UserSummary } from "../services/api/types";
+import { GigListItem, TalentDetailItem, TalentListItem, UserSummary } from "../services/api/types";
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
 import { GigCard } from "../components/GigCard";
@@ -14,6 +14,7 @@ import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { TalentCard } from "../components/TalentCard";
 import { ProfileAvatar } from "../components/ProfileAvatar";
+import { TextField } from "../components/TextField";
 import { TopBar } from "../components/TopBar";
 import { ModalSurface } from "../components/ModalSurface";
 import { theme } from "../theme/theme";
@@ -28,7 +29,7 @@ type DiscoveryScreenProps = {
   marketplace: ReturnType<typeof useMarketplaceData>;
 };
 
-export function DiscoveryScreen({ role, token, onNavigateTab, onWorkspacePress, onOpenGig, marketplace }: DiscoveryScreenProps) {
+export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWorkspacePress, onOpenGig, marketplace }: DiscoveryScreenProps) {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -99,9 +100,9 @@ export function DiscoveryScreen({ role, token, onNavigateTab, onWorkspacePress, 
       ? {
           heroColors: ["#FFF0D0", "#FCE2D8"] as const,
           eyebrow: "Organizer workspace",
-          heroTitle: "Build the right team.",
-          heroBody: "Post opportunity gigs, compare talent, and move the right match into a booking.",
-          searchTitle: "Who do you want to hire?",
+          heroTitle: "Build your event team.",
+          heroBody: "Post an opportunity, review talent, and move the right fit into a booking.",
+          searchTitle: "Find talent for your event",
           searchPlaceholder: "Search keyboardists, worship leaders, MCs, brass sections...",
           featuredTitle: "Recommended talents",
           gigsTitle: "",
@@ -115,9 +116,9 @@ export function DiscoveryScreen({ role, token, onNavigateTab, onWorkspacePress, 
       : {
           heroColors: ["#DDF3EF", "#EAF0FF"] as const,
           eyebrow: "Talent workspace",
-          heroTitle: "Find your next opportunity.",
-          heroBody: "Browse matching gigs, show your work, and respond when organizers are ready.",
-          searchTitle: "Which opportunity fits you?",
+          heroTitle: "Find your next live opportunity.",
+          heroBody: "Browse matching gigs, show your work, and respond when the fit feels right.",
+          searchTitle: "Find your next opportunity",
           searchPlaceholder: "Search gigs, cities, worship events, and live opportunities...",
           featuredTitle: "Talent benchmark",
           gigsTitle: "Open gigs near you",
@@ -133,8 +134,13 @@ export function DiscoveryScreen({ role, token, onNavigateTab, onWorkspacePress, 
     return (
       <TalentDetailScreen
         talent={selectedTalent}
+        role={role}
+        currentUser={currentUser}
+        token={token}
+        availableGigs={marketplace.gigs.filter((gig) => gig.organizer_id === currentUser.id && gig.status === "open")}
         loading={talentDetailLoading}
         error={talentDetailError}
+        onInvitationSent={() => void marketplace.refresh()}
         onBack={() => {
           setSelectedTalent(null);
           setSelectedTalentSummary(null);
@@ -348,17 +354,33 @@ function formatRate(min?: string | null, max?: string | null) {
 
 function TalentDetailScreen({
   talent,
+  role,
+  currentUser,
+  token,
+  availableGigs,
   loading,
   error,
   onBack,
   onRetry,
+  onInvitationSent,
 }: {
   talent: TalentDetailItem | null;
+  role: UserRole;
+  currentUser: UserSummary;
+  token: string;
+  availableGigs: GigListItem[];
   loading: boolean;
   error: string | null;
   onBack: () => void;
   onRetry: () => void;
+  onInvitationSent: () => void;
 }) {
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [selectedGigId, setSelectedGigId] = useState<string | null>(null);
+  const [inviteNote, setInviteNote] = useState("");
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+
   return (
     <Screen>
       <View style={styles.detailHeader}>
@@ -411,6 +433,25 @@ function TalentDetailScreen({
             </View>
           </LinearGradient>
 
+          {role === "client" ? (
+            <View style={styles.detailActionCard}>
+              <View style={styles.detailActionCopy}>
+                <Text style={styles.detailSectionTitle}>Interested in working together?</Text>
+                <Text style={styles.detailMeta}>Choose one of your open opportunity gigs and send a focused invitation.</Text>
+              </View>
+              <PrimaryButton
+                label="Invite to opportunity"
+                onPress={() => {
+                  setInviteError(null);
+                  setSelectedGigId(availableGigs[0]?.id ?? null);
+                  setInviteOpen(true);
+                }}
+                disabled={availableGigs.length === 0}
+              />
+              {availableGigs.length === 0 ? <Text style={styles.detailMeta}>Create an open opportunity gig before inviting this talent.</Text> : null}
+            </View>
+          ) : null}
+
           <View style={styles.detailSectionCard}>
             <Text style={styles.detailSectionTitle}>About this talent</Text>
             <Text style={styles.detailBody}>{talent.profile.bio || talent.bio || "No bio has been added yet."}</Text>
@@ -438,6 +479,89 @@ function TalentDetailScreen({
           </View>
         </ScrollView>
       )}
+
+      <Modal animationType="slide" visible={inviteOpen} onRequestClose={() => setInviteOpen(false)}>
+        <ModalSurface style={styles.modalScreen}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>Invite to opportunity</Text>
+              <Text style={styles.modalSubtitle}>Select the gig you want this talent to consider.</Text>
+            </View>
+            <Pressable onPress={() => setInviteOpen(false)}>
+              <Text style={styles.modalClose}>Close</Text>
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.inviteModalContent} keyboardShouldPersistTaps="handled">
+            <View style={styles.inviteTalentSummary}>
+              <ProfileAvatar
+                label={talent?.display_name || talent?.stage_name || talent?.username || "Talent"}
+                imageUri={talent?.profile_image_url}
+                size={52}
+                borderRadius={26}
+              />
+              <View style={styles.inviteTalentCopy}>
+                <Text style={styles.inviteTalentName}>{talent?.display_name || talent?.stage_name || talent?.username}</Text>
+                <Text style={styles.detailMeta}>The talent will receive this invitation in their gig responses.</Text>
+              </View>
+            </View>
+            <Text style={styles.inviteLabel}>Open opportunity gigs</Text>
+            <View style={styles.inviteGigList}>
+              {availableGigs.map((gig) => {
+                const selected = selectedGigId === gig.id;
+                return (
+                  <Pressable
+                    key={gig.id}
+                    onPress={() => setSelectedGigId(gig.id)}
+                    style={[styles.inviteGigCard, selected ? styles.inviteGigCardActive : undefined]}
+                  >
+                    <View style={styles.inviteGigCopy}>
+                      <Text style={styles.inviteGigTitle}>{gig.title}</Text>
+                      <Text style={styles.inviteGigMeta}>{gig.event_date} • {[gig.city, gig.region].filter(Boolean).join(", ")}</Text>
+                    </View>
+                    <MaterialCommunityIcons
+                      name={selected ? "check-circle" : "circle-outline"}
+                      size={22}
+                      color={selected ? theme.colors.teal[600] : theme.semanticColors.textMuted}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+            <TextField
+              label="Message (optional)"
+              value={inviteNote}
+              onChangeText={setInviteNote}
+              placeholder="Tell the talent why you think they fit this opportunity."
+              multiline
+            />
+            {inviteError ? <Text style={styles.errorText}>{inviteError}</Text> : null}
+            <PrimaryButton
+              label={inviteSubmitting ? "Sending invitation..." : "Send invitation"}
+              disabled={inviteSubmitting || !selectedGigId || !talent}
+              onPress={() => {
+                if (!selectedGigId || !talent) return;
+                void (async () => {
+                  setInviteSubmitting(true);
+                  setInviteError(null);
+                  try {
+                    await api.inviteTalentToGig(token, selectedGigId, {
+                      talent_id: talent.user_id,
+                      note: inviteNote.trim() || undefined,
+                    });
+                    onInvitationSent();
+                    setInviteOpen(false);
+                    setInviteNote("");
+                  } catch (caught) {
+                    setInviteError(caught instanceof ApiError ? caught.message : caught instanceof Error ? caught.message : "Unable to send this invitation.");
+                  } finally {
+                    setInviteSubmitting(false);
+                  }
+                })();
+              }}
+            />
+          </ScrollView>
+        </ModalSurface>
+      </Modal>
     </Screen>
   );
 }
@@ -555,6 +679,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
   },
+  detailActionCard: {
+    gap: theme.spacing[3],
+    padding: theme.spacing[4],
+    borderRadius: theme.radius.xl,
+    backgroundColor: "#FFF8E8",
+    borderWidth: 1,
+    borderColor: theme.colors.gold[300],
+  },
+  detailActionCopy: {
+    gap: theme.spacing[2],
+  },
   detailSectionTitle: {
     fontFamily: theme.typography.fontFamily.displayMedium,
     fontSize: theme.typography.size.lg,
@@ -621,7 +756,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderRadius: theme.radius.xl,
     padding: theme.spacing[4],
-    gap: theme.spacing[2],
+    gap: theme.spacing[3],
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.72)",
     ...theme.shadows.floating,
@@ -648,7 +783,7 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textPrimary,
   },
   heroBody: {
-    maxWidth: 320,
+    maxWidth: 300,
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
@@ -682,7 +817,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.xl,
     backgroundColor: theme.semanticColors.surface,
     padding: theme.spacing[4],
-    gap: theme.spacing[3],
+    gap: theme.spacing[4],
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
     ...theme.shadows.card,
@@ -746,7 +881,7 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textSecondary,
   },
   section: {
-    gap: theme.spacing[3],
+    gap: theme.spacing[4],
   },
   horizontalList: {
     gap: theme.spacing[3],
@@ -759,6 +894,65 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bodyMedium,
     fontSize: theme.typography.size.sm,
     color: theme.semanticColors.danger,
+  },
+  inviteModalContent: {
+    gap: theme.spacing[4],
+    paddingBottom: theme.spacing[8],
+  },
+  inviteTalentSummary: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[3],
+    padding: theme.spacing[4],
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.semanticColors.surface,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+  },
+  inviteTalentCopy: {
+    flex: 1,
+    gap: theme.spacing[1],
+  },
+  inviteTalentName: {
+    fontFamily: theme.typography.fontFamily.displayMedium,
+    fontSize: theme.typography.size.lg,
+    color: theme.semanticColors.textPrimary,
+  },
+  inviteLabel: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.sm,
+    color: theme.semanticColors.textSecondary,
+  },
+  inviteGigList: {
+    gap: theme.spacing[2],
+  },
+  inviteGigCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[3],
+    padding: theme.spacing[4],
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.semanticColors.surface,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+  },
+  inviteGigCardActive: {
+    backgroundColor: "#EAF7F3",
+    borderColor: theme.colors.teal[400],
+  },
+  inviteGigCopy: {
+    flex: 1,
+    gap: theme.spacing[1],
+  },
+  inviteGigTitle: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.md,
+    color: theme.semanticColors.textPrimary,
+  },
+  inviteGigMeta: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.xs,
+    color: theme.semanticColors.textSecondary,
   },
   modalScreen: {
     flex: 1,

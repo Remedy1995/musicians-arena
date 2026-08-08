@@ -46,23 +46,19 @@ export function BookingsScreen({
   type ClientTabOption = {
     key: "pending" | "active" | "countered" | "awaiting_deposit" | "confirmed" | "closed";
     label: string;
-    shortLabel?: string;
   };
   const clientTabOptions = useMemo(
     (): ClientTabOption[] => [
       { key: "pending", label: "Requests" },
       { key: "active", label: "All active" },
-      { key: "countered", label: "Counteroffers", shortLabel: "Counters" },
+      { key: "countered", label: "Counteroffers" },
       { key: "awaiting_deposit", label: "Awaiting deposit" },
       { key: "confirmed", label: "Confirmed" },
       { key: "closed", label: "Closed" },
     ],
     [],
   );
-  const primaryClientTabOptions = useMemo(() => clientTabOptions.slice(0, 2), [clientTabOptions]);
-  const overflowClientTabOptions = useMemo(() => clientTabOptions.slice(2), [clientTabOptions]);
   const [clientStatusTab, setClientStatusTab] = useState<(typeof clientTabOptions)[number]["key"]>("active");
-  const [moreStatusOpen, setMoreStatusOpen] = useState(false);
   const clientActiveBookings = useMemo(
     () => bookings.filter((booking) => !["cancelled", "completed"].includes(getEffectiveBookingStatus(booking))),
     [bookings],
@@ -188,7 +184,7 @@ export function BookingsScreen({
             ? "New client booking offers land here first. Open any request to accept, counter, or decline."
             : "Keep every confirmed booking, payment milestone, and event handoff in one place."}
         </Text>
-                {role === "client" ? (
+        {role === "client" ? (
           <View style={styles.statusTabsWrap}>
             <View style={styles.statusFilterHeader}>
               <Text style={styles.statusFilterLabel}>Browse by status</Text>
@@ -196,77 +192,26 @@ export function BookingsScreen({
                 {(clientTabOptions.find((tab) => tab.key === clientStatusTab)?.label ?? "Active").toUpperCase()}
               </Text>
             </View>
-            <View style={styles.statusTabRow}>
-              {primaryClientTabOptions.map((tab) => {
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.statusTabScroll}
+            >
+              {clientTabOptions.map((tab) => {
                 const isActive = clientStatusTab === tab.key;
                 return (
                   <Pressable
                     key={tab.key}
-                    onPress={() => {
-                      setClientStatusTab(tab.key);
-                      setMoreStatusOpen(false);
-                    }}
+                    onPress={() => setClientStatusTab(tab.key)}
                     style={[styles.statusTab, isActive ? styles.statusTabActive : undefined]}
                   >
-                    <Text
-                      style={[styles.statusTabLabel, isActive ? styles.statusTabLabelActive : undefined]}
-                      numberOfLines={1}
-                    >
+                    <Text style={[styles.statusTabLabel, isActive ? styles.statusTabLabelActive : undefined]} numberOfLines={1}>
                       {tab.label}
                     </Text>
                   </Pressable>
                 );
               })}
-              <Pressable
-                onPress={() => setMoreStatusOpen((current) => !current)}
-                style={[
-                  styles.statusMoreTab,
-                  overflowClientTabOptions.some((tab) => tab.key === clientStatusTab) ? styles.statusTabActive : undefined,
-                  moreStatusOpen ? styles.statusMoreTabOpen : undefined,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusTabLabel,
-                    overflowClientTabOptions.some((tab) => tab.key === clientStatusTab) ? styles.statusTabLabelActive : undefined,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {overflowClientTabOptions.find((tab) => tab.key === clientStatusTab)?.shortLabel
-                    ?? overflowClientTabOptions.find((tab) => tab.key === clientStatusTab)?.label
-                    ?? "More"}
-                </Text>
-                <MaterialCommunityIcons
-                  name={moreStatusOpen ? "chevron-up" : "chevron-down"}
-                  size={18}
-                  color={theme.semanticColors.textMuted}
-                />
-              </Pressable>
-            </View>
-            {moreStatusOpen ? (
-              <View style={styles.moreMenu}>
-                {overflowClientTabOptions.map((tab) => {
-                  const isActive = clientStatusTab === tab.key;
-                  return (
-                    <Pressable
-                      key={tab.key}
-                      onPress={() => {
-                        setClientStatusTab(tab.key);
-                        setMoreStatusOpen(false);
-                      }}
-                      style={[styles.moreMenuItem, isActive ? styles.moreMenuItemActive : undefined]}
-                    >
-                      <Text
-                        style={[styles.moreMenuLabel, isActive ? styles.moreMenuLabelActive : undefined]}
-                        numberOfLines={1}
-                      >
-                        {tab.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : null}
+            </ScrollView>
           </View>
         ) : null}
         <View style={styles.list}>
@@ -1160,12 +1105,13 @@ const styles = StyleSheet.create({
     color: theme.colors.gold[600],
     letterSpacing: 0.6,
   },
-  statusTabRow: {
+  statusTabScroll: {
     flexDirection: "row",
     gap: theme.spacing[2],
+    paddingRight: theme.spacing[3],
   },
   statusTab: {
-    flex: 1,
+    minWidth: 116,
     minHeight: 40,
     paddingHorizontal: theme.spacing[3],
     borderRadius: theme.radius.pill,
@@ -1174,17 +1120,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.semanticColors.surface,
     alignItems: "center",
     justifyContent: "center",
-  },
-  statusMoreTab: {
-    minWidth: 96,
-    marginLeft: "auto",
-    flexDirection: "row",
-    gap: theme.spacing[1],
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  statusMoreTabOpen: {
-    borderColor: theme.colors.gold[400],
   },
   statusTabActive: {
     borderColor: theme.colors.gold[400],
@@ -1197,43 +1132,6 @@ const styles = StyleSheet.create({
   },
   statusTabLabelActive: {
     color: theme.semanticColors.textPrimary,
-  },
-  statusMoreGlyph: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.textMuted,
-  },
-  moreMenu: {
-    position: "absolute",
-    top: 92,
-    right: 0,
-    width: "30%",
-    minWidth: 170,
-    borderRadius: theme.radius.xl,
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
-    backgroundColor: theme.semanticColors.surface,
-    padding: theme.spacing[2],
-    gap: theme.spacing[1],
-    zIndex: 20,
-    ...theme.shadows.card,
-  },
-  moreMenuItem: {
-    borderRadius: theme.radius.lg,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2] + 2,
-  },
-  moreMenuItemActive: {
-    backgroundColor: "#FFF4DB",
-  },
-  moreMenuLabel: {
-    fontFamily: theme.typography.fontFamily.bodyMedium,
-    fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.textPrimary,
-  },
-  moreMenuLabelActive: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    color: theme.colors.gold[600],
   },
   list: {
     gap: theme.spacing[4],

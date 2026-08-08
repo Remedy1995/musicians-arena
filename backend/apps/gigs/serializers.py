@@ -36,6 +36,7 @@ class GigInterestSerializer(serializers.ModelSerializer):
             "profile_image_url",
             "note",
             "proposed_amount",
+            "initiated_by",
             "status",
             "has_active_booking",
             "created_at",
@@ -47,6 +48,7 @@ class GigInterestSerializer(serializers.ModelSerializer):
             "talent_username",
             "display_name",
             "profile_image_url",
+            "initiated_by",
             "status",
             "created_at",
             "updated_at",
@@ -230,8 +232,56 @@ class GigInterestCreateSerializer(serializers.ModelSerializer):
             gig=gig,
             talent=request.user,
             talent_profile=request.user.talent_profile,
+            initiated_by=GigInterest.InitiatedBy.TALENT,
             **validated_data,
         )
+
+
+class GigInvitationCreateSerializer(serializers.Serializer):
+    talent_id = serializers.UUIDField()
+    note = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_talent_id(self, value):
+        try:
+            talent = User.objects.select_related("talent_profile").get(id=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("This talent account could not be found.")
+        if not talent.has_capability("talent") or not hasattr(talent, "talent_profile"):
+            raise serializers.ValidationError("The selected account does not have an active talent profile.")
+        if talent.id == self.context["request"].user.id:
+            raise serializers.ValidationError("You cannot invite your own account.")
+        return talent
+
+    def validate(self, attrs):
+        gig = self.context["gig"]
+        existing = GigInterest.objects.filter(gig=gig, talent=attrs["talent_id"]).first()
+        if existing and existing.status in {
+            GigInterest.Status.INVITED,
+            GigInterest.Status.INVITE_ACCEPTED,
+        }:
+            raise serializers.ValidationError("This talent already has an active invitation for this gig.")
+        attrs["existing_interest"] = existing
+        return attrs
+
+    def create(self, validated_data):
+        talent = validated_data.pop("talent_id")
+        existing = validated_data.pop("existing_interest", None)
+        gig = self.context["gig"]
+        interest = existing or GigInterest(
+            gig=gig,
+            talent=talent,
+            talent_profile=talent.talent_profile,
+            initiated_by=GigInterest.InitiatedBy.ORGANIZER,
+        )
+        interest.initiated_by = GigInterest.InitiatedBy.ORGANIZER
+        interest.status = GigInterest.Status.INVITED
+        interest.note = validated_data.get("note", "")
+        interest.save()
+        return interest
+
+
+class GigInvitationResponseSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=[GigInterest.Status.INVITE_ACCEPTED, GigInterest.Status.DECLINED])
 
 
 class GigInterestStatusSerializer(serializers.ModelSerializer):

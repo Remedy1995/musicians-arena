@@ -55,6 +55,9 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
     bio: marketplace.me?.profile.bio || "",
     city: marketplace.me?.profile.city || "",
     region: marketplace.me?.profile.region || "",
+    organizationName: marketplace.me?.organizer_profile?.organization_name || "",
+    organizationLocation: marketplace.me?.organizer_profile?.location || "",
+    organizationDescription: marketplace.me?.organizer_profile?.description || "",
     stageName: marketplace.talentProfile?.stage_name || "",
     yearsOfExperience: marketplace.talentProfile?.years_of_experience ? String(marketplace.talentProfile.years_of_experience) : "",
     fixedPriceMin: marketplace.talentProfile?.fixed_price_min || "",
@@ -107,6 +110,9 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
       bio: marketplace.me?.profile.bio || "",
       city: marketplace.me?.profile.city || "",
       region: marketplace.me?.profile.region || "",
+      organizationName: marketplace.me?.organizer_profile?.organization_name || "",
+      organizationLocation: marketplace.me?.organizer_profile?.location || "",
+      organizationDescription: marketplace.me?.organizer_profile?.description || "",
       stageName: marketplace.talentProfile?.stage_name || "",
       yearsOfExperience: marketplace.talentProfile?.years_of_experience ? String(marketplace.talentProfile.years_of_experience) : "",
       fixedPriceMin: marketplace.talentProfile?.fixed_price_min || "",
@@ -148,7 +154,7 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
           <Text style={styles.title}>{marketplace.me?.profile.display_name || marketplace.me?.username || "Your account"}</Text>
           <Text style={styles.body}>Create a workspace when you are ready to apply for opportunities or organize an event.</Text>
         </View>
-        <WorkspaceSetupPanel token={token} capabilities={capabilities} onCapabilityAdded={onCapabilityAdded} />
+        <WorkspaceSetupPanel token={token} capabilities={capabilities} categories={marketplace.categories} onCapabilityAdded={onCapabilityAdded} />
         <View style={styles.accountActions}>
           <Text style={styles.accountActionsLabel}>Account actions</Text>
           <View style={styles.signOutRow}>
@@ -173,7 +179,7 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
       </View>
 
       {capabilities.length === 1 ? (
-        <WorkspaceSetupPanel token={token} capabilities={capabilities} onCapabilityAdded={onCapabilityAdded} />
+        <WorkspaceSetupPanel token={token} capabilities={capabilities} categories={marketplace.categories} onCapabilityAdded={onCapabilityAdded} />
       ) : null}
 
       <View style={styles.header}>
@@ -243,7 +249,27 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
         {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
         {role !== "talent" || activeSection === "basic" ? (
           <>
-            <TextField label="Display name" value={form.displayName} onChangeText={(value) => setForm((current) => ({ ...current, displayName: value }))} />
+            {role === "client" ? (
+              <>
+                <TextField
+                  label="Organization name"
+                  value={form.organizationName}
+                  onChangeText={(value) => setForm((current) => ({ ...current, organizationName: value }))}
+                />
+                <TextField
+                  label="Organization location"
+                  value={form.organizationLocation}
+                  onChangeText={(value) => setForm((current) => ({ ...current, organizationLocation: value }))}
+                />
+                <TextField
+                  label="Organization description"
+                  value={form.organizationDescription}
+                  onChangeText={(value) => setForm((current) => ({ ...current, organizationDescription: value }))}
+                  multiline
+                />
+              </>
+            ) : null}
+            <TextField label={role === "client" ? "Contact display name" : "Display name"} value={form.displayName} onChangeText={(value) => setForm((current) => ({ ...current, displayName: value }))} />
             <TextField label="Bio" value={form.bio} onChangeText={(value) => setForm((current) => ({ ...current, bio: value }))} multiline />
             <TextField label="City" value={form.city} onChangeText={(value) => setForm((current) => ({ ...current, city: value }))} />
             <TextField label="Region" value={form.region} onChangeText={(value) => setForm((current) => ({ ...current, region: value }))} />
@@ -657,6 +683,15 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
           city: form.city,
           region: form.region,
         },
+        ...(role === "client"
+          ? {
+              organizer_profile: {
+                organization_name: form.organizationName,
+                location: form.organizationLocation,
+                description: form.organizationDescription,
+              },
+            }
+          : {}),
       });
       if (role === "talent") {
         await api.updateTalentMe(token, {

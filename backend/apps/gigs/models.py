@@ -47,15 +47,21 @@ class GigTalentCategory(TimeStampedUUIDModel):
 
 
 class GigInterest(TimeStampedUUIDModel):
+    class InitiatedBy(models.TextChoices):
+        TALENT = "talent", "Talent"
+        ORGANIZER = "organizer", "Organizer"
+
     class Status(models.TextChoices):
         INTERESTED = "interested", "Interested"
         SHORTLISTED = "shortlisted", "Shortlisted"
         INVITED = "invited", "Invited"
+        INVITE_ACCEPTED = "invite_accepted", "Invitation Accepted"
         DECLINED = "declined", "Declined"
 
     gig = models.ForeignKey(Gig, on_delete=models.CASCADE, related_name="interests")
     talent = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="gig_interests")
     talent_profile = models.ForeignKey("profiles.TalentProfile", on_delete=models.CASCADE, related_name="gig_interests")
+    initiated_by = models.CharField(max_length=16, choices=InitiatedBy.choices, default=InitiatedBy.TALENT)
     note = models.TextField(blank=True)
     proposed_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.INTERESTED)

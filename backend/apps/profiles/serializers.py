@@ -4,7 +4,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.accounts.models import User
-from apps.profiles.models import EventType, TalentCategory, TalentEventType, TalentMedia, TalentProfile, TalentSkill, UserProfile
+from apps.profiles.models import ClientProfile, EventType, TalentCategory, TalentEventType, TalentMedia, TalentProfile, TalentSkill, UserProfile
 
 
 class TalentCategorySerializer(serializers.ModelSerializer):
@@ -46,6 +46,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
             url = obj.profile_image.url
             return request.build_absolute_uri(url) if request else url
         return obj.profile_image_url
+
+
+class ClientProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClientProfile
+        fields = ["id", "organization_name", "location", "description", "client_type"]
+        read_only_fields = ["id"]
 
 
 class UserProfilePhotoUploadSerializer(serializers.ModelSerializer):
@@ -386,12 +393,24 @@ class TalentProfileUpdateSerializer(serializers.ModelSerializer):
 
 class MeSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer()
+    organizer_profile = ClientProfileSerializer(source="client_profile", required=False, allow_null=True)
     capabilities = serializers.SerializerMethodField()
     profiles = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "phone", "role", "status", "capabilities", "profiles", "profile"]
+        fields = [
+            "id",
+            "username",
+            "email",
+            "phone",
+            "role",
+            "status",
+            "capabilities",
+            "profiles",
+            "profile",
+            "organizer_profile",
+        ]
         read_only_fields = ["id", "role", "status"]
 
     def get_capabilities(self, obj):
@@ -406,6 +425,7 @@ class MeSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop("profile", {})
+        organizer_profile_data = validated_data.pop("client_profile", {})
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -415,5 +435,11 @@ class MeSerializer(serializers.ModelSerializer):
         for attr, value in profile_data.items():
             setattr(profile, attr, value)
         profile.save()
+
+        if organizer_profile_data and instance.has_capability("organizer"):
+            organizer_profile, _ = ClientProfile.objects.get_or_create(user=instance)
+            for attr, value in organizer_profile_data.items():
+                setattr(organizer_profile, attr, value)
+            organizer_profile.save()
 
         return instance

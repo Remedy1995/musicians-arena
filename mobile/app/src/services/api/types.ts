@@ -43,6 +43,15 @@ export type MeResponse = {
     organizer: { exists: boolean };
   };
   profile: UserProfile;
+  organizer_profile: OrganizerProfile | null;
+};
+
+export type OrganizerProfile = {
+  id: string;
+  organization_name: string;
+  location: string;
+  description: string;
+  client_type: string;
 };
 
 export type TalentSkillItem = {
@@ -175,6 +184,7 @@ export type GigInterestItem = {
   profile_image_url: string | null;
   note: string;
   proposed_amount: string | null;
+  initiated_by: "talent" | "organizer";
   status: string;
   has_active_booking: boolean;
   created_at: string;

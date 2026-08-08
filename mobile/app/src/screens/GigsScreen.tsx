@@ -46,7 +46,8 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
   const [gigDetail, setGigDetail] = useState<GigDetailItem | null>(null);
   const [gigDetailError, setGigDetailError] = useState<string | null>(null);
   const [selectedInterest, setSelectedInterest] = useState<GigInterestItem | null>(null);
-  const [activeApplicantTab, setActiveApplicantTab] = useState<"interested" | "shortlisted" | "invited" | "declined">("interested");
+  const [activeApplicantTab, setActiveApplicantTab] = useState<"interested" | "shortlisted" | "invited" | "accepted" | "declined">("interested");
+  const [invitationResponding, setInvitationResponding] = useState(false);
   const [profileTarget, setProfileTarget] = useState<GigInterestItem | null>(null);
   const [decisionTarget, setDecisionTarget] = useState<{
     interest: GigInterestItem;
@@ -117,7 +118,9 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
       case "shortlisted":
         return "Shortlisted";
       case "invited":
-        return "Invited to proceed";
+        return "Invitation pending";
+      case "invite_accepted":
+        return "Invitation accepted";
       case "declined":
         return "Not selected";
       default:
@@ -150,11 +153,26 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
     }
   }
 
+  async function respondToInvitation(status: "invite_accepted" | "declined") {
+    if (!selectedGig?.my_interest_id) return;
+    setInvitationResponding(true);
+    setInterestError(null);
+    try {
+      await api.respondToGigInvitation(token, selectedGig.my_interest_id, status);
+      await marketplace.refresh();
+    } catch (caught) {
+      setInterestError(caught instanceof ApiError ? caught.message : caught instanceof Error ? caught.message : "Unable to update this invitation.");
+    } finally {
+      setInvitationResponding(false);
+    }
+  }
+
   const groupedInterests = useMemo(() => {
-    const groups: Record<"interested" | "shortlisted" | "invited" | "declined", GigInterestItem[]> = {
+    const groups: Record<"interested" | "shortlisted" | "invited" | "accepted" | "declined", GigInterestItem[]> = {
       interested: [],
       shortlisted: [],
       invited: [],
+      accepted: [],
       declined: [],
     };
     (gigDetail?.interests || []).forEach((interest) => {
@@ -162,6 +180,8 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
         groups.shortlisted.push(interest);
       } else if (interest.status === "invited") {
         groups.invited.push(interest);
+      } else if (interest.status === "invite_accepted") {
+        groups.accepted.push(interest);
       } else if (interest.status === "declined") {
         groups.declined.push(interest);
       } else {
@@ -491,7 +511,9 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
                     </Text>
                     <Text style={styles.talentStatusBody}>
                       {selectedGig.my_interest_status === "invited"
-                        ? "The organizer wants to move forward with you. Open messages to align on next steps."
+                        ? "The organizer invited you to this opportunity. Accept it to continue toward booking, or decline if you are unavailable."
+                        : selectedGig.my_interest_status === "invite_accepted"
+                          ? "You accepted this invitation. Keep the conversation open while the organizer prepares the booking."
                         : selectedGig.my_interest_status === "shortlisted"
                           ? "You are in the organizer's preferred pool for this gig."
                           : selectedGig.my_interest_status === "declined"
@@ -499,6 +521,23 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
                             : "Your interest has been submitted and is awaiting organizer review."}
                     </Text>
                     {selectedGig.my_interest_status === "invited" ? (
+                      <View style={styles.invitationResponseRow}>
+                        <Pressable
+                          disabled={invitationResponding}
+                          style={[styles.invitationResponseButton, styles.invitationAcceptButton]}
+                          onPress={() => void respondToInvitation("invite_accepted")}
+                        >
+                          <Text style={styles.invitationAcceptLabel}>{invitationResponding ? "Saving..." : "Accept invitation"}</Text>
+                        </Pressable>
+                        <Pressable
+                          disabled={invitationResponding}
+                          style={[styles.invitationResponseButton, styles.invitationDeclineButton]}
+                          onPress={() => void respondToInvitation("declined")}
+                        >
+                          <Text style={styles.invitationDeclineLabel}>Decline</Text>
+                        </Pressable>
+                      </View>
+                    ) : selectedGig.my_interest_status === "invite_accepted" ? (
                       <PrimaryButton
                         label="Open messages"
                         onPress={() => {
@@ -589,11 +628,12 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
               <Text style={styles.helperSubtext}>
                 {gigDetail.city}, {gigDetail.region} • {gigDetail.event_date}
               </Text>
-              <View style={styles.statusSummaryRow}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statusSummaryRow}>
                 {([
                   ["interested", "Interested"],
                   ["shortlisted", "Shortlisted"],
                   ["invited", "Invited"],
+                  ["accepted", "Accepted"],
                   ["declined", "Declined"],
                 ] as const).map(([key, label]) => (
                   <Pressable
@@ -606,7 +646,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
                     </Text>
                   </Pressable>
                 ))}
-              </View>
+              </ScrollView>
               {gigDetail.interests.length === 0 ? <Text style={styles.helperSubtext}>No interests yet for this gig.</Text> : null}
               {gigDetail.interests.length > 0 ? (
                 <View style={styles.statusSection}>
@@ -628,7 +668,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
                         <View style={styles.interestHeaderText}>
                           <Text style={styles.interestName}>{interest.display_name || interest.talent_username}</Text>
                           <Text style={styles.interestMeta}>
-                            {interest.status} {interest.proposed_amount ? `• GHS ${Number(interest.proposed_amount).toLocaleString()}` : ""}
+                            {getInterestStatusLabel(interest.status) || interest.status} {interest.proposed_amount ? `• GHS ${Number(interest.proposed_amount).toLocaleString()}` : ""}
                           </Text>
                         </View>
                       </View>
@@ -667,6 +707,8 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
                               ? "Talent shortlisted"
                               : interest.status === "invited"
                                 ? "Invitation sent"
+                                : interest.status === "invite_accepted"
+                                  ? "Invitation accepted"
                                 : "Talent declined"}
                           </Text>
                           <Text style={styles.decisionLockedBody}>
@@ -674,11 +716,13 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
                               ? "This applicant has already been shortlisted for this gig."
                               : interest.status === "invited"
                                 ? "This applicant has already been invited to move forward."
+                                : interest.status === "invite_accepted"
+                                  ? "This talent accepted the invitation and is ready for the booking conversation."
                                 : "This applicant has already been declined for this gig."}
                           </Text>
                         </View>
                       )}
-                      <View style={[styles.followupActions, interest.status === "invited" ? styles.followupActionsRow : undefined]}>
+                      <View style={[styles.followupActions, ["invited", "invite_accepted"].includes(interest.status) ? styles.followupActionsRow : undefined]}>
                         <View style={styles.followupActionPrimary}>
                           <SecondaryButton
                             label="View profile"
@@ -687,7 +731,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
                             }}
                           />
                         </View>
-                        {interest.status === "invited" ? (
+                        {["invited", "invite_accepted"].includes(interest.status) ? (
                           interest.has_active_booking ? (
                             <View style={[styles.convertBookingButton, styles.convertBookingButtonDisabled]}>
                               <Text style={styles.convertBookingButtonLabelMuted}>Booked</Text>
@@ -1187,9 +1231,10 @@ const styles = StyleSheet.create({
   statusSummaryRow: {
     flexDirection: "row",
     gap: theme.spacing[2],
+    paddingRight: theme.spacing[3],
   },
   statusSummaryPill: {
-    flex: 1,
+    minWidth: 104,
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing[2],
     paddingVertical: theme.spacing[2],
@@ -1588,6 +1633,38 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
+    color: theme.semanticColors.textSecondary,
+  },
+  invitationResponseRow: {
+    flexDirection: "row",
+    gap: theme.spacing[2],
+    marginTop: theme.spacing[2],
+  },
+  invitationResponseButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: theme.radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: theme.spacing[3],
+    borderWidth: 1,
+  },
+  invitationAcceptButton: {
+    backgroundColor: theme.colors.teal[600],
+    borderColor: theme.colors.teal[600],
+  },
+  invitationDeclineButton: {
+    backgroundColor: theme.semanticColors.surface,
+    borderColor: theme.semanticColors.borderStrong,
+  },
+  invitationAcceptLabel: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    color: theme.semanticColors.textOnDark,
+  },
+  invitationDeclineLabel: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
     color: theme.semanticColors.textSecondary,
   },
   confirmOverlay: {
