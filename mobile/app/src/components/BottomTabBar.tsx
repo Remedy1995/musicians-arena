@@ -17,7 +17,7 @@ type BottomTabBarProps = {
 export function BottomTabBar({ role, activeTab, onTabPress, badges = {} }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const tabItems: Array<{ key: TabKey; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; activeIcon: keyof typeof MaterialCommunityIcons.glyphMap }> = [
-    { key: "discover", label: role === "client" ? "Dashboard" : "Discover", icon: "compass-outline", activeIcon: "compass" },
+    { key: "discover", label: "Dashboard", icon: "compass-outline", activeIcon: "compass" },
     { key: "gigs", label: role === "client" ? "My Gigs" : role === "talent" ? "Gig Board" : "Opportunities", icon: "music-note-outline", activeIcon: "music-note" },
     { key: "messages", label: "Messages", icon: "message-text-outline", activeIcon: "message-text" },
     { key: "bookings", label: "Bookings", icon: "clipboard-text-outline", activeIcon: "clipboard-text" },

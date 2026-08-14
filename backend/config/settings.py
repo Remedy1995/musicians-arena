@@ -199,7 +199,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
+        "apps.accounts.authentication.ExpiringTokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -225,6 +225,8 @@ REST_FRAMEWORK = {
         "message_write": config("DJANGO_MESSAGE_WRITE_THROTTLE_RATE", default="240/hour"),
     },
 }
+
+AUTH_TOKEN_TTL_SECONDS = config("DJANGO_AUTH_TOKEN_TTL_SECONDS", default=2592000, cast=int)
 
 
 REDIS_URL = config("REDIS_URL", default="redis://127.0.0.1:6379/0")

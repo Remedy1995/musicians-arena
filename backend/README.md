@@ -53,6 +53,9 @@ It documents Docker Compose v2, production environment files, PostgreSQL and Red
 - `POST /api/v1/auth/login/`
 - `GET /api/v1/auth/me/`
 - `POST /api/v1/auth/capabilities/` to add the organizer or talent capability to an existing account
+
+Authentication tokens expire after 30 days by default (`DJANGO_AUTH_TOKEN_TTL_SECONDS=2592000`).
+Expired tokens are rejected for HTTP and WebSocket access and a successful login rotates them.
 - `GET /api/v1/profiles/me/`
 - `PATCH /api/v1/profiles/me/`
 - `GET /api/v1/profiles/categories/`

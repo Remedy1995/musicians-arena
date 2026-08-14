@@ -197,7 +197,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
           <Text style={styles.title}>{role === "client" ? "Your gig board" : "Available gigs"}</Text>
-          <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} />
+          <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} iconOnly />
         </View>
         <Text style={styles.body}>
           {role === "client"
@@ -209,7 +209,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
       <View style={styles.heroActions}>
         {role === "client" ? (
           <PrimaryButton
-            label="＋ Create an opportunity gig"
+            label="＋ Create a gig opportunity"
             onPress={() => {
               setComposerOpen(true);
             }}
@@ -333,8 +333,8 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
             </View>
             <View style={styles.fieldGroupCard}>
               <Text style={styles.fieldGroupLabel}>📍 Venue details</Text>
-              <TextField label="City" value={form.city} onChangeText={(value) => setForm((current) => ({ ...current, city: value }))} />
-              <TextField label="Region" value={form.region} onChangeText={(value) => setForm((current) => ({ ...current, region: value }))} />
+              <TextField label="City / Town" value={form.city} onChangeText={(value) => setForm((current) => ({ ...current, city: value }))} />
+              <TextField label="Region / State / Province" value={form.region} onChangeText={(value) => setForm((current) => ({ ...current, region: value }))} />
               <TextField label="Venue name" value={form.venueName} onChangeText={(value) => setForm((current) => ({ ...current, venueName: value }))} />
               <TextField label="Venue address" value={form.venueAddress} onChangeText={(value) => setForm((current) => ({ ...current, venueAddress: value }))} multiline />
             </View>

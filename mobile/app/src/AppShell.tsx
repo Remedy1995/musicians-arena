@@ -7,6 +7,7 @@ import { AuthScreen } from "./screens/AuthScreen";
 import { AppTabs } from "./navigation/AppTabs";
 import { OnboardingScreen } from "./screens/OnboardingScreen";
 import { AuthResponse, Capability, UserSummary } from "./services/api/types";
+import { setUnauthorizedHandler } from "./services/api/client";
 import { registerForPushNotifications } from "./services/pushNotifications";
 import { clearSession, loadRole, loadSession, loadStarted, saveRole, saveSession, saveStarted } from "./services/sessionStorage";
 import { theme } from "./theme/theme";
@@ -80,6 +81,16 @@ export function AppShell() {
     }
     void clearSession();
   }, [bootstrapped, session]);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setSession(null);
+      setRole(null);
+      setAuthMode("login");
+    });
+
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   useEffect(() => {
     if (!session) return;

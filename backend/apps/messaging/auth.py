@@ -2,17 +2,19 @@ from urllib.parse import parse_qs
 
 from asgiref.sync import sync_to_async
 from channels.auth import AuthMiddlewareStack
+from rest_framework.exceptions import AuthenticationFailed
+
+from apps.accounts.authentication import get_user_for_token_key
 
 
 @sync_to_async
 def get_user_for_token(token_key):
     if not token_key:
         return None
-    from rest_framework.authtoken.models import Token
-
     try:
-        return Token.objects.select_related("user").get(key=token_key).user
-    except Token.DoesNotExist:
+        user, _ = get_user_for_token_key(token_key)
+        return user
+    except AuthenticationFailed:
         return None
 
 

@@ -29,7 +29,7 @@ type AppTabsProps = {
 };
 
 export function AppTabs({ role, capabilities, currentUser, token, onRoleChange, onCapabilityAdded, onExit, onSignOut }: AppTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>(role === "client" ? "gigs" : "discover");
+  const [activeTab, setActiveTab] = useState<TabKey>("discover");
   const [focusedConversationId, setFocusedConversationId] = useState<string | null>(null);
   const [focusedBookingId, setFocusedBookingId] = useState<string | null>(null);
   const [focusedGigId, setFocusedGigId] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export function AppTabs({ role, capabilities, currentUser, token, onRoleChange, 
   ).length;
 
   useEffect(() => {
-    setActiveTab(role === "client" ? "gigs" : "discover");
+    setActiveTab("discover");
   }, [role]);
 
   function handleCapabilityAdded(user: UserSummary) {

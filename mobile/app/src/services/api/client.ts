@@ -19,6 +19,16 @@ export class ApiError extends Error {
   }
 }
 
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
+
+function notifyUnauthorized() {
+  unauthorizedHandler?.();
+}
+
 function extractErrorMessage(payload: unknown): string {
   if (typeof payload === "string" && payload.trim()) {
     return payload;
@@ -94,6 +104,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const payload = isJson ? await response.json() : null;
 
   if (!response.ok) {
+    if (response.status === 401 && options.token) {
+      notifyUnauthorized();
+    }
     const message = extractErrorMessage(payload);
     throw new ApiError(message, response.status);
   }
@@ -123,6 +136,10 @@ function apiMultipartRequest<T>(
       if (request.status >= 200 && request.status < 300) {
         resolve(payload as T);
         return;
+      }
+
+      if (request.status === 401 && headers.Authorization) {
+        notifyUnauthorized();
       }
 
       const message = extractErrorMessage(payload);

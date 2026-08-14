@@ -1,8 +1,8 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from rest_framework.authtoken.models import Token
 
 from apps.accounts.models import User, UserCapability
+from apps.accounts.authentication import get_valid_token_for_user
 from apps.profiles.models import ClientProfile, TalentCategory, TalentProfile, TalentSkill, UserProfile
 
 
@@ -83,7 +83,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         if UserCapability.Capability.ORGANIZER in capabilities:
             ClientProfile.objects.create(user=user)
 
-        Token.objects.create(user=user)
+        get_valid_token_for_user(user)
         return user
 
 
@@ -146,7 +146,7 @@ class AuthResponseSerializer(serializers.Serializer):
 
     @staticmethod
     def from_user(user):
-        token, _ = Token.objects.get_or_create(user=user)
+        token = get_valid_token_for_user(user)
         return {
             "token": token.key,
             "user": UserSummarySerializer(user).data,

@@ -1,7 +1,12 @@
-from django.test import TestCase
+from datetime import timedelta
+
+from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
+from rest_framework.authtoken.models import Token
 
 from apps.accounts.models import User, UserCapability
+from apps.accounts.authentication import get_valid_token_for_user
 from apps.accounts.serializers import RegisterSerializer
 from apps.profiles.models import ClientProfile, TalentCategory, TalentProfile, TalentSkill
 
@@ -64,6 +69,44 @@ class RegistrationCapabilityTests(TestCase):
         self.assertEqual(user.capability_values(), [])
         self.assertFalse(TalentProfile.objects.filter(user=user).exists())
         self.assertFalse(ClientProfile.objects.filter(user=user).exists())
+
+
+class ExpiringTokenTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="expiring_token_user",
+            email="expiring-token@example.com",
+            phone="233200000101",
+            password="Password123",
+        )
+        self.token = get_valid_token_for_user(self.user)
+
+    @override_settings(AUTH_TOKEN_TTL_SECONDS=60)
+    def test_expired_token_is_rejected(self):
+        self.token.created = timezone.now() - timedelta(seconds=61)
+        self.token.save(update_fields=["created"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
+
+        response = self.client.get("/api/v1/auth/me/")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertIn("expired", response.data["detail"].lower())
+
+    @override_settings(AUTH_TOKEN_TTL_SECONDS=60)
+    def test_login_rotates_an_expired_token(self):
+        self.token.created = timezone.now() - timedelta(seconds=61)
+        self.token.save(update_fields=["created"])
+
+        response = self.client.post(
+            "/api/v1/auth/login/",
+            {"username": self.user.username, "password": "Password123"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.data["token"], self.token.key)
+        self.assertEqual(Token.objects.filter(user=self.user).count(), 1)
 
 
 class CapabilityDueDiligenceTests(TestCase):

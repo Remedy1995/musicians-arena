@@ -47,6 +47,7 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
   const [savingPortfolio, setSavingPortfolio] = useState(false);
   const [savingProfilePhoto, setSavingProfilePhoto] = useState(false);
   const [localProfilePhotoUri, setLocalProfilePhotoUri] = useState<string | null>(null);
+  const [pendingProfilePhoto, setPendingProfilePhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [portfolioFilter, setPortfolioFilter] = useState<"all" | "image" | "video" | "audio" | "link">("all");
   const [portfolioEntryMode, setPortfolioEntryMode] = useState<"upload" | "link">("upload");
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
@@ -147,7 +148,7 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
             <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
           </View>
           <Text style={styles.screenHeaderTitle}>Profile</Text>
-          <WorkspaceButton label="Account" onPress={onWorkspacePress} />
+          <WorkspaceButton label="Account" onPress={onWorkspacePress} iconOnly />
         </View>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Personal account</Text>
@@ -175,7 +176,7 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
           <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
         </View>
         <Text style={styles.screenHeaderTitle}>Profile</Text>
-        <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} />
+        <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} iconOnly />
       </View>
 
       {capabilities.length === 1 ? (
@@ -207,11 +208,13 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
             <Text style={styles.avatarLabel}>{role === "client" ? "Organizer profile" : "Talent profile"}</Text>
             <Pressable
               onPress={() => {
-                void handleProfilePhotoPick();
+                void (pendingProfilePhoto ? handleSaveProfilePhoto() : handleProfilePhotoPick());
               }}
               style={styles.avatarAction}
             >
-              <Text style={styles.avatarActionLabel}>{savingProfilePhoto ? "Uploading..." : "Save image"}</Text>
+              <Text style={styles.avatarActionLabel}>
+                {savingProfilePhoto ? "Saving..." : pendingProfilePhoto ? "Save image" : "Choose image"}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -271,8 +274,8 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
             ) : null}
             <TextField label={role === "client" ? "Contact display name" : "Display name"} value={form.displayName} onChangeText={(value) => setForm((current) => ({ ...current, displayName: value }))} />
             <TextField label="Bio" value={form.bio} onChangeText={(value) => setForm((current) => ({ ...current, bio: value }))} multiline />
-            <TextField label="City" value={form.city} onChangeText={(value) => setForm((current) => ({ ...current, city: value }))} />
-            <TextField label="Region" value={form.region} onChangeText={(value) => setForm((current) => ({ ...current, region: value }))} />
+            <TextField label="City / Town" value={form.city} onChangeText={(value) => setForm((current) => ({ ...current, city: value }))} />
+            <TextField label="Region / State / Province" value={form.region} onChangeText={(value) => setForm((current) => ({ ...current, region: value }))} />
             {role === "talent" ? (
               <>
                 <TextField label="Stage name" value={form.stageName} onChangeText={(value) => setForm((current) => ({ ...current, stageName: value }))} />
@@ -875,7 +878,8 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         quality: 0.85,
-        allowsEditing: false,
+        allowsEditing: true,
+        aspect: [1, 1],
       });
 
       if (result.canceled || !result.assets.length) {
@@ -884,7 +888,27 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
       }
 
       const asset = result.assets[0];
+      setPendingProfilePhoto(asset);
       setLocalProfilePhotoUri(asset.uri);
+      setSuccessMessage("Image cropped. Tap Save image to update your profile.");
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : caught instanceof Error ? caught.message : "Unable to choose profile photo.");
+    } finally {
+      setSavingProfilePhoto(false);
+    }
+  }
+
+  async function handleSaveProfilePhoto() {
+    if (!pendingProfilePhoto) {
+      await handleProfilePhotoPick();
+      return;
+    }
+
+    setSavingProfilePhoto(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const asset = pendingProfilePhoto;
       validatePortfolioAsset({
         type: "image",
         mimeType: asset.mimeType || "image/jpeg",
@@ -902,15 +926,11 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
 
       const uploadedProfile = await api.uploadProfilePhoto(token, formData);
       setLocalProfilePhotoUri(uploadedProfile.profile_image_url || asset.uri);
+      setPendingProfilePhoto(null);
       await marketplace.refresh();
       setSuccessMessage("Profile photo updated.");
     } catch (caught) {
-      if (!marketplace.me?.profile.profile_image_url) {
-        setLocalProfilePhotoUri(null);
-      } else {
-        setLocalProfilePhotoUri(marketplace.me.profile.profile_image_url);
-      }
-      setError(caught instanceof ApiError ? caught.message : caught instanceof Error ? caught.message : "Unable to upload profile photo.");
+      setError(caught instanceof ApiError ? caught.message : caught instanceof Error ? caught.message : "Unable to save profile photo.");
     } finally {
       setSavingProfilePhoto(false);
     }

@@ -97,10 +97,10 @@ export const api = {
 
   talentCategories: () => apiRequest<TalentCategory[]>("/profiles/categories/"),
   eventTypes: () => apiRequest<EventType[]>("/profiles/event-types/"),
-  talents: (search = "", primaryCategory = "") => {
+  talents: (search = "", skillCategory = "") => {
     const params = new URLSearchParams();
     if (search.trim()) params.set("search", search.trim());
-    if (primaryCategory) params.set("primary_category", primaryCategory);
+    if (skillCategory) params.set("skill_category", skillCategory);
     const query = params.toString();
     return apiRequest<TalentListItem[]>(`/profiles/talents/${query ? `?${query}` : ""}`);
   },

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { theme } from "../theme/theme";
 import { ProfileAvatar } from "./ProfileAvatar";
@@ -18,8 +18,10 @@ type TalentCardProps = {
 };
 
 export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, verified, tags, onPress }: TalentCardProps) {
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = screenWidth < 400 ? Math.max(280, screenWidth - 48) : 248;
   const card = (
-    <View style={styles.card}>
+    <View style={[styles.card, { width: cardWidth }]}>
       <View style={styles.header}>
         <ProfileAvatar
           label={name}
@@ -46,8 +48,10 @@ export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, ve
         ))}
       </View>
       <View style={styles.footer}>
-        <Text style={styles.rate}>{rate}</Text>
-        <Text style={styles.cta}>View profile</Text>
+        <Text style={styles.rate} numberOfLines={1}>{rate}</Text>
+        <View style={styles.ctaPill}>
+          <Text style={styles.cta}>View profile</Text>
+        </View>
       </View>
     </View>
   );
@@ -57,7 +61,6 @@ export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, ve
 
 const styles = StyleSheet.create({
   card: {
-    width: 248,
     height: 224,
     borderRadius: theme.radius.xl,
     padding: theme.spacing[3],
@@ -123,17 +126,29 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: theme.spacing[2],
     alignItems: "center",
+    marginTop: "auto",
   },
   rate: {
+    flex: 1,
+    flexShrink: 1,
     fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.md,
+    fontSize: theme.typography.size.sm,
     color: theme.colors.gold[600],
+  },
+  ctaPill: {
+    flexShrink: 0,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: theme.spacing[2],
+    paddingVertical: theme.spacing[2],
+    backgroundColor: theme.colors.stone[100],
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
   },
   cta: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.sm,
+    fontSize: theme.typography.size.xs,
     color: theme.semanticColors.primary,
   },
 });

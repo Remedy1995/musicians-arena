@@ -134,7 +134,7 @@ export function MessagesScreen({
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
           <Text style={styles.title}>Messages</Text>
-          <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} />
+          <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} iconOnly />
         </View>
         <Text style={styles.body}>
           {role === "client"

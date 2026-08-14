@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -41,6 +41,7 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
   const [selectedTalentSummary, setSelectedTalentSummary] = useState<TalentListItem | null>(null);
   const [talentDetailLoading, setTalentDetailLoading] = useState(false);
   const [talentDetailError, setTalentDetailError] = useState<string | null>(null);
+  const talentSearchRequest = useRef(0);
 
   async function openTalentDetail(talent: TalentListItem) {
     setSelectedTalentSummary(talent);
@@ -59,23 +60,25 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
     if (role !== "client") return;
 
     let cancelled = false;
+    const requestId = talentSearchRequest.current + 1;
+    talentSearchRequest.current = requestId;
     const timeout = setTimeout(() => {
       setTalentSearchLoading(true);
       setTalentSearchError(null);
       void api
         .talents(search, activeCategoryId)
         .then((results) => {
-          if (!cancelled) setTalentResults(results);
+          if (!cancelled && requestId === talentSearchRequest.current) setTalentResults(results);
         })
         .catch((caught) => {
-          if (!cancelled) {
+          if (!cancelled && requestId === talentSearchRequest.current) {
             setTalentSearchError(caught instanceof ApiError ? caught.message : "Unable to search talents right now.");
           }
         })
         .finally(() => {
-          if (!cancelled) setTalentSearchLoading(false);
+          if (!cancelled && requestId === talentSearchRequest.current) setTalentSearchLoading(false);
         });
-    }, search.trim() ? 350 : 0);
+    }, 300);
 
     return () => {
       cancelled = true;
@@ -93,7 +96,8 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
       .includes(search.toLowerCase());
     return matchesSearch;
   });
-  const talents = filteredTalents.slice(0, 5);
+  const hasTalentQuery = role === "client" && Boolean(search.trim() || activeCategoryId);
+  const talents = hasTalentQuery ? filteredTalents : filteredTalents.slice(0, 5);
   const gigs = filteredGigs.slice(0, 4);
   const roleSummary =
     role === "client"
@@ -195,6 +199,9 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
         />
         {role === "client" ? (
           <View style={styles.categoryFilterGroup}>

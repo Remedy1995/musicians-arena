@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { WorkspaceButton } from "./WorkspaceButton";
 import { theme } from "../theme/theme";
@@ -14,6 +14,9 @@ type TopBarProps = {
 };
 
 export function TopBar({ unreadCount = 0, onNotificationPress, showNotifications = true, workspaceLabel, onWorkspacePress }: TopBarProps) {
+  const { width } = useWindowDimensions();
+  const compact = width < 380;
+
   return (
     <View style={styles.container}>
       <View style={styles.row}>
@@ -22,19 +25,19 @@ export function TopBar({ unreadCount = 0, onNotificationPress, showNotifications
             colors={[theme.colors.ember[500], theme.colors.gold[400]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.logoMark}
+            style={[styles.logoMark, compact ? styles.logoMarkCompact : undefined]}
           >
-            <MaterialCommunityIcons name="music-clef-treble" size={24} color={theme.semanticColors.textOnDark} />
+            <MaterialCommunityIcons name="music-clef-treble" size={compact ? 21 : 24} color={theme.semanticColors.textOnDark} />
           </LinearGradient>
-          <View>
+          <View style={styles.brandCopy}>
             <Text style={styles.kicker}>Musician's Arena</Text>
-            <Text style={styles.title}>Find the right sound.</Text>
+            <Text style={styles.title} numberOfLines={1}>Find the right sound.</Text>
           </View>
         </View>
         <View style={styles.actions}>
-          {workspaceLabel ? <WorkspaceButton label={workspaceLabel} onPress={onWorkspacePress} /> : null}
+          {workspaceLabel ? <WorkspaceButton label={workspaceLabel} onPress={onWorkspacePress} iconOnly /> : null}
           {showNotifications ? (
-            <Pressable style={styles.notificationButton} onPress={onNotificationPress}>
+            <Pressable style={[styles.notificationButton, compact ? styles.notificationButtonCompact : undefined]} onPress={onNotificationPress}>
               <MaterialCommunityIcons
                 name={unreadCount > 0 ? "bell-ring" : "bell-outline"}
                 size={20}
@@ -67,6 +70,8 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing[1],
   },
   brandGroup: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[3],
@@ -74,7 +79,12 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing[2],
+    gap: theme.spacing[1],
+    flexShrink: 0,
+  },
+  brandCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   logoMark: {
     width: 38,
@@ -83,6 +93,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     ...theme.shadows.card,
+  },
+  logoMarkCompact: {
+    width: 34,
+    height: 34,
   },
   kicker: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -96,6 +110,10 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size.lg,
     color: theme.semanticColors.textPrimary,
     lineHeight: theme.typography.lineHeight.lg,
+  },
+  notificationButtonCompact: {
+    width: 38,
+    height: 38,
   },
   notificationButton: {
     width: 44,

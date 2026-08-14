@@ -3,18 +3,22 @@ import { Pressable, StyleSheet, Text } from "react-native";
 
 import { theme } from "../theme/theme";
 
-export function WorkspaceButton({ label, onPress }: { label: string; onPress?: () => void }) {
+export function WorkspaceButton({ label, onPress, iconOnly = false }: { label: string; onPress?: () => void; iconOnly?: boolean }) {
   return (
-    <Pressable onPress={onPress} style={styles.button}>
-      <MaterialCommunityIcons name="account-switch-outline" size={17} color={theme.semanticColors.primary} />
-      <Text style={styles.label} numberOfLines={1}>{label}</Text>
+    <Pressable
+      onPress={onPress}
+      style={[styles.button, iconOnly ? styles.iconOnlyButton : undefined]}
+      accessibilityRole="button"
+      accessibilityLabel={`Switch workspace. Current workspace: ${label}`}
+    >
+      <MaterialCommunityIcons name="account-switch-outline" size={iconOnly ? 19 : 17} color={theme.semanticColors.primary} />
+      {!iconOnly ? <Text style={styles.label} numberOfLines={1}>{label}</Text> : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    maxWidth: 120,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
@@ -24,6 +28,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF8E8",
     borderWidth: 1,
     borderColor: theme.colors.gold[300],
+  },
+  iconOnlyButton: {
+    width: 38,
+    paddingHorizontal: 0,
+    justifyContent: "center",
   },
   label: {
     flexShrink: 1,
