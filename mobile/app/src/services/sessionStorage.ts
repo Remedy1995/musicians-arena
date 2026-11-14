@@ -15,6 +15,11 @@ export async function loadSession() {
   return raw ? (JSON.parse(raw) as AuthResponse) : null;
 }
 
+export function isSessionExpired(session: AuthResponse) {
+  const expiresAt = Date.parse(session.token_expires_at);
+  return Number.isFinite(expiresAt) && Date.now() >= expiresAt;
+}
+
 export async function clearSession() {
   await AsyncStorage.removeItem(SESSION_KEY);
 }

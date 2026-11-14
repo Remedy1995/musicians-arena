@@ -8,8 +8,12 @@ from rest_framework.authtoken.models import Token
 
 
 def token_has_expired(token):
+    return get_token_expires_at(token) <= timezone.now()
+
+
+def get_token_expires_at(token):
     lifetime = timedelta(seconds=settings.AUTH_TOKEN_TTL_SECONDS)
-    return token.created + lifetime <= timezone.now()
+    return token.created + lifetime
 
 
 def get_valid_token_for_user(user):

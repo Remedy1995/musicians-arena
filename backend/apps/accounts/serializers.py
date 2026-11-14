@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 
 from apps.accounts.models import User, UserCapability
-from apps.accounts.authentication import get_valid_token_for_user
+from apps.accounts.authentication import get_token_expires_at, get_valid_token_for_user
 from apps.profiles.models import ClientProfile, TalentCategory, TalentProfile, TalentSkill, UserProfile
 
 
@@ -142,6 +142,7 @@ class AddCapabilitySerializer(serializers.Serializer):
 
 class AuthResponseSerializer(serializers.Serializer):
     token = serializers.CharField()
+    token_expires_at = serializers.DateTimeField()
     user = UserSummarySerializer()
 
     @staticmethod
@@ -149,5 +150,6 @@ class AuthResponseSerializer(serializers.Serializer):
         token = get_valid_token_for_user(user)
         return {
             "token": token.key,
+            "token_expires_at": get_token_expires_at(token),
             "user": UserSummarySerializer(user).data,
         }

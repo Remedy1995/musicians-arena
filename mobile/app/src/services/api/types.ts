@@ -13,6 +13,7 @@ export type UserSummary = {
 
 export type AuthResponse = {
   token: string;
+  token_expires_at: string;
   user: UserSummary;
 };
 

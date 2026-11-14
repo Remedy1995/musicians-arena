@@ -108,6 +108,17 @@ class ExpiringTokenTests(TestCase):
         self.assertNotEqual(response.data["token"], self.token.key)
         self.assertEqual(Token.objects.filter(user=self.user).count(), 1)
 
+    @override_settings(AUTH_TOKEN_TTL_SECONDS=60)
+    def test_login_returns_token_expiry(self):
+        response = self.client.post(
+            "/api/v1/auth/login/",
+            {"username": self.user.username, "password": "Password123"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["token_expires_at"])
+
 
 class CapabilityDueDiligenceTests(TestCase):
     def setUp(self):

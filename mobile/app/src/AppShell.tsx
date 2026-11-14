@@ -1,6 +1,6 @@
 import { IBMPlexSans_400Regular, IBMPlexSans_500Medium, IBMPlexSans_600SemiBold } from "@expo-google-fonts/ibm-plex-sans";
 import { Sora_600SemiBold, Sora_700Bold, useFonts } from "@expo-google-fonts/sora";
-import { ActivityIndicator, View } from "react-native";
+import { AppState, ActivityIndicator, View } from "react-native";
 import { useEffect, useState } from "react";
 
 import { AuthScreen } from "./screens/AuthScreen";
@@ -9,7 +9,7 @@ import { OnboardingScreen } from "./screens/OnboardingScreen";
 import { AuthResponse, Capability, UserSummary } from "./services/api/types";
 import { setUnauthorizedHandler } from "./services/api/client";
 import { registerForPushNotifications } from "./services/pushNotifications";
-import { clearSession, loadRole, loadSession, loadStarted, saveRole, saveSession, saveStarted } from "./services/sessionStorage";
+import { clearSession, isSessionExpired, loadRole, loadSession, loadStarted, saveRole, saveSession, saveStarted } from "./services/sessionStorage";
 import { theme } from "./theme/theme";
 
 export type UserRole = "client" | "talent";
@@ -56,7 +56,7 @@ export function AppShell() {
         setRole(storedRole);
       }
       setHasStarted(storedStarted);
-      setSession(storedSession);
+      setSession(storedSession && !isSessionExpired(storedSession) ? storedSession : null);
       setBootstrapped(true);
     }
 
@@ -91,6 +91,38 @@ export function AppShell() {
 
     return () => setUnauthorizedHandler(null);
   }, []);
+
+  useEffect(() => {
+    if (!session) return;
+
+    const expiresAt = Date.parse(session.token_expires_at);
+    if (!Number.isFinite(expiresAt)) return;
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const expireSession = () => {
+      if (timer) clearTimeout(timer);
+
+      if (Date.now() >= expiresAt) {
+        setSession(null);
+        setRole(null);
+        setAuthMode("login");
+        return;
+      }
+
+      timer = setTimeout(expireSession, Math.min(expiresAt - Date.now(), 2_147_483_647));
+    };
+
+    const appStateSubscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") expireSession();
+    });
+
+    expireSession();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      appStateSubscription.remove();
+    };
+  }, [session]);
 
   useEffect(() => {
     if (!session) return;
