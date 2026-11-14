@@ -431,7 +431,10 @@ class MeSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
-        profile = instance.profile
+        profile, _ = UserProfile.objects.get_or_create(
+            user=instance,
+            defaults={"display_name": instance.username},
+        )
         for attr, value in profile_data.items():
             setattr(profile, attr, value)
         profile.save()

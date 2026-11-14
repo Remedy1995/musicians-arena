@@ -9,7 +9,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from apps.accounts.models import User
 from apps.common.throttling import ScopedWriteThrottleMixin
 from apps.profiles.filters import TalentProfileFilter
-from apps.profiles.models import EventType, TalentCategory, TalentMedia, TalentProfile
+from apps.profiles.models import EventType, TalentCategory, TalentMedia, TalentProfile, UserProfile
 from apps.profiles.serializers import (
     EventTypeSerializer,
     MeSerializer,
@@ -34,6 +34,22 @@ class EventTypeListView(generics.ListAPIView):
     queryset = EventType.objects.order_by("name")
     serializer_class = EventTypeSerializer
     permission_classes = [permissions.AllowAny]
+
+
+def ensure_user_profile(user):
+    profile, _ = UserProfile.objects.get_or_create(
+        user=user,
+        defaults={"display_name": user.username},
+    )
+    return profile
+
+
+def ensure_talent_profile(user):
+    if not user.has_capability("talent"):
+        raise PermissionDenied("Only talent accounts can manage talent profiles.")
+    ensure_user_profile(user)
+    profile, _ = TalentProfile.objects.get_or_create(user=user)
+    return profile
 
 
 class TalentProfileListView(generics.ListAPIView):
@@ -83,6 +99,7 @@ class MyProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = MeSerializer
 
     def get_object(self):
+        ensure_user_profile(self.request.user)
         return self.request.user
 
 
@@ -93,7 +110,7 @@ class MyProfilePhotoUploadView(ScopedWriteThrottleMixin, generics.UpdateAPIView)
     throttle_scope = "media_upload"
 
     def get_object(self):
-        return self.request.user.profile
+        return ensure_user_profile(self.request.user)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
@@ -109,10 +126,7 @@ class TalentProfileUpdateView(ScopedWriteThrottleMixin, generics.RetrieveUpdateA
     throttle_scope = "profile_write"
 
     def get_object(self):
-        user = self.request.user
-        if not user.has_capability("talent"):
-            raise PermissionDenied("Only talent accounts can manage talent profiles.")
-        return user.talent_profile
+        return ensure_talent_profile(self.request.user)
 
 
 class TalentMediaListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPIView):
@@ -124,10 +138,8 @@ class TalentMediaListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPI
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
             return TalentMedia.objects.none()
-        user = self.request.user
-        if not user.has_capability("talent"):
-            raise PermissionDenied("Only talent accounts can manage portfolio media.")
-        return TalentMedia.objects.filter(talent_profile=user.talent_profile).order_by("sort_order", "-created_at")
+        talent_profile = ensure_talent_profile(self.request.user)
+        return TalentMedia.objects.filter(talent_profile=talent_profile).order_by("sort_order", "-created_at")
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -137,7 +149,7 @@ class TalentMediaListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPI
     def get_serializer_context(self):
         context = super().get_serializer_context()
         if self.request.user.is_authenticated and self.request.user.has_capability("talent"):
-            context["talent_profile"] = self.request.user.talent_profile
+            context["talent_profile"] = ensure_talent_profile(self.request.user)
         return context
 
     def create(self, request, *args, **kwargs):
@@ -156,10 +168,8 @@ class TalentMediaDetailView(ScopedWriteThrottleMixin, generics.RetrieveUpdateDes
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
             return TalentMedia.objects.none()
-        user = self.request.user
-        if not user.has_capability("talent"):
-            raise PermissionDenied("Only talent accounts can manage portfolio media.")
-        return TalentMedia.objects.filter(talent_profile=user.talent_profile)
+        talent_profile = ensure_talent_profile(self.request.user)
+        return TalentMedia.objects.filter(talent_profile=talent_profile)
 
     def get_serializer_class(self):
         if self.request.method in {"PATCH", "PUT"}:
@@ -168,7 +178,7 @@ class TalentMediaDetailView(ScopedWriteThrottleMixin, generics.RetrieveUpdateDes
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context["talent_profile"] = self.request.user.talent_profile
+        context["talent_profile"] = ensure_talent_profile(self.request.user)
         return context
 
     def update(self, request, *args, **kwargs):

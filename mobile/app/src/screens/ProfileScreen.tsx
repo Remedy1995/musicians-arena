@@ -52,10 +52,10 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
   const [portfolioEntryMode, setPortfolioEntryMode] = useState<"upload" | "link">("upload");
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   const [form, setForm] = useState({
-    displayName: marketplace.me?.profile.display_name || "",
-    bio: marketplace.me?.profile.bio || "",
-    city: marketplace.me?.profile.city || "",
-    region: marketplace.me?.profile.region || "",
+    displayName: marketplace.me?.profile?.display_name || "",
+    bio: marketplace.me?.profile?.bio || "",
+    city: marketplace.me?.profile?.city || "",
+    region: marketplace.me?.profile?.region || "",
     organizationName: marketplace.me?.organizer_profile?.organization_name || "",
     organizationLocation: marketplace.me?.organizer_profile?.location || "",
     organizationDescription: marketplace.me?.organizer_profile?.description || "",
@@ -107,10 +107,10 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
 
   useEffect(() => {
     setForm({
-      displayName: marketplace.me?.profile.display_name || "",
-      bio: marketplace.me?.profile.bio || "",
-      city: marketplace.me?.profile.city || "",
-      region: marketplace.me?.profile.region || "",
+      displayName: marketplace.me?.profile?.display_name || "",
+      bio: marketplace.me?.profile?.bio || "",
+      city: marketplace.me?.profile?.city || "",
+      region: marketplace.me?.profile?.region || "",
       organizationName: marketplace.me?.organizer_profile?.organization_name || "",
       organizationLocation: marketplace.me?.organizer_profile?.location || "",
       organizationDescription: marketplace.me?.organizer_profile?.description || "",
@@ -129,7 +129,7 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
   }, [marketplace.me, marketplace.talentProfile, role]);
 
   useEffect(() => {
-    if (marketplace.me?.profile.profile_image_url) {
+    if (marketplace.me?.profile?.profile_image_url) {
       setLocalProfilePhotoUri(marketplace.me.profile.profile_image_url);
     }
   }, [marketplace.me?.profile.profile_image_url]);
@@ -152,7 +152,7 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
         </View>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Personal account</Text>
-          <Text style={styles.title}>{marketplace.me?.profile.display_name || marketplace.me?.username || "Your account"}</Text>
+          <Text style={styles.title}>{marketplace.me?.profile?.display_name || marketplace.me?.username || "Your account"}</Text>
           <Text style={styles.body}>Create a workspace when you are ready to apply for opportunities or organize an event.</Text>
         </View>
         <WorkspaceSetupPanel token={token} capabilities={capabilities} categories={marketplace.categories} onCapabilityAdded={onCapabilityAdded} />
@@ -196,7 +196,7 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
             ) : (
               <View style={styles.avatarFallback}>
                 <Text style={styles.avatarFallbackLabel}>
-                  {getInitials(marketplace.me?.profile.display_name || marketplace.me?.username || "Profile")}
+                  {getInitials(marketplace.me?.profile?.display_name || marketplace.me?.username || "Profile")}
                 </Text>
               </View>
             )}
@@ -219,7 +219,7 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
           </View>
         </View>
         <Text style={styles.eyebrow}>{role === "client" ? "Organizer profile" : "Talent profile"}</Text>
-        <Text style={styles.title}>{marketplace.me?.profile.display_name || marketplace.me?.username || "Your profile"}</Text>
+        <Text style={styles.title}>{marketplace.me?.profile?.display_name || marketplace.me?.username || "Your profile"}</Text>
         <Text style={styles.body}>
           {role === "client"
             ? "Manage how organizers are represented across bookings, gigs, and conversations."

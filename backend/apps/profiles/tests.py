@@ -38,6 +38,41 @@ class OrganizerProfileUpdateTests(TestCase):
         self.assertEqual(profile.location, "Kumasi")
         self.assertEqual(profile.description, "We organize live music programs.")
 
+    def test_missing_user_profile_is_recreated_for_profile_reads(self):
+        UserProfile.objects.filter(user=self.user).delete()
+
+        response = self.client.get("/api/v1/profiles/me/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["profile"]["display_name"], self.user.username)
+        self.assertTrue(UserProfile.objects.filter(user=self.user).exists())
+
+
+class TalentProfileRecoveryTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="recoverable_talent",
+            email="recoverable-talent@example.com",
+            phone="233200000202",
+            password="Password123",
+        )
+        UserCapability.objects.create(user=self.user, capability=UserCapability.Capability.TALENT)
+        self.client.force_authenticate(self.user)
+
+    def test_missing_talent_profile_is_recreated_for_profile_reads(self):
+        response = self.client.get("/api/v1/profiles/talent/me/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(TalentProfile.objects.filter(user=self.user).exists())
+        self.assertTrue(UserProfile.objects.filter(user=self.user).exists())
+
+    def test_missing_talent_profile_returns_an_empty_media_list(self):
+        response = self.client.get("/api/v1/profiles/talent/me/media/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
 
 class TalentDirectoryFilterTests(TestCase):
     def setUp(self):
