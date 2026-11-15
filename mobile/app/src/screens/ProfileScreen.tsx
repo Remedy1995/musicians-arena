@@ -11,20 +11,16 @@ import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { TextField } from "../components/TextField";
 import { ModalSurface } from "../components/ModalSurface";
-import { WorkspaceButton } from "../components/WorkspaceButton";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
-import { Capability, UserSummary } from "../services/api/types";
-import { WorkspaceSetupPanel } from "./WorkspaceSetupScreen";
+import { UserSummary } from "../services/api/types";
 import { theme } from "../theme/theme";
 
 type ProfileScreenProps = {
   role: UserRole | null;
-  capabilities: Capability[];
   currentUser: UserSummary;
   token: string;
-  onCapabilityAdded: (user: UserSummary) => void;
   onWorkspacePress?: () => void;
   onExit: () => void;
   onSignOut: () => void;
@@ -36,7 +32,7 @@ type ProfileScreenProps = {
   marketplace: ReturnType<typeof useMarketplaceData>;
 };
 
-export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, onWorkspacePress, onSignOut, marketplace }: ProfileScreenProps) {
+export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, marketplace }: ProfileScreenProps) {
   const { width } = useWindowDimensions();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +100,7 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
   );
   const tileGap = theme.spacing[2];
   const tileWidth = Math.max(Math.floor((width - theme.layout.screenPadding * 2 - tileGap * 2) / 3), 92);
+  const profileImageUri = localProfilePhotoUri || marketplace.me?.profile?.profile_image_url || null;
 
   useEffect(() => {
     setForm({
@@ -144,18 +141,25 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
     return (
       <Screen>
         <View style={styles.screenHeader}>
-          <View style={styles.screenHeaderIcon}>
-            <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
-          </View>
+          <Pressable
+            onPress={onWorkspacePress}
+            style={styles.screenHeaderIcon}
+            accessibilityRole="button"
+            accessibilityLabel="Open workspace switcher"
+          >
+            {profileImageUri ? (
+              <Image source={{ uri: profileImageUri }} style={styles.screenHeaderAvatarImage} resizeMode="cover" />
+            ) : (
+              <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
+            )}
+          </Pressable>
           <Text style={styles.screenHeaderTitle}>Profile</Text>
-          <WorkspaceButton label="Account" onPress={onWorkspacePress} iconOnly />
         </View>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Personal account</Text>
           <Text style={styles.title}>{marketplace.me?.profile?.display_name || marketplace.me?.username || "Your account"}</Text>
           <Text style={styles.body}>Create a workspace when you are ready to apply for opportunities or organize an event.</Text>
         </View>
-        <WorkspaceSetupPanel token={token} capabilities={capabilities} categories={marketplace.categories} onCapabilityAdded={onCapabilityAdded} />
         <View style={styles.accountActions}>
           <Text style={styles.accountActionsLabel}>Account actions</Text>
           <View style={styles.signOutRow}>
@@ -172,16 +176,20 @@ export function ProfileScreen({ role, capabilities, token, onCapabilityAdded, on
   return (
     <Screen>
       <View style={styles.screenHeader}>
-        <View style={styles.screenHeaderIcon}>
-          <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
-        </View>
+        <Pressable
+          onPress={onWorkspacePress}
+          style={styles.screenHeaderIcon}
+          accessibilityRole="button"
+          accessibilityLabel="Open workspace switcher"
+        >
+          {profileImageUri ? (
+            <Image source={{ uri: profileImageUri }} style={styles.screenHeaderAvatarImage} resizeMode="cover" />
+          ) : (
+            <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
+          )}
+        </Pressable>
         <Text style={styles.screenHeaderTitle}>Profile</Text>
-        <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} iconOnly />
       </View>
-
-      {capabilities.length === 1 ? (
-        <WorkspaceSetupPanel token={token} capabilities={capabilities} categories={marketplace.categories} onCapabilityAdded={onCapabilityAdded} />
-      ) : null}
 
       <View style={styles.header}>
         <View style={styles.profileHeroRow}>
@@ -1055,10 +1063,15 @@ const styles = StyleSheet.create({
   screenHeaderIcon: {
     width: 42,
     height: 42,
-    borderRadius: theme.radius.lg,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.ink[900],
+    overflow: "hidden",
+  },
+  screenHeaderAvatarImage: {
+    width: "100%",
+    height: "100%",
   },
   screenHeaderTitle: {
     flex: 1,
