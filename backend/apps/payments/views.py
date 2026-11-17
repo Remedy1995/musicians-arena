@@ -5,13 +5,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 import json
 
 from apps.bookings.models import Booking
-from apps.payments.models import Payment, Payout
+from apps.payments.models import Payment, Payout, PayoutRecipient
 from apps.payments.serializers import (
     BookingPaymentSummarySerializer,
     PaymentSerializer,
+    PayoutRecipientCreateSerializer,
+    PayoutRecipientSerializer,
     PayoutSerializer,
     RecordPaymentSerializer,
     PaystackCheckoutSerializer,
@@ -66,6 +69,28 @@ class PayoutListView(generics.ListAPIView):
         return Payout.objects.filter(payee=self.request.user).select_related("booking").order_by("-created_at")
 
 
+@extend_schema(tags=["Payments"], summary="Manage the current user's payout recipient")
+class PayoutRecipientView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        recipient = PayoutRecipient.objects.filter(user=request.user).first()
+        if not recipient:
+            return Response(None, status=status.HTTP_200_OK)
+        return Response(PayoutRecipientSerializer(recipient).data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        if not request.user.has_capability("talent"):
+            raise PermissionDenied("Talent capability is required to configure a payout recipient.")
+        serializer = PayoutRecipientCreateSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        try:
+            recipient = serializer.save()
+        except PaystackError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response(PayoutRecipientSerializer(recipient).data, status=status.HTTP_200_OK)
+
+
 @extend_schema(tags=["Payments"], summary="Get booking payment summary", responses=BookingPaymentSummarySerializer)
 class BookingPaymentSummaryView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -81,6 +106,11 @@ class BookingPaymentCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, booking_id):
+        if not settings.PAYMENT_ALLOW_MANUAL_RECORDING or request.user.role != "admin":
+            return Response(
+                {"detail": "Manual payment recording is disabled. Complete payment through Paystack."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         booking = _get_booking_for_user(request.user, booking_id)
         if request.user.id != booking.client_id:
             raise PermissionDenied("Only the booking client can record payments.")

@@ -4,7 +4,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from apps.bookings.models import Booking
-from apps.payments.models import Payment, Payout, Refund
+from apps.payments.models import Payment, Payout, PayoutRecipient, Refund
 from apps.payments.services import (
     build_payment_summary_payload,
     create_successful_held_payment,
@@ -79,6 +79,49 @@ class RefundSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class PayoutRecipientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PayoutRecipient
+        fields = [
+            "id",
+            "recipient_type",
+            "display_name",
+            "masked_account",
+            "bank_code",
+            "currency_code",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class PayoutRecipientCreateSerializer(serializers.Serializer):
+    recipient_type = serializers.ChoiceField(choices=PayoutRecipient.RecipientType.choices)
+    display_name = serializers.CharField(max_length=255)
+    account_number = serializers.CharField(max_length=64, write_only=True)
+    bank_code = serializers.CharField(max_length=32, required=False, allow_blank=True)
+
+    def validate_account_number(self, value):
+        normalized = value.strip().replace(" ", "")
+        if not normalized.isdigit() or len(normalized) < 8:
+            raise serializers.ValidationError("Enter a valid payout account or mobile-money number.")
+        return normalized
+
+    def validate(self, attrs):
+        if not attrs.get("bank_code"):
+            raise serializers.ValidationError({"bank_code": "Enter the Paystack bank or mobile-money provider code."})
+        return attrs
+
+    def create(self, validated_data):
+        from apps.payments.services import create_paystack_transfer_recipient
+
+        return create_paystack_transfer_recipient(
+            user=self.context["request"].user,
+            **validated_data,
+        )
+
+
 class PaystackInitializeSerializer(serializers.Serializer):
     payment_type = serializers.ChoiceField(
         choices=[
@@ -126,6 +169,7 @@ class BookingPaymentSummarySerializer(serializers.Serializer):
     payout_released_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     funds_state = serializers.CharField()
     next_step = serializers.CharField()
+    settlement_requires_manual_allocation = serializers.BooleanField()
     balance_due_at = serializers.DateTimeField(allow_null=True)
     completion_confirmation_due_at = serializers.DateTimeField(allow_null=True)
     can_pay_deposit = serializers.BooleanField()

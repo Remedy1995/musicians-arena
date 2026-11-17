@@ -15,7 +15,7 @@ import { WorkspaceButton } from "../components/WorkspaceButton";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
-import { UserSummary } from "../services/api/types";
+import { PayoutRecipient, UserSummary } from "../services/api/types";
 import { theme } from "../theme/theme";
 
 type ProfileScreenProps = {
@@ -45,6 +45,14 @@ export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, market
   const [savingProfilePhoto, setSavingProfilePhoto] = useState(false);
   const [localProfilePhotoUri, setLocalProfilePhotoUri] = useState<string | null>(null);
   const [pendingProfilePhoto, setPendingProfilePhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [payoutRecipient, setPayoutRecipient] = useState<PayoutRecipient | null>(null);
+  const [savingPayoutRecipient, setSavingPayoutRecipient] = useState(false);
+  const [payoutForm, setPayoutForm] = useState({
+    recipientType: "mobile_money" as PayoutRecipient["recipient_type"],
+    displayName: marketplace.me?.profile?.display_name || "",
+    accountNumber: "",
+    bankCode: "",
+  });
   const [portfolioFilter, setPortfolioFilter] = useState<"all" | "image" | "video" | "audio" | "link">("all");
   const [portfolioEntryMode, setPortfolioEntryMode] = useState<"upload" | "link">("upload");
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
@@ -131,6 +139,20 @@ export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, market
       setLocalProfilePhotoUri(marketplace.me.profile.profile_image_url);
     }
   }, [marketplace.me?.profile.profile_image_url]);
+
+  useEffect(() => {
+    if (role !== "talent") {
+      setPayoutRecipient(null);
+      return;
+    }
+    void api.payoutRecipient(token).then(setPayoutRecipient).catch(() => setPayoutRecipient(null));
+  }, [role, token]);
+
+  useEffect(() => {
+    if (!payoutForm.displayName && marketplace.me?.profile?.display_name) {
+      setPayoutForm((current) => ({ ...current, displayName: marketplace.me?.profile?.display_name || "" }));
+    }
+  }, [marketplace.me?.profile?.display_name, payoutForm.displayName]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -284,6 +306,47 @@ export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, market
                   onChangeText={(value) => setForm((current) => ({ ...current, fixedPriceMax: value }))}
                   keyboardType="phone-pad"
                 />
+                <View style={styles.payoutSection}>
+                  <SectionHeader title="Payout details" action={payoutRecipient ? "Connected" : "Not set"} />
+                  <Text style={styles.categoryIntro}>
+                    Add the mobile-money or bank account where approved earnings should be sent. Only masked details are shown after saving.
+                  </Text>
+                  <View style={styles.selectorRow}>
+                    {(["mobile_money", "ghipss"] as const).map((recipientType) => (
+                      <Pressable
+                        key={recipientType}
+                        onPress={() => setPayoutForm((current) => ({ ...current, recipientType }))}
+                        style={[styles.selectorChip, payoutForm.recipientType === recipientType ? styles.selectorChipActive : undefined]}
+                      >
+                        <Text style={[styles.selectorChipLabel, payoutForm.recipientType === recipientType ? styles.selectorChipLabelActive : undefined]}>
+                          {recipientType === "mobile_money" ? "Mobile money" : "Bank account"}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <TextField
+                    label="Account name"
+                    value={payoutForm.displayName}
+                    onChangeText={(value) => setPayoutForm((current) => ({ ...current, displayName: value }))}
+                  />
+                  <TextField
+                    label={payoutForm.recipientType === "mobile_money" ? "Mobile-money number" : "Bank account number"}
+                    value={payoutForm.accountNumber}
+                    onChangeText={(value) => setPayoutForm((current) => ({ ...current, accountNumber: value }))}
+                    keyboardType="phone-pad"
+                  />
+                  <TextField
+                    label="Paystack provider code"
+                    value={payoutForm.bankCode}
+                    onChangeText={(value) => setPayoutForm((current) => ({ ...current, bankCode: value }))}
+                  />
+                  <SecondaryButton
+                    label={savingPayoutRecipient ? "Saving payout details..." : payoutRecipient ? "Update payout details" : "Save payout details"}
+                    onPress={() => {
+                      void handleSavePayoutRecipient();
+                    }}
+                  />
+                </View>
                 <View style={styles.categorySection}>
                   <SectionHeader title="Talent categories" action={`${selectedSkillCategoryIds.length} selected`} />
                   <Text style={styles.categoryIntro}>
@@ -705,6 +768,31 @@ export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, market
       setError(caught instanceof ApiError ? caught.message : caught instanceof Error ? caught.message : "Unable to save profile.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSavePayoutRecipient() {
+    if (!payoutForm.displayName.trim() || !payoutForm.accountNumber.trim() || !payoutForm.bankCode.trim()) {
+      setError("Add the account name, account number, and Paystack provider code before saving payout details.");
+      return;
+    }
+    setSavingPayoutRecipient(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const recipient = await api.savePayoutRecipient(token, {
+        recipient_type: payoutForm.recipientType,
+        display_name: payoutForm.displayName.trim(),
+        account_number: payoutForm.accountNumber.trim(),
+        bank_code: payoutForm.bankCode.trim(),
+      });
+      setPayoutRecipient(recipient);
+      setPayoutForm((current) => ({ ...current, accountNumber: "" }));
+      setSuccessMessage("Payout details saved securely.");
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : caught instanceof Error ? caught.message : "Unable to save payout details.");
+    } finally {
+      setSavingPayoutRecipient(false);
     }
   }
 
@@ -1283,6 +1371,14 @@ const styles = StyleSheet.create({
   },
   categorySection: {
     gap: theme.spacing[3],
+  },
+  payoutSection: {
+    gap: theme.spacing[3],
+    padding: theme.spacing[4],
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.stone[50],
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
   },
   categoryIntro: {
     fontFamily: theme.typography.fontFamily.body,

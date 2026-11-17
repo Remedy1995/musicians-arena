@@ -31,6 +31,11 @@ export type UserProfile = {
   timezone: string;
 };
 
+export type ContactDetails = {
+  email: string;
+  phone: string;
+};
+
 export type MeResponse = {
   id: string;
   username: string;
@@ -140,6 +145,7 @@ export type TalentDetailItem = TalentListItem & {
   reliability_score: string | number;
   verified_at: string | null;
   profile: UserProfile;
+  contact: ContactDetails | null;
   skills: TalentSkillItem[];
   event_types: TalentEventTypeItem[];
   media: TalentMediaItem[];
@@ -196,17 +202,22 @@ export type GigDetailItem = GigListItem & {
   requirements: string;
   venue_name: string;
   venue_address: string;
+  organizer_contact: ContactDetails | null;
   interests: GigInterestItem[];
 };
 
 export type BookingTalent = {
   id: string;
   username: string;
+  email: string;
+  phone: string;
 };
 
 export type BookingClient = {
   id: string;
   username: string;
+  email: string;
+  phone: string;
 };
 
 export type BookingOfferItem = {
@@ -297,6 +308,18 @@ export type PayoutItem = {
   updated_at: string;
 };
 
+export type PayoutRecipient = {
+  id: string;
+  recipient_type: "mobile_money" | "ghipss";
+  display_name: string;
+  masked_account: string;
+  bank_code: string;
+  currency_code: string;
+  status: "active" | "inactive";
+  created_at: string;
+  updated_at: string;
+};
+
 export type RefundItem = {
   id: string;
   booking: string;
@@ -334,6 +357,7 @@ export type BookingPaymentSummary = {
   payout_released_amount: string;
   funds_state: string;
   next_step: string;
+  settlement_requires_manual_allocation: boolean;
   balance_due_at: string | null;
   completion_confirmation_due_at: string | null;
   can_pay_deposit: boolean;

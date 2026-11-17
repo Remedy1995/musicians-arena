@@ -9,6 +9,16 @@ type RequestOptions = {
   isMultipart?: boolean;
 };
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
+function getNetworkErrorMessage(error: unknown) {
+  if (error instanceof Error && error.name === "AbortError") {
+    return "The connection took too long. Check your internet and try again.";
+  }
+
+  return "We couldn't reach Musicians Arena. Check your internet connection and try again.";
+}
+
 export class ApiError extends Error {
   status: number;
 
@@ -90,15 +100,26 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     return apiMultipartRequest<T>(`${apiConfig.baseUrl}${path}`, options.method ?? "POST", headers, options.body);
   }
 
-  const response = await fetch(`${apiConfig.baseUrl}${path}`, {
-    method: options.method ?? "GET",
-    headers,
-    ...(options.body
-      ? {
-          body: options.isMultipart ? (options.body as FormData) : JSON.stringify(options.body),
-        }
-      : {}),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response: Response;
+
+  try {
+    response = await fetch(`${apiConfig.baseUrl}${path}`, {
+      method: options.method ?? "GET",
+      headers,
+      signal: controller.signal,
+      ...(options.body
+        ? {
+            body: options.isMultipart ? (options.body as FormData) : JSON.stringify(options.body),
+          }
+        : {}),
+    });
+  } catch (caught) {
+    throw new ApiError(getNetworkErrorMessage(caught), 0);
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const isJson = response.headers.get("content-type")?.includes("application/json");
   const payload = isJson ? await response.json() : null;
@@ -123,6 +144,7 @@ function apiMultipartRequest<T>(
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open(method, url);
+    request.timeout = REQUEST_TIMEOUT_MS;
 
     Object.entries(headers).forEach(([key, value]) => {
       request.setRequestHeader(key, value);
@@ -147,7 +169,11 @@ function apiMultipartRequest<T>(
     };
 
     request.onerror = () => {
-      reject(new ApiError("Network request failed.", 0));
+      reject(new ApiError("We couldn't reach Musicians Arena. Check your internet connection and try again.", 0));
+    };
+
+    request.ontimeout = () => {
+      reject(new ApiError("The connection took too long. Check your internet and try again.", 0));
     };
 
     request.send(body);

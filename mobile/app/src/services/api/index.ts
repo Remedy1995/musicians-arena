@@ -14,6 +14,7 @@ import {
   NotificationUnreadCount,
   PushDevice,
   PayoutItem,
+  PayoutRecipient,
   TalentCategory,
   TalentMediaItem,
   TalentProfileMe,
@@ -128,6 +129,16 @@ export const api = {
   bookingPaymentSummary: (token: string, bookingId: string) =>
     apiRequest<BookingPaymentSummary>(`/payments/bookings/${bookingId}/summary/`, { token }),
   payouts: (token: string) => apiRequest<PayoutItem[]>("/payments/payouts/", { token }),
+  payoutRecipient: (token: string) => apiRequest<PayoutRecipient | null>("/payments/payout-recipient/", { token }),
+  savePayoutRecipient: (
+    token: string,
+    payload: {
+      recipient_type: "mobile_money" | "ghipss";
+      display_name: string;
+      account_number: string;
+      bank_code?: string;
+    },
+  ) => apiRequest<PayoutRecipient>("/payments/payout-recipient/", { method: "POST", token, body: payload }),
   recordBookingPayment: (
     token: string,
     bookingId: string,

@@ -248,6 +248,8 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
               onPress={() => {
                 if (role === "talent") {
                   setSelectedGigId(gig.id);
+                  setGigDetail(null);
+                  void api.gigDetail(token, gig.id).then(setGigDetail).catch(() => setGigDetail(null));
                   setInterestError(null);
                   setInterestForm({
                     note: gig.my_interest_status ? "Your interest has already been submitted for this gig." : "",
@@ -459,6 +461,13 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
                       <View style={styles.talentGigHeroText}>
                         <Text style={styles.gigContextTitle}>{selectedGig.title}</Text>
                         <Text style={styles.gigContextMeta}>Hosted by {selectedGig.organizer_name}</Text>
+                        {gigDetail?.id === selectedGig.id && gigDetail.organizer_contact && (gigDetail.organizer_contact.phone || gigDetail.organizer_contact.email) ? (
+                          <View style={styles.talentGigContactCard}>
+                            <Text style={styles.talentGigSectionTitle}>Organizer contact</Text>
+                            {gigDetail.organizer_contact.phone ? <Text style={styles.talentGigFactValue}>{gigDetail.organizer_contact.phone}</Text> : null}
+                            {gigDetail.organizer_contact.email ? <Text style={styles.talentGigFactValue}>{gigDetail.organizer_contact.email}</Text> : null}
+                          </View>
+                        ) : null}
                       </View>
                       <View style={[styles.talentGigUrgencyPill, selectedGig.is_urgent ? styles.talentGigUrgencyPillUrgent : undefined]}>
                         <Text style={[styles.talentGigUrgencyLabel, selectedGig.is_urgent ? styles.talentGigUrgencyLabelUrgent : undefined]}>
@@ -1516,6 +1525,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
     gap: theme.spacing[3],
+  },
+  talentGigContactCard: {
+    marginTop: theme.spacing[2],
+    padding: theme.spacing[3],
+    borderRadius: theme.radius.md,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    gap: theme.spacing[1],
   },
   talentGigSectionTitle: {
     fontFamily: theme.typography.fontFamily.bodySemibold,

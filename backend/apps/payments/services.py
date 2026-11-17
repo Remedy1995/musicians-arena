@@ -11,7 +11,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.bookings.models import Booking
-from apps.payments.models import Payment, Payout, Refund
+from apps.payments.models import Payment, Payout, PayoutRecipient, Refund
 
 
 MONEY_QUANT = Decimal("0.01")
@@ -132,6 +132,50 @@ def create_successful_held_payment(*, booking: Booking, payer, payment_type, amo
 
 class PaystackError(Exception):
     """Raised when Paystack cannot initialize or verify a transaction."""
+
+
+def _masked_account(account_number):
+    normalized = str(account_number).strip()
+    return f"****{normalized[-4:]}" if len(normalized) >= 4 else "****"
+
+
+def create_paystack_transfer_recipient(*, user, recipient_type, display_name, account_number, bank_code=""):
+    if not settings.PAYSTACK_TRANSFERS_ENABLED:
+        raise PaystackError("Paystack transfers are not enabled for this environment.")
+    if recipient_type not in {
+        PayoutRecipient.RecipientType.MOBILE_MONEY,
+        PayoutRecipient.RecipientType.GHIPSS,
+    }:
+        raise PaystackError("Unsupported Ghana payout recipient type.")
+
+    payload = {
+        "type": recipient_type,
+        "name": display_name,
+        "account_number": str(account_number).strip(),
+        "bank_code": str(bank_code).strip(),
+        "currency": settings.PAYSTACK_CURRENCY,
+        "email": user.email or "",
+        "description": "Musician's Arena talent payout recipient",
+    }
+    data = _paystack_request("POST", "/transferrecipient", payload)
+    recipient_code = data.get("recipient_code")
+    if not recipient_code:
+        raise PaystackError("Paystack did not return a payout recipient code.")
+
+    recipient, _ = PayoutRecipient.objects.update_or_create(
+        user=user,
+        defaults={
+            "recipient_type": recipient_type,
+            "display_name": display_name,
+            "masked_account": _masked_account(account_number),
+            "bank_code": str(bank_code).strip(),
+            "currency_code": settings.PAYSTACK_CURRENCY,
+            "recipient_code": recipient_code,
+            "status": PayoutRecipient.Status.ACTIVE,
+            "metadata_json": {"provider": "paystack"},
+        },
+    )
+    return recipient
 
 
 def paystack_amount_subunit(amount, currency_code):
@@ -306,8 +350,259 @@ def verify_paystack_signature(*, raw_body, signature):
     return hmac.compare_digest(expected, signature)
 
 
+def _transfer_reference(payout):
+    return payout.idempotency_key or f"ma_payout_{payout.id.hex}"
+
+
+@transaction.atomic
+def execute_paystack_payout(*, payout_id):
+    payout = Payout.objects.select_for_update().select_related("payee").get(id=payout_id)
+    if payout.status == Payout.Status.PAID:
+        return payout
+    if not settings.PAYSTACK_TRANSFERS_ENABLED:
+        return payout
+
+    recipient = PayoutRecipient.objects.filter(
+        user=payout.payee,
+        status=PayoutRecipient.Status.ACTIVE,
+    ).first()
+    if not recipient:
+        payout.status = Payout.Status.FAILED
+        payout.metadata_json = {
+            **(payout.metadata_json or {}),
+            "last_error": "Talent has not configured an active payout recipient.",
+        }
+        payout.save(update_fields=["status", "metadata_json", "updated_at"])
+        from apps.notifications.services import notify_payout_event
+
+        transaction.on_commit(lambda: notify_payout_event(payout=payout, event="failed"))
+        return payout
+
+    reference = _transfer_reference(payout)
+    if payout.status == Payout.Status.PROCESSING and payout.provider_reference:
+        return payout
+
+    payout.idempotency_key = reference
+    payout.provider_reference = reference
+    payout.status = Payout.Status.PROCESSING
+    payout.metadata_json = {
+        **(payout.metadata_json or {}),
+        "recipient_code": recipient.recipient_code,
+    }
+    payout.save(update_fields=["idempotency_key", "provider_reference", "status", "metadata_json", "updated_at"])
+
+    try:
+        transfer = _paystack_request(
+            "POST",
+            "/transfer",
+            {
+                "source": "balance",
+                "amount": paystack_amount_subunit(payout.net_amount, payout.booking.currency_code),
+                "recipient": recipient.recipient_code,
+                "reference": reference,
+                "reason": f"Musician's Arena payout for booking {payout.booking_id}",
+            },
+        )
+    except PaystackError as exc:
+        payout.status = Payout.Status.PENDING
+        payout.metadata_json = {**(payout.metadata_json or {}), "last_error": str(exc)}
+        payout.save(update_fields=["status", "metadata_json", "updated_at"])
+        raise
+
+    payout.metadata_json = {
+        **(payout.metadata_json or {}),
+        "transfer_code": transfer.get("transfer_code"),
+        "provider_status": transfer.get("status"),
+    }
+    payout.save(update_fields=["metadata_json", "updated_at"])
+    return payout
+
+
+def _refund_allocations(refund):
+    return (refund.metadata_json or {}).get("allocations", {})
+
+
+@transaction.atomic
+def execute_paystack_refund(*, refund_id):
+    refund = Refund.objects.select_for_update().get(id=refund_id)
+    if refund.status == Refund.Status.PAID:
+        return refund
+    if not settings.PAYSTACK_REFUNDS_ENABLED:
+        return refund
+
+    refund.status = Refund.Status.PROCESSING
+    refund.save(update_fields=["status", "updated_at"])
+    allocations = _refund_allocations(refund)
+    remaining = money(refund.amount) - sum(
+        (money(value.get("amount")) for value in allocations.values() if value.get("status") in {"accepted", "processing", "processed"}),
+        Decimal("0.00"),
+    )
+
+    payments = successful_collection_payments(refund.booking).filter(
+        provider="paystack",
+        fund_state__in=[Payment.FundState.REFUND_PENDING, Payment.FundState.HELD],
+    ).order_by("paid_at", "created_at")
+    for payment in payments:
+        if remaining <= 0:
+            break
+        reference = payment.provider_reference
+        if not reference or reference in allocations:
+            continue
+        amount = min(remaining, money(payment.amount))
+        try:
+            response = _paystack_request(
+                "POST",
+                "/refund",
+                {
+                    "transaction": reference,
+                    "amount": paystack_amount_subunit(amount, payment.currency_code),
+                },
+            )
+        except PaystackError as exc:
+            refund.status = Refund.Status.PENDING
+            refund.metadata_json = {
+                **(refund.metadata_json or {}),
+                "last_error": str(exc),
+            }
+            refund.save(update_fields=["status", "metadata_json", "updated_at"])
+            raise
+
+        allocations[reference] = {
+            "payment_id": str(payment.id),
+            "amount": str(amount),
+            "status": "accepted",
+            "provider_id": response.get("id"),
+        }
+        remaining -= amount
+
+    refund.metadata_json = {**(refund.metadata_json or {}), "allocations": allocations}
+    if remaining <= 0:
+        refund.status = Refund.Status.PROCESSING
+    refund.save(update_fields=["status", "metadata_json", "updated_at"])
+    return refund
+
+
+def _find_payout_for_transfer(reference):
+    return Payout.objects.filter(
+        idempotency_key=reference,
+    ).first() or Payout.objects.filter(provider_reference=reference).first()
+
+
+@transaction.atomic
+def process_paystack_transfer_webhook(*, event, data):
+    reference = data.get("reference") or ""
+    payout = _find_payout_for_transfer(reference)
+    if not payout:
+        return None
+
+    payout.metadata_json = {
+        **(payout.metadata_json or {}),
+        "provider_status": data.get("status"),
+        "gateway_response": data.get("gateway_response"),
+        "failures": data.get("failures"),
+    }
+    if event == "transfer.success":
+        payout.status = Payout.Status.PAID
+        payout.paid_at = timezone.now()
+        successful_collection_payments(payout.booking).filter(
+            fund_state=Payment.FundState.RELEASE_PENDING,
+        ).update(fund_state=Payment.FundState.RELEASED)
+    elif event == "transfer.failed":
+        payout.status = Payout.Status.FAILED
+        successful_collection_payments(payout.booking).filter(
+            fund_state=Payment.FundState.RELEASE_PENDING,
+        ).update(fund_state=Payment.FundState.HELD)
+    elif event == "transfer.reversed":
+        payout.status = Payout.Status.REVERSED
+        successful_collection_payments(payout.booking).filter(
+            fund_state=Payment.FundState.RELEASE_PENDING,
+        ).update(fund_state=Payment.FundState.HELD)
+    else:
+        return payout
+    payout.save(update_fields=["status", "paid_at", "metadata_json", "updated_at"])
+    if event in {"transfer.success", "transfer.failed", "transfer.reversed"}:
+        from apps.notifications.services import notify_payout_event
+
+        event_name = {
+            "transfer.success": "paid",
+            "transfer.failed": "failed",
+            "transfer.reversed": "reversed",
+        }[event]
+        transaction.on_commit(lambda: notify_payout_event(payout=payout, event=event_name))
+    return payout
+
+
+@transaction.atomic
+def process_paystack_refund_webhook(*, event, data):
+    transaction_value = data.get("transaction")
+    if isinstance(transaction_value, dict):
+        transaction_value = transaction_value.get("reference") or transaction_value.get("id")
+    reference = data.get("transaction_reference") or transaction_value or data.get("reference") or ""
+    refunds = list(Refund.objects.select_for_update().filter(status__in=[Refund.Status.PENDING, Refund.Status.PROCESSING]))
+    refund = next(
+        (
+            candidate
+            for candidate in refunds
+            if reference in _refund_allocations(candidate)
+            or any(item.get("provider_id") == data.get("id") for item in _refund_allocations(candidate).values())
+        ),
+        None,
+    )
+    if not refund:
+        return None
+
+    allocations = _refund_allocations(refund)
+    allocation_key = reference if reference in allocations else next(
+        (
+            key
+            for key, item in allocations.items()
+            if item.get("provider_id") == data.get("id")
+        ),
+        None,
+    )
+    allocation = allocations.get(allocation_key) if allocation_key else None
+    if allocation is not None:
+        allocation["status"] = {
+            "refund.pending": "accepted",
+            "refund.processing": "processing",
+            "refund.processed": "processed",
+            "refund.failed": "failed",
+        }.get(event, allocation.get("status"))
+
+    if event == "refund.processed":
+        if allocation:
+            payment = Payment.objects.filter(id=allocation.get("payment_id")).first()
+            if payment:
+                payment.fund_state = Payment.FundState.REFUNDED
+                payment.save(update_fields=["fund_state", "updated_at"])
+        if allocations and all(item.get("status") == "processed" for item in allocations.values()):
+            refund.status = Refund.Status.PAID
+            refund.processed_at = timezone.now()
+    elif event == "refund.failed":
+        refund.status = Refund.Status.FAILED
+    else:
+        refund.status = Refund.Status.PROCESSING
+
+    refund.metadata_json = {**(refund.metadata_json or {}), "allocations": allocations}
+    refund.save(update_fields=["status", "processed_at", "metadata_json", "updated_at"])
+    if event == "refund.processed" and refund.status == Refund.Status.PAID:
+        from apps.notifications.services import notify_refund_event
+
+        transaction.on_commit(lambda: notify_refund_event(refund=refund, event="paid"))
+    elif event == "refund.failed":
+        from apps.notifications.services import notify_refund_event
+
+        transaction.on_commit(lambda: notify_refund_event(refund=refund, event="failed"))
+    return refund
+
+
 def process_paystack_webhook(*, payload):
-    if payload.get("event") != "charge.success":
+    event = payload.get("event")
+    if event in {"transfer.success", "transfer.failed", "transfer.reversed"}:
+        return process_paystack_transfer_webhook(event=event, data=payload.get("data") or {})
+    if event in {"refund.pending", "refund.processing", "refund.processed", "refund.failed"}:
+        return process_paystack_refund_webhook(event=event, data=payload.get("data") or {})
+    if event != "charge.success":
         return None
     data = payload.get("data") or {}
     payment = Payment.objects.select_related("booking", "payer").filter(
@@ -392,12 +687,13 @@ def apply_cancellation_policy(*, booking: Booking, cancelled_by, reason=""):
         ]
     )
 
+    refund = None
     if refund_amount > 0:
         refund_reason = {
             Booking.CancellationPolicy.CLIENT_FREE_CANCELLATION: Refund.Reason.CLIENT_FREE_CANCELLATION,
             Booking.CancellationPolicy.TALENT_CANCELLED: Refund.Reason.TALENT_CANCELLED,
         }.get(policy, Refund.Reason.ADMIN_DECISION)
-        Refund.objects.update_or_create(
+        refund, _ = Refund.objects.update_or_create(
             booking=booking,
             reason=refund_reason,
             defaults={
@@ -408,16 +704,24 @@ def apply_cancellation_policy(*, booking: Booking, cancelled_by, reason=""):
                 "metadata_json": {"policy": policy},
             },
         )
-
+    payout = None
     if compensation_amount > 0:
-        create_or_update_payout(
+        payout = create_or_update_payout(
             booking=booking,
             gross_amount=compensation_amount,
             trigger_reason=Payout.TriggerReason.LATE_CANCELLATION_COMPENSATION,
             metadata={"policy": policy},
         )
 
-    mark_held_payments_for_policy(booking)
+    settlement_ready = mark_held_payments_for_policy(booking)
+    if settlement_ready and refund and settings.PAYSTACK_REFUNDS_ENABLED:
+        from apps.payments.tasks import execute_refund_task
+
+        transaction.on_commit(lambda: execute_refund_task.delay(str(refund.id)))
+    if settlement_ready and payout and settings.PAYSTACK_TRANSFERS_ENABLED:
+        from apps.payments.tasks import execute_payout_task
+
+        transaction.on_commit(lambda: execute_payout_task.delay(str(payout.id)))
     return booking
 
 
@@ -448,6 +752,54 @@ def report_no_show(*, booking: Booking, reported_by, no_show_party, reason=""):
 
 
 @transaction.atomic
+def settle_disputed_booking(*, booking: Booking, approved: bool):
+    """Apply an admin's final dispute decision without releasing funds early."""
+    if not approved:
+        successful_collection_payments(booking).filter(
+            fund_state=Payment.FundState.DISPUTED,
+        ).update(fund_state=Payment.FundState.HELD)
+        return booking
+
+    refund = None
+    if booking.refund_due_amount > 0:
+        refund_reason = {
+            Booking.CancellationPolicy.TALENT_NO_SHOW: Refund.Reason.TALENT_NO_SHOW,
+            Booking.CancellationPolicy.CLIENT_NO_SHOW: Refund.Reason.ADMIN_DECISION,
+        }.get(booking.cancellation_policy, Refund.Reason.ADMIN_DECISION)
+        refund, _ = Refund.objects.update_or_create(
+            booking=booking,
+            reason=refund_reason,
+            defaults={
+                "recipient": booking.client,
+                "amount": booking.refund_due_amount,
+                "currency_code": booking.currency_code,
+                "status": Refund.Status.PENDING,
+                "metadata_json": {"policy": booking.cancellation_policy, "source": "dispute_resolution"},
+            },
+        )
+
+    payout = None
+    if booking.talent_compensation_amount > 0:
+        payout = create_or_update_payout(
+            booking=booking,
+            gross_amount=booking.talent_compensation_amount,
+            trigger_reason=Payout.TriggerReason.CLIENT_NO_SHOW_COMPENSATION,
+            metadata={"policy": booking.cancellation_policy, "source": "dispute_resolution"},
+        )
+
+    settlement_ready = mark_held_payments_for_policy(booking)
+    if settlement_ready and refund and settings.PAYSTACK_REFUNDS_ENABLED:
+        from apps.payments.tasks import execute_refund_task
+
+        transaction.on_commit(lambda: execute_refund_task.delay(str(refund.id)))
+    if settlement_ready and payout and settings.PAYSTACK_TRANSFERS_ENABLED:
+        from apps.payments.tasks import execute_payout_task
+
+        transaction.on_commit(lambda: execute_payout_task.delay(str(payout.id)))
+    return booking
+
+
+@transaction.atomic
 def release_completion_payout(*, booking: Booking):
     totals = payment_totals(booking)
     if not totals["is_fully_funded"]:
@@ -462,13 +814,17 @@ def release_completion_payout(*, booking: Booking):
     successful_collection_payments(booking).filter(
         fund_state__in=[Payment.FundState.HELD, Payment.FundState.DISPUTED]
     ).update(fund_state=Payment.FundState.RELEASE_PENDING)
+    if settings.PAYSTACK_TRANSFERS_ENABLED:
+        from apps.payments.tasks import execute_payout_task
+
+        transaction.on_commit(lambda: execute_payout_task.delay(str(payout.id)))
     return payout
 
 
 def create_or_update_payout(*, booking: Booking, gross_amount, trigger_reason, metadata=None):
     gross = money(gross_amount)
     commission_amount = projected_commission(gross)
-    payout, _ = Payout.objects.update_or_create(
+    payout, created = Payout.objects.get_or_create(
         booking=booking,
         trigger_reason=trigger_reason,
         defaults={
@@ -481,18 +837,54 @@ def create_or_update_payout(*, booking: Booking, gross_amount, trigger_reason, m
             "metadata_json": metadata or {},
         },
     )
+    if not created and payout.status not in {Payout.Status.PAID, Payout.Status.PROCESSING}:
+        payout.gross_amount = gross
+        payout.commission_amount = commission_amount
+        payout.net_amount = money(gross - commission_amount)
+        payout.status = Payout.Status.PENDING
+        payout.metadata_json = {**(payout.metadata_json or {}), **(metadata or {})}
+        payout.save(update_fields=["gross_amount", "commission_amount", "net_amount", "status", "metadata_json", "updated_at"])
     return payout
 
 
 def mark_held_payments_for_policy(booking: Booking):
-    if booking.refund_due_amount > 0:
-        successful_collection_payments(booking).filter(fund_state=Payment.FundState.HELD).update(
-            fund_state=Payment.FundState.REFUND_PENDING
-        )
-    if booking.talent_compensation_amount > 0:
+    payments = list(
+        successful_collection_payments(booking)
+        .filter(fund_state__in=[Payment.FundState.HELD, Payment.FundState.DISPUTED])
+        .order_by("paid_at", "created_at")
+    )
+    refund_amount = money(booking.refund_due_amount)
+    compensation_amount = money(booking.talent_compensation_amount)
+
+    if refund_amount > 0 and compensation_amount > 0:
+        balance_payments = [payment for payment in payments if payment.payment_type == Payment.PaymentType.BALANCE]
+        deposit_payments = [payment for payment in payments if payment.payment_type == Payment.PaymentType.DEPOSIT]
+        balance_total = sum((money(payment.amount) for payment in balance_payments), Decimal("0.00"))
+        deposit_total = sum((money(payment.amount) for payment in deposit_payments), Decimal("0.00"))
+        if balance_total != refund_amount or deposit_total != compensation_amount:
+            booking.payment_policy_json = {
+                **(booking.payment_policy_json or {}),
+                "settlement_requires_manual_allocation": True,
+            }
+            booking.save(update_fields=["payment_policy_json", "updated_at"])
+            return False
+        for payment in balance_payments:
+            payment.fund_state = Payment.FundState.REFUND_PENDING
+            payment.save(update_fields=["fund_state", "updated_at"])
+        for payment in deposit_payments:
+            payment.fund_state = Payment.FundState.RELEASE_PENDING
+            payment.save(update_fields=["fund_state", "updated_at"])
+        return True
+
+    if refund_amount > 0:
         successful_collection_payments(booking).filter(
-            fund_state__in=[Payment.FundState.HELD, Payment.FundState.REFUND_PENDING]
+            fund_state__in=[Payment.FundState.HELD, Payment.FundState.DISPUTED]
+        ).update(fund_state=Payment.FundState.REFUND_PENDING)
+    if compensation_amount > 0:
+        successful_collection_payments(booking).filter(
+            fund_state__in=[Payment.FundState.HELD, Payment.FundState.DISPUTED]
         ).update(fund_state=Payment.FundState.RELEASE_PENDING)
+    return True
 
 
 def funds_state_for_booking(booking: Booking):
@@ -519,6 +911,8 @@ def funds_state_for_booking(booking: Booking):
 
 def next_step_for_booking(booking: Booking, *, user):
     totals = payment_totals(booking)
+    if booking.payment_policy_json.get("settlement_requires_manual_allocation"):
+        return "Support must allocate the refund and compensation before funds can move."
     if booking.status == Booking.Status.AWAITING_DEPOSIT:
         return "Organizer should pay the deposit. Funds will be held by the platform."
     if booking.status == Booking.Status.CONFIRMED and not totals["is_fully_funded"]:
@@ -570,6 +964,9 @@ def build_payment_summary_payload(booking: Booking, *, user):
         ),
         "funds_state": funds_state_for_booking(booking),
         "next_step": next_step_for_booking(booking, user=user),
+        "settlement_requires_manual_allocation": bool(
+            booking.payment_policy_json.get("settlement_requires_manual_allocation")
+        ),
         "balance_due_at": booking.balance_due_at,
         "completion_confirmation_due_at": booking.completion_confirmation_due_at,
         "can_pay_deposit": user.id == booking.client_id and booking.status == Booking.Status.AWAITING_DEPOSIT,

@@ -8,12 +8,14 @@ from apps.payments.views import (
     PaystackWebhookView,
     PaymentListView,
     PayoutListView,
+    PayoutRecipientView,
 )
 
 
 urlpatterns = [
     path("", PaymentListView.as_view(), name="payment-list"),
     path("payouts/", PayoutListView.as_view(), name="payout-list"),
+    path("payout-recipient/", PayoutRecipientView.as_view(), name="payout-recipient"),
     path("bookings/<uuid:booking_id>/summary/", BookingPaymentSummaryView.as_view(), name="booking-payment-summary"),
     path("bookings/<uuid:booking_id>/pay/", BookingPaymentCreateView.as_view(), name="booking-payment-create"),
     path("bookings/<uuid:booking_id>/paystack/initialize/", PaystackInitializeView.as_view(), name="paystack-initialize"),

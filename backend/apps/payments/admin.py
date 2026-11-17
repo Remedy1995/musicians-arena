@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.payments.models import Payment, Payout, Refund
+from apps.payments.models import Payment, Payout, PayoutRecipient, Refund
 
 
 @admin.register(Payment)
@@ -15,6 +15,14 @@ class PayoutAdmin(admin.ModelAdmin):
     list_display = ("booking", "payee", "gross_amount", "net_amount", "status", "trigger_reason", "payout_method", "paid_at")
     list_filter = ("status", "trigger_reason", "payout_method")
     search_fields = ("booking__title", "payee__username", "provider_reference")
+
+
+@admin.register(PayoutRecipient)
+class PayoutRecipientAdmin(admin.ModelAdmin):
+    list_display = ("user", "recipient_type", "display_name", "masked_account", "status", "updated_at")
+    list_filter = ("recipient_type", "status", "currency_code")
+    search_fields = ("user__username", "user__email", "display_name", "recipient_code")
+    readonly_fields = ("recipient_code", "masked_account", "metadata_json")
 
 
 @admin.register(Refund)

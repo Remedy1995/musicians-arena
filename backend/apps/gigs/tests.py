@@ -45,6 +45,17 @@ class GigInvitationFlowTests(TestCase):
             budget_max="800.00",
         )
 
+    def test_talent_can_see_organizer_contact_on_gig_detail(self):
+        self.client.force_authenticate(self.talent)
+
+        response = self.client.get(f"/api/v1/gigs/{self.gig.id}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["organizer_contact"], {
+            "email": "organizer@example.com",
+            "phone": "233200000001",
+        })
+
     @patch("apps.gigs.views.notify_gig_invitation_sent")
     def test_organizer_can_invite_talent_to_open_gig(self, notify_invitation):
         self.client.force_authenticate(self.organizer)

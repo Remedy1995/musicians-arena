@@ -102,3 +102,42 @@ class TalentDirectoryFilterTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual([item["id"] for item in response.data], [str(self.talent.id)])
+
+
+class RoleAwareContactDetailTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.organizer = User.objects.create_user(
+            username="contact_organizer",
+            email="organizer-contact@example.com",
+            phone="233200000210",
+            password="Password123",
+        )
+        self.talent_user = User.objects.create_user(
+            username="contact_talent",
+            email="talent-contact@example.com",
+            phone="233200000211",
+            password="Password123",
+        )
+        UserCapability.objects.create(user=self.organizer, capability=UserCapability.Capability.ORGANIZER)
+        UserCapability.objects.create(user=self.talent_user, capability=UserCapability.Capability.TALENT)
+        UserProfile.objects.create(user=self.organizer, display_name="Contact Organizer")
+        UserProfile.objects.create(user=self.talent_user, display_name="Contact Talent")
+        self.talent = TalentProfile.objects.create(user=self.talent_user)
+
+    def test_organizer_can_see_talent_contact_on_talent_detail(self):
+        self.client.force_authenticate(self.organizer)
+
+        response = self.client.get(f"/api/v1/profiles/talents/{self.talent.id}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["contact"], {
+            "email": "talent-contact@example.com",
+            "phone": "233200000211",
+        })
+
+    def test_public_talent_detail_does_not_expose_contact(self):
+        response = self.client.get(f"/api/v1/profiles/talents/{self.talent.id}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["contact"])

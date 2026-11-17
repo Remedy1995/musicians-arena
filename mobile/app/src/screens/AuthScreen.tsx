@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AuthMode } from "../AppShell";
 import { ApiError } from "../services/api/client";
@@ -24,6 +24,7 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<"network" | "form">("form");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [form, setForm] = useState({
@@ -37,6 +38,7 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
     setMode(initialMode);
     setPasswordTouched(false);
     setError(null);
+    setErrorKind("form");
   }, [initialMode]);
 
   const isLogin = mode === "login";
@@ -52,27 +54,32 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
     setMode(nextMode);
     setPasswordTouched(false);
     setError(null);
+    setErrorKind("form");
     onSwitchMode(nextMode);
   }
 
   async function handleSubmit() {
     if (!form.username.trim()) {
       setError("Username is required.");
+      setErrorKind("form");
       return;
     }
     if (!form.password) {
       if (mode === "register") setPasswordTouched(true);
       setError("Password is required.");
+      setErrorKind("form");
       return;
     }
     if (mode === "register" && !passwordIsValid) {
       setPasswordTouched(true);
       setError("Use a medium-strength password with 8 characters, a letter, and a number.");
+      setErrorKind("form");
       return;
     }
 
     setLoading(true);
     setError(null);
+    setErrorKind("form");
 
     try {
       const session =
@@ -91,10 +98,13 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
       onAuthenticated(session);
     } catch (caught) {
       if (caught instanceof ApiError) {
+        setErrorKind(caught.status === 0 ? "network" : "form");
         setError(caught.message);
       } else if (caught instanceof Error) {
-        setError(caught.message);
+        setErrorKind("network");
+        setError("We couldn't complete the request. Check your internet connection and try again.");
       } else {
+        setErrorKind("form");
         setError("Authentication failed.");
       }
     } finally {
@@ -186,7 +196,11 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
           <TextField
             label="Username"
             value={form.username}
-            onChangeText={(value) => setForm((current) => ({ ...current, username: value }))}
+            onChangeText={(value) => {
+              setError(null);
+              setErrorKind("form");
+              setForm((current) => ({ ...current, username: value }));
+            }}
             placeholder="Choose a username"
             leftAccessory={<MaterialCommunityIcons name="account-outline" size={20} color={theme.semanticColors.textMuted} />}
           />
@@ -195,14 +209,22 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
               <TextField
                 label="Email"
                 value={form.email}
-                onChangeText={(value) => setForm((current) => ({ ...current, email: value }))}
+                onChangeText={(value) => {
+                  setError(null);
+                  setErrorKind("form");
+                  setForm((current) => ({ ...current, email: value }));
+                }}
                 keyboardType="email-address"
                 leftAccessory={<MaterialCommunityIcons name="email-outline" size={20} color={theme.semanticColors.textMuted} />}
               />
               <TextField
                 label="Phone"
                 value={form.phone}
-                onChangeText={(value) => setForm((current) => ({ ...current, phone: value }))}
+                onChangeText={(value) => {
+                  setError(null);
+                  setErrorKind("form");
+                  setForm((current) => ({ ...current, phone: value }));
+                }}
                 keyboardType="phone-pad"
                 leftAccessory={<MaterialCommunityIcons name="phone-outline" size={20} color={theme.semanticColors.textMuted} />}
               />
@@ -214,6 +236,7 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
             onChangeText={(value) => {
               setPasswordTouched(true);
               setError(null);
+              setErrorKind("form");
               setForm((current) => ({ ...current, password: value }));
             }}
             secureTextEntry={!showPassword}
@@ -242,17 +265,33 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
               </View>
             </View>
           ) : null}
+          {loading ? (
+            <View style={styles.connectionNotice}>
+              <ActivityIndicator size="small" color={theme.semanticColors.primary} />
+              <View style={styles.connectionCopy}>
+                <Text style={styles.connectionTitle}>Connecting</Text>
+                <Text style={styles.connectionBody}>We’re reaching the Musicians Arena server now.</Text>
+              </View>
+            </View>
+          ) : null}
           {error ? (
-            <View style={styles.errorBanner}>
-              <MaterialCommunityIcons name="alert-circle-outline" size={18} color={theme.semanticColors.danger} />
-              <Text style={styles.error}>{error}</Text>
+            <View style={[styles.errorBanner, errorKind === "network" ? styles.networkBanner : undefined]}>
+              <MaterialCommunityIcons
+                name={errorKind === "network" ? "wifi-off" : "alert-circle-outline"}
+                size={18}
+                color={errorKind === "network" ? theme.colors.gold[600] : theme.semanticColors.danger}
+              />
+              <View style={styles.errorCopy}>
+                <Text style={styles.errorTitle}>{errorKind === "network" ? "Sorry, there was a network error" : "Check your details"}</Text>
+                <Text style={styles.error}>{error}</Text>
+              </View>
             </View>
           ) : null}
         </View>
 
         <View style={styles.actions}>
           <PrimaryButton
-            label={loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
+            label={loading ? "Please wait..." : error && errorKind === "network" ? "Try again" : mode === "login" ? "Sign in" : "Create account"}
             disabled={loading}
             onPress={() => void handleSubmit()}
           />
@@ -515,6 +554,44 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF0ED",
     borderWidth: 1,
     borderColor: "#F4C5B7",
+  },
+  networkBanner: {
+    backgroundColor: "#FFF8E8",
+    borderColor: theme.colors.gold[300],
+  },
+  errorCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  errorTitle: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.sm,
+    color: theme.semanticColors.textPrimary,
+  },
+  connectionNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[3],
+    padding: theme.spacing[3],
+    borderRadius: theme.radius.md,
+    backgroundColor: "#FFF8E8",
+    borderWidth: 1,
+    borderColor: theme.colors.gold[300],
+  },
+  connectionCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  connectionTitle: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.sm,
+    color: theme.semanticColors.textPrimary,
+  },
+  connectionBody: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.xs,
+    lineHeight: theme.typography.lineHeight.xs,
+    color: theme.semanticColors.textSecondary,
   },
   actions: {
     gap: theme.spacing[3],

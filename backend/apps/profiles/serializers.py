@@ -55,6 +55,11 @@ class ClientProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
 
+class ContactDetailsSerializer(serializers.Serializer):
+    email = serializers.EmailField(allow_blank=True, allow_null=True)
+    phone = serializers.CharField(allow_blank=True, allow_null=True)
+
+
 class UserProfilePhotoUploadSerializer(serializers.ModelSerializer):
     profile_image = serializers.FileField(write_only=True)
     profile_image_url = serializers.SerializerMethodField(read_only=True)
@@ -283,6 +288,7 @@ class TalentProfileListSerializer(serializers.ModelSerializer):
 
 class TalentProfileDetailSerializer(TalentProfileListSerializer):
     profile = UserProfileSerializer(source="user.profile", read_only=True)
+    contact = serializers.SerializerMethodField()
     skills = serializers.SerializerMethodField()
     event_types = serializers.SerializerMethodField()
     media = TalentMediaSerializer(many=True, read_only=True)
@@ -294,6 +300,7 @@ class TalentProfileDetailSerializer(TalentProfileListSerializer):
             "reliability_score",
             "verified_at",
             "profile",
+            "contact",
             "skills",
             "event_types",
             "media",
@@ -310,6 +317,17 @@ class TalentProfileDetailSerializer(TalentProfileListSerializer):
             }
             for skill in obj.skills.select_related("category").all()
         ]
+
+    @extend_schema_field(ContactDetailsSerializer(allow_null=True))
+    def get_contact(self, obj):
+        request = self.context.get("request")
+        viewer = getattr(request, "user", None)
+        if not viewer or not viewer.is_authenticated or viewer.id == obj.user_id or not viewer.has_capability("organizer"):
+            return None
+        return {
+            "email": obj.user.email or "",
+            "phone": obj.user.phone or "",
+        }
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_event_types(self, obj):

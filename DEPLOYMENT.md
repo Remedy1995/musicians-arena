@@ -16,6 +16,8 @@ The deployment uses:
 
 The native Android and iOS applications are built on a development Mac. Android tester APKs and signed iOS distribution builds use EAS; local iOS development builds use Xcode. Neither mobile binary is hosted inside the VPS.
 
+For a beginner-friendly explanation of Caddy, Docker Compose, reverse proxying, HTTPS, service updates, backups, and troubleshooting, see [`docs/caddy-docker-deployment-guide.md`](docs/caddy-docker-deployment-guide.md).
+
 Caddy is the single public gateway. Do not run Nginx on ports 80 or 443 at the same time. Nginx may continue serving Shirley Trading internally on port 8081, while Caddy handles public HTTPS.
 
 ## Deployment modes
@@ -307,12 +309,21 @@ Start with Paystack test mode. Put the secret only in backend/.env:
     PAYSTACK_CURRENCY=GHS
     PAYSTACK_PAYMENT_CHANNELS=card,mobile_money,bank,ussd
     PAYSTACK_REQUEST_TIMEOUT_SECONDS=20
+    PAYSTACK_TRANSFERS_ENABLED=False
+    PAYSTACK_REFUNDS_ENABLED=False
+    PAYMENT_ALLOW_MANUAL_RECORDING=False
 
 After the HTTPS domain is working, register this webhook in Paystack:
 
     https://api.musicianz.site/api/v1/payments/paystack/webhook/
 
 The Paystack secret is never included in the mobile app. The backend calculates the deposit and balance, initializes checkout, verifies the reference and amount, and records the money as held funds.
+
+The talent payout recipient endpoint is:
+
+    https://api.musicianz.site/api/v1/payments/payout-recipient/
+
+Keep transfers and refunds disabled until the Paystack test journey is complete. When the production account is approved for both capabilities, set `PAYSTACK_TRANSFERS_ENABLED=True` and `PAYSTACK_REFUNDS_ENABLED=True` in the protected backend environment, then restart the API and Celery worker. Keep `PAYMENT_ALLOW_MANUAL_RECORDING=False` in production.
 
 Test the business flow:
 

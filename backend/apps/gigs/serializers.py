@@ -128,6 +128,7 @@ class GigListSerializer(serializers.ModelSerializer):
 
 
 class GigDetailSerializer(GigListSerializer):
+    organizer_contact = serializers.SerializerMethodField()
     requirements = serializers.CharField()
     venue_name = serializers.CharField()
     venue_address = serializers.CharField()
@@ -138,8 +139,20 @@ class GigDetailSerializer(GigListSerializer):
             "requirements",
             "venue_name",
             "venue_address",
+            "organizer_contact",
             "interests",
         ]
+
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_organizer_contact(self, obj):
+        request = self.context.get("request")
+        viewer = getattr(request, "user", None)
+        if not viewer or not viewer.is_authenticated or viewer.id == obj.organizer_id or not viewer.has_capability("talent"):
+            return None
+        return {
+            "email": obj.organizer.email or "",
+            "phone": obj.organizer.phone or "",
+        }
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_interests(self, obj):

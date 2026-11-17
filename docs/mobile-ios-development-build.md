@@ -145,23 +145,42 @@ This build embeds the JavaScript bundle, so Metro is not required. The device st
 
 ## 8. After Code Changes
 
-From the source checkout, sync the safe build copy and rebuild when native files or dependencies change:
+You do **not** need to run `expo prebuild` and `pod install` after every code change. First sync the source checkout into the safe build copy:
 
 ```bash
 rsync -a --exclude node_modules --exclude ios \
   "/Users/japhetadjetey/Documents/Musician's arena/mobile/app/" \
   "$HOME/Projects/musicians-arena-mobile/"
 cd "$HOME/Projects/musicians-arena-mobile"
-npm ci
-npx expo prebuild --platform ios
-cd ios && pod install && cd ..
 ```
 
-For JavaScript-only changes, restart Metro with cache cleared:
+### JavaScript or UI-only changes
+
+For screen, styling, API, and other JavaScript-only changes, restart Metro with cache cleared. No CocoaPods step is required:
 
 ```bash
 npx expo start --dev-client --host lan --port 8081 --clear
 ```
+
+Then return to Xcode and press `Cmd + R`.
+
+### Dependency or native configuration changes
+
+Run `npm ci` when `package.json` or `package-lock.json` changes, or when setting up the safe copy for the first time:
+
+```bash
+npm ci
+```
+
+Run `expo prebuild` and `pod install` only after changing an Expo dependency, `app.config.ts`, an Expo plugin, permissions, the bundle identifier, or another native iOS setting:
+
+```bash
+npx expo prebuild --platform ios
+cd ios && pod install && cd ..
+npx expo run:ios --device
+```
+
+If Xcode or Metro reports stale native modules, repeat the native configuration steps above. Avoid `--clean` unless the generated iOS project is genuinely corrupted, because it recreates native files and can remove local native adjustments.
 
 ## 9. Important Distribution Note
 

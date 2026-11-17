@@ -11,14 +11,13 @@ from apps.bookings.serializers import (
     BookingActionSerializer,
     BookingOfferSerializer,
     BookingSerializer,
-    BookingStatusUpdateSerializer,
     CounterOfferSerializer,
     DisputeCreateSerializer,
     DisputeResolutionSerializer,
     DisputeSerializer,
 )
 from apps.common.throttling import ScopedWriteThrottleMixin
-from apps.notifications.services import notify_booking_action, notify_booking_created
+from apps.notifications.services import notify_booking_action, notify_booking_created, notify_dispute_opened
 
 
 @extend_schema_view(
@@ -44,27 +43,14 @@ class BookingListCreateView(ScopedWriteThrottleMixin, generics.ListCreateAPIView
         notify_booking_created(booking=booking)
 
 
-class BookingDetailView(ScopedWriteThrottleMixin, generics.RetrieveUpdateAPIView):
+class BookingDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    throttle_scope = "booking_action_write"
 
     def get_queryset(self):
         user = self.request.user
         return Booking.objects.filter(Q(client=user) | Q(talent=user)).select_related("client", "talent", "event_type")
 
-    def get_serializer_class(self):
-        if self.request.method in {"PUT", "PATCH"}:
-            return BookingStatusUpdateSerializer
-        return BookingSerializer
-
-    def perform_update(self, serializer):
-        booking = self.get_object()
-        user = self.request.user
-
-        if user.id not in {booking.client_id, booking.talent_id}:
-            raise PermissionDenied("You do not have access to this booking.")
-
-        serializer.save()
+    serializer_class = BookingSerializer
 
 
 class BookingActionView(ScopedWriteThrottleMixin, APIView):
@@ -103,6 +89,9 @@ class BookingActionView(ScopedWriteThrottleMixin, APIView):
             notify_booking_action(booking=booking, action="complete")
         elif action == "report_no_show":
             notify_booking_action(booking=booking, action="no_show")
+            dispute = booking.disputes.order_by("-created_at").first()
+            if dispute:
+                notify_dispute_opened(dispute=dispute)
         return Response(BookingSerializer(booking, context={"request": request}).data)
 
     def _get_booking(self, user, pk):

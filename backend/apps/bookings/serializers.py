@@ -96,17 +96,28 @@ class BookingSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_client(self, obj):
+        contact = self._get_contact(obj.client, obj)
         return {
             "id": str(obj.client_id),
             "username": obj.client.username,
+            **contact,
         }
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_talent(self, obj):
+        contact = self._get_contact(obj.talent, obj)
         return {
             "id": str(obj.talent_id),
             "username": obj.talent.username,
+            **contact,
         }
+
+    def _get_contact(self, user, booking):
+        request = self.context.get("request")
+        viewer = getattr(request, "user", None)
+        if not viewer or not viewer.is_authenticated or viewer.id not in {booking.client_id, booking.talent_id}:
+            return {"email": "", "phone": ""}
+        return {"email": user.email or "", "phone": user.phone or ""}
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_latest_offer(self, obj):
@@ -140,12 +151,6 @@ class BookingSerializer(serializers.ModelSerializer):
         if event_date and event_date < timezone.localdate():
             raise serializers.ValidationError({"event_date": "Event date cannot be in the past."})
         return attrs
-
-
-class BookingStatusUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Booking
-        fields = ["status", "quoted_amount", "deposit_amount", "balance_amount"]
 
 
 class BookingOfferSerializer(serializers.ModelSerializer):
@@ -311,7 +316,7 @@ class CounterOfferSerializer(serializers.Serializer):
         booking = self.context["booking"]
         user = self.context["request"].user
 
-        if booking.status not in {Booking.Status.PENDING, Booking.Status.COUNTERED, Booking.Status.AWAITING_DEPOSIT} and not booking_is_legacy_negotiation(booking):
+        if booking.status not in {Booking.Status.PENDING, Booking.Status.COUNTERED} and not booking_is_legacy_negotiation(booking):
             raise serializers.ValidationError("Counteroffers are not allowed for this booking in its current state.")
 
         latest_offer = booking.offers.order_by("-created_at").first()
@@ -411,6 +416,9 @@ class DisputeCreateSerializer(serializers.ModelSerializer):
                 changed_by=user,
                 reason=f"Dispute opened: {dispute.dispute_type}.",
             )
+        from apps.notifications.services import notify_dispute_opened
+
+        transaction.on_commit(lambda: notify_dispute_opened(dispute=dispute))
         return dispute
 
 
@@ -435,6 +443,8 @@ class DisputeResolutionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Invalid dispute transition.")
         if status_value in {Dispute.Status.RESOLVED, Dispute.Status.REJECTED} and not attrs.get("resolution_notes"):
             raise serializers.ValidationError({"resolution_notes": "Resolution notes are required."})
+        if status_value in {Dispute.Status.RESOLVED, Dispute.Status.REJECTED} and not attrs.get("booking_status"):
+            raise serializers.ValidationError({"booking_status": "Choose the final booking outcome."})
         return attrs
 
     @transaction.atomic
@@ -455,4 +465,13 @@ class DisputeResolutionSerializer(serializers.ModelSerializer):
                 changed_by=user,
                 reason=f"Dispute updated to {instance.status}.",
             )
+        if instance.status in {Dispute.Status.RESOLVED, Dispute.Status.REJECTED}:
+            from apps.payments.services import settle_disputed_booking
+            from apps.notifications.services import notify_dispute_resolution
+
+            settle_disputed_booking(
+                booking=instance.booking,
+                approved=instance.status == Dispute.Status.RESOLVED,
+            )
+            transaction.on_commit(lambda: notify_dispute_resolution(dispute=instance))
         return instance

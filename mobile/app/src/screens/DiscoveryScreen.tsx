@@ -488,6 +488,14 @@ function TalentDetailScreen({
             <Text style={styles.detailMeta}>Response time: {talent.response_time_minutes || "Not specified"} minutes</Text>
             <Text style={styles.detailMeta}>Portfolio samples: {talent.media.length}</Text>
           </View>
+
+          {talent.contact && (talent.contact.phone || talent.contact.email) ? (
+            <View style={styles.detailSectionCard}>
+              <Text style={styles.detailSectionTitle}>Contact details</Text>
+              {talent.contact.phone ? <Text style={styles.detailMeta}>Phone: {talent.contact.phone}</Text> : null}
+              {talent.contact.email ? <Text style={styles.detailMeta}>Email: {talent.contact.email}</Text> : null}
+            </View>
+          ) : null}
         </ScrollView>
       )}
 

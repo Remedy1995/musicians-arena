@@ -4,7 +4,7 @@ import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "r
 
 import { UserRole } from "../AppShell";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
-import { BookingItem, BookingPaymentSummary, UserSummary } from "../services/api/types";
+import { BookingItem, BookingPaymentSummary, DisputeItem, UserSummary } from "../services/api/types";
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
 import { BookingCard } from "../components/BookingCard";
@@ -96,6 +96,9 @@ export function BookingsScreen({
   );
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [actionOpen, setActionOpen] = useState(false);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeType, setDisputeType] = useState<DisputeItem["dispute_type"]>("other");
+  const [disputeDescription, setDisputeDescription] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [activeActionForm, setActiveActionForm] = useState<"accept" | "counteroffer" | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -264,6 +267,16 @@ export function BookingsScreen({
                     ? `Talent: ${selectedBooking.talent.username}`
                     : `Client: ${selectedBooking.client.username}`}
                 </Text>
+                {(() => {
+                  const contact = role === "client" ? selectedBooking.talent : selectedBooking.client;
+                  return contact.phone || contact.email ? (
+                    <View style={styles.contactCard}>
+                      <Text style={styles.contactCardTitle}>Contact details</Text>
+                      {contact.phone ? <Text style={styles.summaryMeta}>Phone: {contact.phone}</Text> : null}
+                      {contact.email ? <Text style={styles.summaryMeta}>Email: {contact.email}</Text> : null}
+                    </View>
+                  ) : null;
+                })()}
                 <Text style={styles.summaryMeta}>
                   {selectedBooking.event_date}
                   {selectedBooking.start_time ? ` at ${selectedBooking.start_time.slice(0, 5)}` : ""}
@@ -361,6 +374,11 @@ export function BookingsScreen({
                   <Text style={styles.paymentHint}>Balance due by {formatTimestamp(paymentSummary.balance_due_at)}</Text>
                 ) : null}
                 {paymentSummary?.next_step ? <Text style={styles.paymentNextStep}>{paymentSummary.next_step}</Text> : null}
+                {paymentSummary?.settlement_requires_manual_allocation ? (
+                  <Text style={styles.paymentHint}>
+                    Support review is required before this mixed refund and compensation can be released.
+                  </Text>
+                ) : null}
                 {role === "talent" ? (
                   <>
                     <Text style={styles.paymentLine}>Projected commission: {formatMoney(selectedBooking.currency_code, paymentSummary?.projected_commission_amount)}</Text>
@@ -508,6 +526,16 @@ export function BookingsScreen({
                         }}
                       />
                     ) : null}
+                    {effectiveStatus && ["confirmed", "in_progress", "completed"].includes(effectiveStatus) ? (
+                      <SecondaryButton
+                        label="Report a booking concern"
+                        onPress={() => {
+                          setActionError(null);
+                          setActionOpen(false);
+                          setDisputeOpen(true);
+                        }}
+                      />
+                    ) : null}
                   </>
                 ) : null}
                 {role === "talent" && effectiveStatus === "awaiting_deposit" ? (
@@ -526,6 +554,52 @@ export function BookingsScreen({
               </View>
             </ScrollView>
           ) : null}
+        </ModalSurface>
+      </Modal>
+      <Modal
+        animationType="slide"
+        visible={disputeOpen}
+        onRequestClose={() => setDisputeOpen(false)}
+      >
+        <ModalSurface style={styles.modalScreen}>
+          <View style={styles.modalHeader}>
+            <View style={styles.modalTitleWrap}>
+              <Text style={styles.modalTitle}>Request booking review</Text>
+              <Text style={styles.modalSubtitle}>Support will review the concern before any refund or compensation is released.</Text>
+            </View>
+            <Pressable onPress={() => setDisputeOpen(false)}>
+              <Text style={styles.modalClose}>Close</Text>
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.modalForm}>
+            <View style={styles.selectorRow}>
+              {(["no_show", "payment", "quality", "misconduct", "other"] as const).map((type) => (
+                <Pressable
+                  key={type}
+                  onPress={() => setDisputeType(type)}
+                  style={[styles.selectorChip, disputeType === type ? styles.selectorChipActive : undefined]}
+                >
+                  <Text style={[styles.selectorChipLabel, disputeType === type ? styles.selectorChipLabelActive : undefined]}>
+                    {formatStatusLabel(type)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <TextField
+              label="What happened?"
+              value={disputeDescription}
+              onChangeText={setDisputeDescription}
+              multiline
+              placeholder="Describe the missed obligation or payment concern."
+            />
+            {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+            <PrimaryButton
+              label={submitting ? "Sending for review..." : "Send for review"}
+              onPress={() => {
+                void handleCreateDispute();
+              }}
+            />
+          </ScrollView>
         </ModalSurface>
       </Modal>
       <Modal
@@ -706,6 +780,29 @@ export function BookingsScreen({
     }
   }
 
+  async function handleCreateDispute() {
+    if (!selectedBooking || !disputeDescription.trim()) {
+      setActionError("Describe the concern before sending it for review.");
+      return;
+    }
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      await api.createBookingDispute(token, selectedBooking.id, {
+        dispute_type: disputeType,
+        description: disputeDescription.trim(),
+      });
+      await marketplace.refresh();
+      setDisputeDescription("");
+      setDisputeType("other");
+      setDisputeOpen(false);
+    } catch (caught) {
+      setActionError(caught instanceof ApiError ? caught.message : caught instanceof Error ? caught.message : "Unable to send the booking concern.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
 async function handleCounteroffer() {
     if (!selectedBooking) return;
     setSubmitting(true);
@@ -786,6 +883,7 @@ async function handleCounteroffer() {
 
   function closeModal() {
     setActionOpen(false);
+    setDisputeOpen(false);
     setHistoryOpen(false);
     setActiveActionForm(null);
     setSelectedBookingId(null);
@@ -1034,6 +1132,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  modalTitleWrap: {
+    flex: 1,
+    gap: theme.spacing[1],
+  },
   modalTitle: {
     fontFamily: theme.typography.fontFamily.displayMedium,
     fontSize: theme.typography.size["2xl"],
@@ -1044,12 +1146,43 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size.sm,
     color: theme.semanticColors.primary,
   },
+  modalSubtitle: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.sm,
+    lineHeight: theme.typography.lineHeight.sm,
+    color: theme.semanticColors.textSecondary,
+  },
   modalForm: {
     gap: theme.spacing[4],
     paddingBottom: theme.spacing[8],
   },
   modalScroll: {
     flex: 1,
+  },
+  selectorRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing[2],
+  },
+  selectorChip: {
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: theme.spacing[2],
+    backgroundColor: theme.semanticColors.surface,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
+  },
+  selectorChipActive: {
+    backgroundColor: theme.colors.ink[900],
+    borderColor: theme.colors.gold[400],
+  },
+  selectorChipLabel: {
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    fontSize: theme.typography.size.sm,
+    color: theme.semanticColors.textSecondary,
+  },
+  selectorChipLabelActive: {
+    color: theme.semanticColors.textOnDark,
   },
   helperText: {
     fontFamily: theme.typography.fontFamily.body,
@@ -1077,6 +1210,18 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.sm,
     color: "rgba(255,255,255,0.88)",
+  },
+  contactCard: {
+    marginTop: theme.spacing[2],
+    padding: theme.spacing[2],
+    borderRadius: theme.radius.md,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  contactCardTitle: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    color: theme.semanticColors.textOnDark,
+    marginBottom: 2,
   },
   timelineCard: {
     borderRadius: theme.radius.xl,

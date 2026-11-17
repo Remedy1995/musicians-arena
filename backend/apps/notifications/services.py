@@ -136,6 +136,88 @@ def notify_booking_action(*, booking, action):
     )
 
 
+def notify_dispute_opened(*, dispute):
+    booking = dispute.booking
+    recipient_id = booking.talent_id if dispute.raised_by_id == booking.client_id else booking.client_id
+    dispatch_notification(
+        user_id=recipient_id,
+        notification_type=NotificationType.DISPUTE_OPENED,
+        title="Booking concern received",
+        body=f"A concern was opened for '{booking.title}'. Support will review the booking before funds move.",
+        payload={
+            "booking_id": str(booking.id),
+            "dispute_id": str(dispute.id),
+            "dispute_type": dispute.dispute_type,
+        },
+    )
+
+
+def notify_dispute_resolution(*, dispute):
+    booking = dispute.booking
+    resolved = dispute.status == dispute.Status.RESOLVED
+    notification_type = NotificationType.DISPUTE_RESOLVED if resolved else NotificationType.DISPUTE_REJECTED
+    title = "Booking concern resolved" if resolved else "Booking concern closed"
+    body = (
+        f"Support resolved the concern for '{booking.title}'. Check the booking payment summary for the outcome."
+        if resolved
+        else f"Support closed the concern for '{booking.title}' without releasing disputed funds."
+    )
+    for user_id in {booking.client_id, booking.talent_id}:
+        dispatch_notification(
+            user_id=user_id,
+            notification_type=notification_type,
+            title=title,
+            body=body,
+            payload={
+                "booking_id": str(booking.id),
+                "dispute_id": str(dispute.id),
+                "status": dispute.status,
+            },
+        )
+
+
+def notify_payout_event(*, payout, event):
+    config = {
+        "paid": (NotificationType.PAYOUT_PAID, "Payout sent", f"Your payout for '{payout.booking.title}' has been sent."),
+        "failed": (NotificationType.PAYOUT_FAILED, "Payout needs attention", f"Your payout for '{payout.booking.title}' could not be sent yet."),
+        "reversed": (NotificationType.PAYOUT_REVERSED, "Payout reversed", f"Your payout for '{payout.booking.title}' was reversed and is being held for review."),
+    }
+    notification_type, title, body = config[event]
+    dispatch_notification(
+        user_id=payout.payee_id,
+        notification_type=notification_type,
+        title=title,
+        body=body,
+        payload={
+            "booking_id": str(payout.booking_id),
+            "payout_id": str(payout.id),
+            "status": payout.status,
+        },
+    )
+
+
+def notify_refund_event(*, refund, event):
+    if event == "paid":
+        notification_type = NotificationType.REFUND_PAID
+        title = "Refund processed"
+        body = f"Your refund for '{refund.booking.title}' has been processed."
+    else:
+        notification_type = NotificationType.REFUND_FAILED
+        title = "Refund needs attention"
+        body = f"Your refund for '{refund.booking.title}' could not be processed yet. Support will review it."
+    dispatch_notification(
+        user_id=refund.recipient_id,
+        notification_type=notification_type,
+        title=title,
+        body=body,
+        payload={
+            "booking_id": str(refund.booking_id),
+            "refund_id": str(refund.id),
+            "status": refund.status,
+        },
+    )
+
+
 def notify_new_message(*, message):
     participant_ids = list(message.conversation.participants.exclude(user_id=message.sender_id).values_list("user_id", flat=True))
     for user_id in participant_ids:

@@ -48,6 +48,36 @@ class Payment(TimeStampedUUIDModel):
         ]
 
 
+class PayoutRecipient(TimeStampedUUIDModel):
+    class RecipientType(models.TextChoices):
+        MOBILE_MONEY = "mobile_money", "Mobile Money"
+        GHIPSS = "ghipss", "Ghana Bank Account"
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        INACTIVE = "inactive", "Inactive"
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="payout_recipient",
+    )
+    recipient_type = models.CharField(max_length=20, choices=RecipientType.choices)
+    display_name = models.CharField(max_length=255)
+    masked_account = models.CharField(max_length=32)
+    bank_code = models.CharField(max_length=32, blank=True)
+    currency_code = models.CharField(max_length=3, default="GHS")
+    recipient_code = models.CharField(max_length=255)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
+    metadata_json = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["recipient_code"]),
+            models.Index(fields=["status"]),
+        ]
+
+
 class Payout(TimeStampedUUIDModel):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
