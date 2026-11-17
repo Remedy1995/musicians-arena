@@ -87,6 +87,9 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
   }, [activeCategoryId, role, search]);
 
   const filteredTalents = role === "client" ? talentResults : marketplace.talents;
+  // A talent can browse and interact with peers, but should never see their own
+  // profile presented as a recommendation or benchmark.
+  const visibleTalents = filteredTalents.filter((talent) => role !== "talent" || talent.user_id !== currentUser.id);
   const filteredGigs = marketplace.gigs.filter((gig) => {
     if (role !== "talent") return false;
     const matchesSearch = [gig.title, gig.description, gig.city, gig.region, gig.event_type_name]
@@ -97,20 +100,19 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
     return matchesSearch;
   });
   const hasTalentQuery = role === "client" && Boolean(search.trim() || activeCategoryId);
-  const talents = hasTalentQuery ? filteredTalents : filteredTalents.slice(0, 5);
+  const talents = hasTalentQuery ? visibleTalents : visibleTalents.slice(0, 5);
   const gigs = filteredGigs.slice(0, 4);
   const roleSummary =
     role === "client"
       ? {
           heroColors: ["#FFF0D0", "#FCE2D8"] as const,
           eyebrow: "Organizer workspace",
-          heroTitle: "Build your event team.",
+          heroTitle: "Find the right talent for your event.",
           heroBody: "Post an opportunity, review talent, and move the right fit into a booking.",
           searchTitle: "Find talent for your event",
           searchPlaceholder: "Search keyboardists, worship leaders, MCs, brass sections...",
           featuredTitle: "Recommended talents",
           gigsTitle: "",
-          gigsAction: "Manage gigs",
           heroStats: [
             { value: `${marketplace.gigs.length}`, label: "open gigs" },
             { value: `${marketplace.bookings.length}`, label: "active hires" },
@@ -124,9 +126,8 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
           heroBody: "Browse matching gigs, show your work, and respond when the fit feels right.",
           searchTitle: "Find your next opportunity",
           searchPlaceholder: "Search gigs, cities, worship events, and live opportunities...",
-          featuredTitle: "Talent benchmark",
+          featuredTitle: "Discover other talents",
           gigsTitle: "Open gigs near you",
-          gigsAction: "Browse board",
           heroStats: [
             { value: `${marketplace.gigs.length}`, label: "matching gigs" },
             { value: `${marketplace.bookings.length}`, label: "active bookings" },
@@ -243,7 +244,6 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
       <View style={styles.section}>
         <SectionHeader
           title={role === "client" && (search.trim() || activeCategoryId) ? "Talent search results" : roleSummary.featuredTitle}
-          action={role === "client" ? "See all" : "Compare"}
         />
         {talents.length ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
@@ -271,14 +271,18 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
           </ScrollView>
         ) : (
           <Text style={styles.emptyText}>
-            {search.trim() || activeCategoryId ? "No talents match these filters yet." : "No talents available yet."}
+            {search.trim() || activeCategoryId
+              ? "No talents match these filters yet."
+              : role === "talent"
+                ? "No other talents are available yet."
+                : "No talents available yet."}
           </Text>
         )}
       </View>
 
       {role === "talent" ? (
         <View style={styles.section}>
-          <SectionHeader title={roleSummary.gigsTitle} action={roleSummary.gigsAction} />
+          <SectionHeader title={roleSummary.gigsTitle} />
           <View style={styles.gigList}>
             {gigs.map((gig) => (
               <Pressable key={gig.id} onPress={() => onOpenGig?.(gig.id)}>
@@ -574,17 +578,16 @@ function TalentDetailScreen({
 }
 
 function formatBudget(currencyCode: string, min?: string | null, max?: string | null) {
-  const symbol = currencyCode === "GHS" ? "GHS" : currencyCode;
   if (min && max) {
-    return `${symbol} ${Number(min).toLocaleString()} - ${Number(max).toLocaleString()}`;
+    return `${currencyCode} ${Number(min).toLocaleString()} - ${Number(max).toLocaleString()}`;
   }
   if (min) {
-    return `From ${symbol} ${Number(min).toLocaleString()}`;
+    return `From ${currencyCode} ${Number(min).toLocaleString()}`;
   }
   if (max) {
-    return `Up to ${symbol} ${Number(max).toLocaleString()}`;
+    return `Up to ${currencyCode} ${Number(max).toLocaleString()}`;
   }
-  return `${symbol} Budget open`;
+  return "Budget open";
 }
 
 function formatEventMoment(date: string, startTime?: string | null) {

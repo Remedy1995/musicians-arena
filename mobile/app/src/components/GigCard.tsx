@@ -202,14 +202,14 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing[2],
     paddingVertical: 4,
-    backgroundColor: "#F6F1E8",
+    backgroundColor: theme.colors.stone[50],
     borderWidth: 1,
-    borderColor: "#E4D8C8",
+    borderColor: theme.semanticColors.borderSoft,
   },
   roleLabel: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
     fontSize: theme.typography.size.xs,
-    color: "#6A6258",
+    color: theme.semanticColors.textSecondary,
   },
   footer: {
     fontFamily: theme.typography.fontFamily.body,

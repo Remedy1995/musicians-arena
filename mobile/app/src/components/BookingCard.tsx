@@ -38,12 +38,12 @@ export function BookingCard({ title, counterpart, date, amount, status, eyebrow,
       <View style={styles.divider} />
       <View style={styles.footer}>
         <View style={styles.footerItem}>
-          <Text style={styles.footerLabel}>📅 Date</Text>
+          <Text style={styles.footerLabel}>Date</Text>
           <Text style={styles.footerValue}>{date}</Text>
         </View>
         <View style={styles.footerDivider} />
         <View style={styles.footerItem}>
-          <Text style={styles.footerLabel}>💰 Amount</Text>
+          <Text style={styles.footerLabel}>Amount</Text>
           <Text style={styles.amount}>{amount}</Text>
         </View>
       </View>

@@ -8,6 +8,8 @@ import { GigDetailItem, GigInterestItem, TalentListItem, UserSummary } from "../
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
 import { GigCard } from "../components/GigCard";
+import { CompactStatusMenu } from "../components/CompactStatusMenu";
+import { PageHeader } from "../components/PageHeader";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { ProfileAvatar } from "../components/ProfileAvatar";
 import { Screen } from "../components/Screen";
@@ -15,7 +17,6 @@ import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { TextField } from "../components/TextField";
 import { ModalSurface } from "../components/ModalSurface";
-import { WorkspaceButton } from "../components/WorkspaceButton";
 import { theme } from "../theme/theme";
 
 type GigsScreenProps = {
@@ -194,22 +195,21 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <Text style={styles.title}>{role === "client" ? "Your gig board" : "Available gigs"}</Text>
-          <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} iconOnly />
-        </View>
-        <Text style={styles.body}>
-          {role === "client"
-            ? "Post event needs, review interested talents, and move promising matches into chat or booking."
-            : "See nearby opportunities that match your skill set and show interest quickly."}
-        </Text>
-      </View>
+      <PageHeader
+        title={role === "client" ? "My gigs" : "Available gigs"}
+        body={
+          role === "client"
+            ? "Create opportunities, review talent, and manage bookings."
+            : "See nearby opportunities that match your skill set and show interest quickly."
+        }
+        workspaceLabel={role === "client" ? "Organizer" : "Talent"}
+        onWorkspacePress={onWorkspacePress}
+      />
 
       <View style={styles.heroActions}>
         {role === "client" ? (
           <PrimaryButton
-            label="＋ Create a gig opportunity"
+            label="Create a gig opportunity"
             onPress={() => {
               setComposerOpen(true);
             }}
@@ -237,7 +237,10 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
       ) : null}
 
       <View style={styles.section}>
-        <SectionHeader title={role === "client" ? "Your posted gigs" : "Recommended gigs"} action={role === "client" ? "Hiring" : "Filter"} />
+        <SectionHeader
+          title={role === "client" ? "Posted opportunities" : "Recommended gigs"}
+          action={role === "client" ? `${renderedGigs.length} open` : undefined}
+        />
         <View style={styles.list}>
           {renderedGigs.map((gig) => (
             <Pressable
@@ -260,14 +263,14 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
                 title={gig.title}
                 venue={[gig.city, gig.region].filter(Boolean).join(", ")}
                 timing={gig.start_time ? `${gig.event_date} at ${gig.start_time.slice(0, 5)}` : gig.event_date}
-                budget={gig.budget_min && gig.budget_max ? `${gig.currency_code} ${Number(gig.budget_min).toLocaleString()} - ${Number(gig.budget_max).toLocaleString()}` : `${gig.currency_code} Budget open`}
+                budget={gig.budget_min && gig.budget_max ? `${gig.currency_code} ${Number(gig.budget_min).toLocaleString()} - ${Number(gig.budget_max).toLocaleString()}` : "Budget open"}
                 urgency={gig.is_urgent ? "Urgent" : "Open"}
                 roles={gig.required_categories.map((item) => item.name)}
                 applicantCount={role === "client" ? gig.interests_count : 0}
                 interestStatusLabel={role === "talent" ? getInterestStatusLabel(gig.my_interest_status) : null}
                 metaLabel={
                   role === "client"
-                    ? `${gig.interests_count} ${gig.interests_count === 1 ? "talent has" : "talents have"} shown interest. Tap to review applicants.`
+                    ? `${gig.interests_count} ${gig.interests_count === 1 ? "talent has" : "talents have"} shown interest. Tap to review.`
                     : gig.my_interest_status
                       ? "This gig already has your response on record."
                       : "Tap to review details and show interest."
@@ -487,7 +490,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
                     <Text style={styles.talentGigBudgetValue}>
                       {selectedGig.budget_min && selectedGig.budget_max
                         ? `${selectedGig.currency_code} ${Number(selectedGig.budget_min).toLocaleString()} - ${Number(selectedGig.budget_max).toLocaleString()}`
-                        : `${selectedGig.currency_code} Budget open`}
+                        : "Budget open"}
                     </Text>
                   </View>
 
@@ -628,25 +631,18 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
               <Text style={styles.helperSubtext}>
                 {gigDetail.city}, {gigDetail.region} • {gigDetail.event_date}
               </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statusSummaryRow}>
-                {([
-                  ["interested", "Interested"],
-                  ["shortlisted", "Shortlisted"],
-                  ["invited", "Invited"],
-                  ["accepted", "Accepted"],
-                  ["declined", "Declined"],
-                ] as const).map(([key, label]) => (
-                  <Pressable
-                    key={key}
-                    onPress={() => setActiveApplicantTab(key)}
-                    style={[styles.statusSummaryPill, activeApplicantTab === key ? styles.statusSummaryPillActive : undefined]}
-                  >
-                    <Text style={[styles.statusSummaryLabel, activeApplicantTab === key ? styles.statusSummaryLabelActive : undefined]}>
-                      {label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+              <CompactStatusMenu
+                options={[
+                  { key: "interested", label: "Interested" },
+                  { key: "shortlisted", label: "Shortlisted" },
+                  { key: "invited", label: "Invited" },
+                  { key: "accepted", label: "Accepted" },
+                  { key: "declined", label: "Declined" },
+                ]}
+                selectedKey={activeApplicantTab}
+                onChange={(key) => setActiveApplicantTab(key as typeof activeApplicantTab)}
+                headerLabel="Browse applicants"
+              />
               {gigDetail.interests.length === 0 ? <Text style={styles.helperSubtext}>No interests yet for this gig.</Text> : null}
               {gigDetail.interests.length > 0 ? (
                 <View style={styles.statusSection}>
@@ -1082,28 +1078,6 @@ function buildConvertForm(quotedAmount: string) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    gap: theme.spacing[1],
-    paddingTop: theme.spacing[1],
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing[3],
-  },
-  title: {
-    fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size["2xl"],
-    lineHeight: theme.typography.lineHeight["2xl"],
-    color: theme.semanticColors.textPrimary,
-  },
-  body: {
-    fontFamily: theme.typography.fontFamily.body,
-    fontSize: theme.typography.size.sm,
-    lineHeight: theme.typography.lineHeight.sm,
-    color: theme.semanticColors.textSecondary,
-  },
   heroActions: {
     gap: theme.spacing[2],
   },
@@ -1227,33 +1201,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
     color: theme.semanticColors.textMuted,
-  },
-  statusSummaryRow: {
-    flexDirection: "row",
-    gap: theme.spacing[2],
-    paddingRight: theme.spacing[3],
-  },
-  statusSummaryPill: {
-    minWidth: 104,
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[2],
-    backgroundColor: theme.colors.stone[100],
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
-    alignItems: "center",
-  },
-  statusSummaryPillActive: {
-    backgroundColor: theme.colors.ink[900],
-    borderColor: theme.colors.gold[400],
-  },
-  statusSummaryLabel: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.textSecondary,
-  },
-  statusSummaryLabelActive: {
-    color: theme.semanticColors.textOnDark,
   },
   statusSection: {
     gap: theme.spacing[3],

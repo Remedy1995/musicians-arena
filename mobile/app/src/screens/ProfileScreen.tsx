@@ -11,6 +11,7 @@ import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { TextField } from "../components/TextField";
 import { ModalSurface } from "../components/ModalSurface";
+import { WorkspaceButton } from "../components/WorkspaceButton";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
@@ -141,19 +142,8 @@ export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, market
     return (
       <Screen>
         <View style={styles.screenHeader}>
-          <Pressable
-            onPress={onWorkspacePress}
-            style={styles.screenHeaderIcon}
-            accessibilityRole="button"
-            accessibilityLabel="Open workspace switcher"
-          >
-            {profileImageUri ? (
-              <Image source={{ uri: profileImageUri }} style={styles.screenHeaderAvatarImage} resizeMode="cover" />
-            ) : (
-              <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
-            )}
-          </Pressable>
           <Text style={styles.screenHeaderTitle}>Profile</Text>
+          <WorkspaceButton label="Account" onPress={onWorkspacePress} iconOnly />
         </View>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Personal account</Text>
@@ -176,19 +166,8 @@ export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, market
   return (
     <Screen>
       <View style={styles.screenHeader}>
-        <Pressable
-          onPress={onWorkspacePress}
-          style={styles.screenHeaderIcon}
-          accessibilityRole="button"
-          accessibilityLabel="Open workspace switcher"
-        >
-          {profileImageUri ? (
-            <Image source={{ uri: profileImageUri }} style={styles.screenHeaderAvatarImage} resizeMode="cover" />
-          ) : (
-            <MaterialCommunityIcons name="account-circle-outline" size={24} color={theme.colors.gold[500]} />
-          )}
-        </Pressable>
         <Text style={styles.screenHeaderTitle}>Profile</Text>
+        <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} iconOnly />
       </View>
 
       <View style={styles.header}>
@@ -1057,21 +1036,9 @@ const styles = StyleSheet.create({
   screenHeader: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: theme.spacing[3],
     paddingTop: theme.spacing[2],
-  },
-  screenHeaderIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.ink[900],
-    overflow: "hidden",
-  },
-  screenHeaderAvatarImage: {
-    width: "100%",
-    height: "100%",
   },
   screenHeaderTitle: {
     flex: 1,

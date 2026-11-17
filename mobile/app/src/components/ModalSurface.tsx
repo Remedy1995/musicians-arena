@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
-import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleProp, StyleSheet, ViewStyle } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { theme } from "../theme/theme";
 
@@ -10,21 +10,10 @@ type ModalSurfaceProps = {
 };
 
 export function ModalSurface({ children, style }: ModalSurfaceProps) {
-  const insets = useSafeAreaInsets();
-
   return (
-    <View
-      style={[
-        styles.surface,
-        style,
-        {
-          paddingTop: Math.max(insets.top, theme.spacing[3]),
-          paddingBottom: Math.max(insets.bottom, theme.spacing[3]),
-        },
-      ]}
-    >
+    <SafeAreaView edges={["top", "bottom"]} style={[styles.surface, style]}>
       {children}
-    </View>
+    </SafeAreaView>
   );
 }
 

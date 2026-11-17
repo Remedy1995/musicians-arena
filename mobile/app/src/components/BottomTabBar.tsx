@@ -35,6 +35,9 @@ export function BottomTabBar({ role, activeTab, onTabPress, badges = {} }: Botto
               key={item.key}
               onPress={() => onTabPress(item.key)}
               style={styles.item}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={item.label}
             >
               {isActive ? (
                 <LinearGradient
@@ -56,7 +59,12 @@ export function BottomTabBar({ role, activeTab, onTabPress, badges = {} }: Botto
                   </View>
                 ) : null}
               </View>
-              <Text style={[styles.label, isActive ? styles.labelActive : undefined]}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+                style={[styles.label, isActive ? styles.labelActive : undefined]}
+              >
                 {item.label}
               </Text>
             </Pressable>
@@ -76,6 +84,7 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: theme.layout.tabBarHeight,
     paddingHorizontal: theme.spacing[2],
     paddingTop: theme.spacing[2],
     paddingBottom: theme.spacing[2],
@@ -83,6 +92,7 @@ const styles = StyleSheet.create({
   },
   item: {
     flex: 1,
+    minWidth: 0,
     alignItems: "center",
     gap: theme.spacing[1],
     paddingVertical: theme.spacing[1],

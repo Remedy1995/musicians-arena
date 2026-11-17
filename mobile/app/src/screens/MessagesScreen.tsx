@@ -10,11 +10,11 @@ import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
 import { toMessageItem } from "../services/realtime/types";
 import { ConversationCard } from "../components/ConversationCard";
+import { PageHeader } from "../components/PageHeader";
 import { ModalSurface } from "../components/ModalSurface";
 import { ProfileAvatar } from "../components/ProfileAvatar";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
-import { WorkspaceButton } from "../components/WorkspaceButton";
 import { theme } from "../theme/theme";
 
 type MessagesScreenProps = {
@@ -131,23 +131,23 @@ export function MessagesScreen({
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <Text style={styles.title}>Messages</Text>
-          <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} iconOnly />
-        </View>
-        <Text style={styles.body}>
-          {role === "client"
+      <PageHeader
+        title="Messages"
+        body={
+          role === "client"
             ? "Move from discovery into real coordination without leaving the platform."
-            : "Respond quickly to shortlists, invites, and booking follow-ups."}
-        </Text>
-      </View>
+            : "Respond quickly to shortlists, invites, and booking follow-ups."
+        }
+        workspaceLabel={role === "client" ? "Organizer" : "Talent"}
+        onWorkspacePress={onWorkspacePress}
+      />
 
       <View style={styles.section}>
         <SectionHeader title="Recent conversations" action={connected ? "Live" : "Standard sync"} />
         <View style={styles.list}>
           {marketplace.conversations.map((item) => {
             const other = getConversationParticipant(item, currentUser.id);
+            const otherName = other?.display_name || other?.username || (role === "client" ? "the talent" : "the organizer");
             return (
               <Pressable
                 key={item.id}
@@ -159,10 +159,10 @@ export function MessagesScreen({
                 <ConversationCard
                   name={other?.display_name || other?.username || "Conversation"}
                   imageUri={other?.profile_image_url}
-                  message={item.last_message?.body || "No messages yet"}
+                  message={getConversationPreview(item, role, otherName)}
                   time={item.last_message_at ? item.last_message_at.slice(11, 16) : "Now"}
                   unread={item.last_message?.read_at ? 0 : item.last_message ? 1 : 0}
-                  badge={item.conversation_type}
+                  badge={getConversationTypeLabel(item.conversation_type)}
                 />
               </Pressable>
             );
@@ -251,6 +251,57 @@ export function MessagesScreen({
 function getConversationParticipant(conversation: ConversationItem | null, currentUserId: string) {
   if (!conversation) return null;
   return conversation.participants.find((participant) => participant.user_id !== currentUserId) ?? conversation.participants[0] ?? null;
+}
+
+function getConversationPreview(conversation: ConversationItem, role: UserRole, otherName: string) {
+  const body = conversation.last_message?.body?.trim();
+  if (!body) return "No messages yet";
+  if (conversation.last_message?.message_type !== "system") return body;
+
+  if (role === "client") {
+    if (/invited to the opportunity gig/i.test(body)) {
+      return `You invited ${otherName} to this opportunity.`;
+    }
+    if (/invitation response/i.test(body)) {
+      return `${otherName} responded to your invitation.`;
+    }
+    if (/converted into a booking request/i.test(body)) {
+      return `${otherName}'s opportunity moved to a booking request.`;
+    }
+    if (/shortlisted for gig/i.test(body)) {
+      return `${otherName} was shortlisted for your opportunity.`;
+    }
+  }
+
+  if (role === "talent") {
+    if (/invited/i.test(body)) {
+      return "You've been invited to an opportunity.";
+    }
+    if (/invitation response/i.test(body)) {
+      return "Your invitation response was sent.";
+    }
+    if (/converted into a booking request/i.test(body)) {
+      return "Your opportunity interest moved to a booking request.";
+    }
+    if (/shortlisted for gig/i.test(body)) {
+      return "You've been shortlisted for an opportunity.";
+    }
+  }
+
+  return body;
+}
+
+function getConversationTypeLabel(conversationType: string) {
+  switch (conversationType) {
+    case "gig":
+      return "Opportunity";
+    case "booking":
+      return "Booking";
+    case "inquiry":
+      return "Direct";
+    default:
+      return conversationType;
+  }
 }
 
 const ConversationThread = memo(function ConversationThread({
@@ -344,28 +395,6 @@ const ConversationComposer = memo(function ConversationComposer({
 });
 
 const styles = StyleSheet.create({
-  header: {
-    gap: theme.spacing[3],
-    paddingTop: theme.spacing[3],
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing[3],
-  },
-  title: {
-    fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size["3xl"],
-    lineHeight: theme.typography.lineHeight["3xl"],
-    color: theme.semanticColors.textPrimary,
-  },
-  body: {
-    fontFamily: theme.typography.fontFamily.body,
-    fontSize: theme.typography.size.md,
-    lineHeight: theme.typography.lineHeight.md,
-    color: theme.semanticColors.textSecondary,
-  },
   section: {
     gap: theme.spacing[4],
   },

@@ -8,13 +8,14 @@ import { BookingItem, BookingPaymentSummary, UserSummary } from "../services/api
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
 import { BookingCard } from "../components/BookingCard";
+import { CompactStatusMenu } from "../components/CompactStatusMenu";
+import { PageHeader } from "../components/PageHeader";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { ModalSurface } from "../components/ModalSurface";
 import { TextField } from "../components/TextField";
-import { WorkspaceButton } from "../components/WorkspaceButton";
 import { theme } from "../theme/theme";
 
 type BookingsScreenProps = {
@@ -51,7 +52,7 @@ export function BookingsScreen({
     (): ClientTabOption[] => [
       { key: "pending", label: "Requests" },
       { key: "active", label: "All active" },
-      { key: "countered", label: "Counteroffers" },
+      { key: "countered", label: "Contracts" },
       { key: "awaiting_deposit", label: "Awaiting deposit" },
       { key: "confirmed", label: "Confirmed" },
       { key: "closed", label: "Closed" },
@@ -158,61 +159,25 @@ export function BookingsScreen({
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <Text style={styles.title}>Bookings</Text>
-          <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} iconOnly />
-        </View>
-        <Text style={styles.body}>
-          {role === "client"
-            ? "Track deposits, confirmations, and event readiness from one place."
-            : "Keep accepted work, payout expectations, and event commitments easy to review."}
-        </Text>
-      </View>
+      <PageHeader
+        title="Bookings"
+        body={
+          role === "client"
+            ? "Track requests, deposits, confirmations, and event handoffs in one place."
+            : "Review booking requests, payment milestones, and event commitments in one place."
+        }
+        workspaceLabel={role === "client" ? "Organizer" : "Talent"}
+        onWorkspacePress={onWorkspacePress}
+      />
 
       <View style={styles.section}>
-        <SectionHeader
-          title={role === "talent" ? "Booking requests" : "Bookings"}
-          action={
-            role === "talent"
-              ? `${talentRequestBookings.length} to review`
-              : `${clientVisibleBookings.length} ${clientStatusTab === "active" ? "active" : "shown"}`
-          }
-        />
-        <Text style={styles.sectionLead}>
-          {role === "talent"
-            ? "New client booking offers land here first. Open any request to accept, counter, or decline."
-            : "Keep every confirmed booking, payment milestone, and event handoff in one place."}
-        </Text>
         {role === "client" ? (
-          <View style={styles.statusTabsWrap}>
-            <View style={styles.statusFilterHeader}>
-              <Text style={styles.statusFilterLabel}>Browse by status</Text>
-              <Text style={styles.statusFilterValue}>
-                {(clientTabOptions.find((tab) => tab.key === clientStatusTab)?.label ?? "Active").toUpperCase()}
-              </Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.statusTabScroll}
-            >
-              {clientTabOptions.map((tab) => {
-                const isActive = clientStatusTab === tab.key;
-                return (
-                  <Pressable
-                    key={tab.key}
-                    onPress={() => setClientStatusTab(tab.key)}
-                    style={[styles.statusTab, isActive ? styles.statusTabActive : undefined]}
-                  >
-                    <Text style={[styles.statusTabLabel, isActive ? styles.statusTabLabelActive : undefined]} numberOfLines={1}>
-                      {tab.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
+          <CompactStatusMenu
+            options={clientTabOptions}
+            selectedKey={clientStatusTab}
+            onChange={(key) => setClientStatusTab(key as ClientTabOption["key"])}
+            countLabel={`${clientVisibleBookings.length} shown`}
+          />
         ) : null}
         <View style={styles.list}>
           {(role === "talent" ? talentRequestBookings : clientVisibleBookings).map((item) => (
@@ -1046,28 +1011,6 @@ function formatTimestamp(value: string) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    gap: theme.spacing[3],
-    paddingTop: theme.spacing[3],
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing[3],
-  },
-  title: {
-    fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size["3xl"],
-    lineHeight: theme.typography.lineHeight["3xl"],
-    color: theme.semanticColors.textPrimary,
-  },
-  body: {
-    fontFamily: theme.typography.fontFamily.body,
-    fontSize: theme.typography.size.md,
-    lineHeight: theme.typography.lineHeight.md,
-    color: theme.semanticColors.textSecondary,
-  },
   section: {
     gap: theme.spacing[4],
   },
@@ -1076,62 +1019,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
     color: theme.semanticColors.textSecondary,
-  },
-  statusTabsWrap: {
-    gap: theme.spacing[2],
-    zIndex: 3,
-    position: "relative",
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[3],
-    backgroundColor: "#F7F1E7",
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
-    overflow: "visible",
-  },
-  statusFilterHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: theme.spacing[3],
-  },
-  statusFilterLabel: {
-    fontFamily: theme.typography.fontFamily.body,
-    fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.textSecondary,
-  },
-  statusFilterValue: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.xs,
-    color: theme.colors.gold[600],
-    letterSpacing: 0.6,
-  },
-  statusTabScroll: {
-    flexDirection: "row",
-    gap: theme.spacing[2],
-    paddingRight: theme.spacing[3],
-  },
-  statusTab: {
-    minWidth: 116,
-    minHeight: 40,
-    paddingHorizontal: theme.spacing[3],
-    borderRadius: theme.radius.pill,
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
-    backgroundColor: theme.semanticColors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  statusTabActive: {
-    borderColor: theme.colors.gold[400],
-    backgroundColor: "#FFF4DB",
-  },
-  statusTabLabel: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.textSecondary,
-  },
-  statusTabLabelActive: {
-    color: theme.semanticColors.textPrimary,
   },
   list: {
     gap: theme.spacing[4],
