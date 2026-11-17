@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -38,7 +39,6 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
     setError(null);
   }, [initialMode]);
 
-  const title = useMemo(() => (mode === "login" ? "Sign in to your account" : "Create your account"), [mode]);
   const isLogin = mode === "login";
   const passwordRules = [
     { label: "8 or more characters", valid: form.password.length >= 8 },
@@ -104,26 +104,54 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
 
   return (
     <Screen contentContainerStyle={[styles.screenContent, isLogin ? styles.loginScreenContent : undefined]}>
-      <View style={styles.brandHeader}>
-        <View style={styles.brandMark}>
-          <MaterialCommunityIcons name="music-clef-treble" size={24} color={theme.semanticColors.textOnDark} />
+      <LinearGradient colors={[theme.colors.ink[950], theme.colors.ink[800]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.brandStage}>
+        <View style={[styles.stageOrb, styles.stageOrbTop]} />
+        <View style={[styles.stageOrb, styles.stageOrbBottom]} />
+        <View style={styles.brandHeader}>
+          <View style={styles.brandMark}>
+            <MaterialCommunityIcons name="music-clef-treble" size={25} color={theme.semanticColors.textOnDark} />
+          </View>
+          <View style={styles.brandCopy}>
+            <Text style={styles.brandName}>MUSICIAN'S ARENA</Text>
+            <Text style={styles.brandTagline}>One account. Every stage.</Text>
+          </View>
+          <View style={styles.liveMark}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveLabel}>LIVE</Text>
+          </View>
         </View>
-        <View style={styles.brandCopy}>
-          <Text style={styles.brandName}>Musician's Arena</Text>
-          <Text style={styles.brandTagline}>Creative work, one account.</Text>
+        <View style={styles.stageCopy}>
+          <Text style={styles.stageKicker}>{isLogin ? "WELCOME BACK" : "YOUR NEXT CHAPTER"}</Text>
+          <Text style={styles.stageTitle}>{isLogin ? "Return to your next stage." : "Find your place in the sound."}</Text>
+          <Text style={styles.stageBody}>
+            {isLogin
+              ? "Connect with the people and opportunities that keep your work moving."
+              : "Meet the talent, organizers, and opportunities that make live music happen."}
+          </Text>
         </View>
-      </View>
+        <View style={styles.stagePills}>
+          <View style={styles.stagePill}>
+            <MaterialCommunityIcons name="music-note-outline" size={16} color={theme.colors.gold[300]} />
+            <Text style={styles.stagePillLabel}>Talent</Text>
+          </View>
+          <View style={styles.stagePill}>
+            <MaterialCommunityIcons name="calendar-star-outline" size={16} color={theme.colors.gold[300]} />
+            <Text style={styles.stagePillLabel}>Opportunities</Text>
+          </View>
+        </View>
+      </LinearGradient>
 
       <View style={styles.authCard}>
         <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <Text style={styles.kicker}>{isLogin ? "Welcome back" : "Join the community"}</Text>
-            <View style={styles.secureLabel}>
-              <MaterialCommunityIcons name="shield-check-outline" size={14} color={theme.colors.teal[600]} />
-              <Text style={styles.secureLabelText}>Secure access</Text>
+          <View style={styles.authIntroRow}>
+            <View style={styles.authIntroIcon}>
+              <MaterialCommunityIcons name={isLogin ? "login-variant" : "account-plus-outline"} size={19} color={theme.semanticColors.primary} />
+            </View>
+            <View style={styles.authIntroCopy}>
+              <Text style={styles.kicker}>{isLogin ? "Welcome back" : "Join the community"}</Text>
+              <Text style={styles.title}>{isLogin ? "Pick up where you left off." : "Create your arena account."}</Text>
             </View>
           </View>
-          <Text style={styles.title}>{title}</Text>
           <Text style={styles.body}>
             {isLogin
               ? "Sign in once to access your available workspaces."
@@ -137,6 +165,8 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
               switchMode("login");
             }}
             style={[styles.modeChip, mode === "login" ? styles.modeChipActive : undefined]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: mode === "login" }}
           >
             <Text style={[styles.modeLabel, mode === "login" ? styles.modeLabelActive : undefined]}>Sign in</Text>
           </Pressable>
@@ -145,6 +175,8 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
               switchMode("register");
             }}
             style={[styles.modeChip, mode === "register" ? styles.modeChipActive : undefined]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: mode === "register" }}
           >
             <Text style={[styles.modeLabel, mode === "register" ? styles.modeLabelActive : undefined]}>Register</Text>
           </Pressable>
@@ -156,11 +188,24 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
             value={form.username}
             onChangeText={(value) => setForm((current) => ({ ...current, username: value }))}
             placeholder="Choose a username"
+            leftAccessory={<MaterialCommunityIcons name="account-outline" size={20} color={theme.semanticColors.textMuted} />}
           />
           {mode === "register" ? (
             <>
-              <TextField label="Email" value={form.email} onChangeText={(value) => setForm((current) => ({ ...current, email: value }))} keyboardType="email-address" />
-              <TextField label="Phone" value={form.phone} onChangeText={(value) => setForm((current) => ({ ...current, phone: value }))} keyboardType="phone-pad" />
+              <TextField
+                label="Email"
+                value={form.email}
+                onChangeText={(value) => setForm((current) => ({ ...current, email: value }))}
+                keyboardType="email-address"
+                leftAccessory={<MaterialCommunityIcons name="email-outline" size={20} color={theme.semanticColors.textMuted} />}
+              />
+              <TextField
+                label="Phone"
+                value={form.phone}
+                onChangeText={(value) => setForm((current) => ({ ...current, phone: value }))}
+                keyboardType="phone-pad"
+                leftAccessory={<MaterialCommunityIcons name="phone-outline" size={20} color={theme.semanticColors.textMuted} />}
+              />
             </>
           ) : null}
           <TextField
@@ -173,6 +218,7 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
             }}
             secureTextEntry={!showPassword}
             placeholder="Enter your password"
+            leftAccessory={<MaterialCommunityIcons name="lock-outline" size={20} color={theme.semanticColors.textMuted} />}
             rightAccessory={
               <Pressable onPress={() => setShowPassword((current) => !current)} accessibilityLabel={showPassword ? "Hide password" : "Show password"}>
                 <MaterialCommunityIcons name={showPassword ? "eye-off-outline" : "eye-outline"} size={21} color={theme.semanticColors.textMuted} />
@@ -196,11 +242,20 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
               </View>
             </View>
           ) : null}
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? (
+            <View style={styles.errorBanner}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={18} color={theme.semanticColors.danger} />
+              <Text style={styles.error}>{error}</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.actions}>
-          <PrimaryButton label={loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"} onPress={() => void handleSubmit()} />
+          <PrimaryButton
+            label={loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
+            disabled={loading}
+            onPress={() => void handleSubmit()}
+          />
           {mode === "register" ? <SecondaryButton label="Back to welcome" onPress={onBack} /> : null}
         </View>
       </View>
@@ -214,7 +269,35 @@ const styles = StyleSheet.create({
   },
   loginScreenContent: {
     justifyContent: "center",
-    paddingVertical: theme.spacing[5],
+    paddingVertical: theme.spacing[4],
+  },
+  brandStage: {
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing[5],
+    gap: theme.spacing[4],
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    ...theme.shadows.floating,
+  },
+  stageOrb: {
+    position: "absolute",
+    borderRadius: theme.radius.pill,
+  },
+  stageOrbTop: {
+    width: 170,
+    height: 170,
+    top: -90,
+    right: -42,
+    backgroundColor: "rgba(217,181,83,0.24)",
+  },
+  stageOrbBottom: {
+    width: 120,
+    height: 120,
+    bottom: -78,
+    left: 42,
+    backgroundColor: "rgba(217,75,36,0.20)",
   },
   brandHeader: {
     flexDirection: "row",
@@ -222,31 +305,96 @@ const styles = StyleSheet.create({
     gap: theme.spacing[3],
   },
   brandMark: {
-    width: 48,
-    height: 48,
+    width: 46,
+    height: 46,
     borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.semanticColors.primary,
-    ...theme.shadows.card,
+    backgroundColor: theme.colors.gold[500],
   },
   brandCopy: {
+    flex: 1,
     gap: 2,
   },
   brandName: {
     fontFamily: theme.typography.fontFamily.displayMedium,
-    fontSize: theme.typography.size.lg,
-    color: theme.semanticColors.textPrimary,
+    fontSize: theme.typography.size.sm,
+    letterSpacing: 1,
+    color: theme.colors.gold[300],
   },
   brandTagline: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.textMuted,
+    color: "rgba(255,255,255,0.68)",
+  },
+  liveMark: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: theme.spacing[2],
+    paddingVertical: 5,
+    borderRadius: theme.radius.pill,
+    backgroundColor: "rgba(255,255,255,0.10)",
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.teal[300],
+  },
+  liveLabel: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: 10,
+    letterSpacing: 0.7,
+    color: "rgba(255,255,255,0.82)",
+  },
+  stageCopy: {
+    gap: theme.spacing[2],
+    maxWidth: 320,
+  },
+  stageKicker: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    letterSpacing: 1,
+    color: theme.colors.ember[300],
+  },
+  stageTitle: {
+    fontFamily: theme.typography.fontFamily.display,
+    fontSize: theme.typography.size["3xl"],
+    lineHeight: theme.typography.lineHeight["3xl"],
+    color: theme.semanticColors.textOnDark,
+  },
+  stageBody: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.md,
+    lineHeight: theme.typography.lineHeight.md,
+    color: "rgba(255,255,255,0.72)",
+  },
+  stagePills: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing[2],
+  },
+  stagePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[1],
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: theme.spacing[2],
+    borderRadius: theme.radius.pill,
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  stagePillLabel: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.xs,
+    color: "rgba(255,255,255,0.86)",
   },
   authCard: {
     borderRadius: theme.radius.xl,
-    padding: theme.spacing[4],
-    gap: theme.spacing[5],
+    padding: theme.spacing[5],
+    gap: theme.spacing[4],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
@@ -255,11 +403,22 @@ const styles = StyleSheet.create({
   header: {
     gap: theme.spacing[2],
   },
-  headerRow: {
+  authIntroRow: {
     flexDirection: "row",
+    alignItems: "flex-start",
+    gap: theme.spacing[3],
+  },
+  authIntroIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: theme.radius.md,
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing[2],
+    justifyContent: "center",
+    backgroundColor: "#FFF1E8",
+  },
+  authIntroCopy: {
+    flex: 1,
+    gap: theme.spacing[1],
   },
   kicker: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -270,8 +429,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size["2xl"],
-    lineHeight: theme.typography.lineHeight["2xl"],
+    fontSize: theme.typography.size.xl,
+    lineHeight: theme.typography.lineHeight.xl,
     color: theme.semanticColors.textPrimary,
   },
   body: {
@@ -279,20 +438,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
     color: theme.semanticColors.textSecondary,
-  },
-  secureLabel: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: 5,
-    borderRadius: theme.radius.pill,
-    backgroundColor: "#E8F4F1",
-  },
-  secureLabelText: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: 10,
-    color: theme.colors.teal[600],
   },
   modeSwitch: {
     flexDirection: "row",
@@ -355,9 +500,21 @@ const styles = StyleSheet.create({
     color: theme.colors.verdant[600],
   },
   error: {
+    flex: 1,
     fontFamily: theme.typography.fontFamily.bodyMedium,
     fontSize: theme.typography.size.sm,
+    lineHeight: theme.typography.lineHeight.sm,
     color: theme.semanticColors.danger,
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: theme.spacing[2],
+    padding: theme.spacing[3],
+    borderRadius: theme.radius.md,
+    backgroundColor: "#FFF0ED",
+    borderWidth: 1,
+    borderColor: "#F4C5B7",
   },
   actions: {
     gap: theme.spacing[3],

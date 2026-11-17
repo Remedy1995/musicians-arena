@@ -13,6 +13,7 @@ type TextFieldProps = {
   keyboardType?: "default" | "email-address" | "phone-pad" | "url";
   secureTextEntry?: boolean;
   editable?: boolean;
+  leftAccessory?: ReactNode;
   rightAccessory?: ReactNode;
 };
 
@@ -26,6 +27,7 @@ export function TextField({
   keyboardType = "default",
   secureTextEntry = false,
   editable = true,
+  leftAccessory,
   rightAccessory,
 }: TextFieldProps) {
   const [isFocused, setIsFocused] = useState(false);
@@ -44,6 +46,7 @@ export function TextField({
           placeholderTextColor={theme.semanticColors.textMuted}
           style={[
             styles.input,
+            leftAccessory ? styles.inputWithLeftAccessory : undefined,
             rightAccessory ? styles.inputWithAccessory : undefined,
             multiline ? styles.inputMultiline : undefined,
             isFocused ? styles.inputFocused : undefined,
@@ -54,6 +57,7 @@ export function TextField({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
         />
+        {leftAccessory ? <View style={styles.leftAccessory}>{leftAccessory}</View> : null}
         {rightAccessory ? <View style={styles.accessory}>{rightAccessory}</View> : null}
       </View>
       {helperText ? <Text style={styles.helperText}>{helperText}</Text> : null}
@@ -90,6 +94,9 @@ const styles = StyleSheet.create({
   inputWithAccessory: {
     paddingRight: 54,
   },
+  inputWithLeftAccessory: {
+    paddingLeft: 52,
+  },
   inputFocused: {
     borderColor: theme.semanticColors.primary,
     backgroundColor: "#FFF7F2",
@@ -107,6 +114,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     right: theme.spacing[2],
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  leftAccessory: {
+    position: "absolute",
+    top: 0,
+    left: theme.spacing[2],
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
