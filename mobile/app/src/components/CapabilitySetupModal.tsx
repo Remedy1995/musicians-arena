@@ -1,8 +1,8 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useEffect, useState } from "react";
 
 import { Capability, TalentCategory } from "../services/api/types";
+import { ModalCloseButton } from "./ModalCloseButton";
 import { ModalSurface } from "./ModalSurface";
 import { PrimaryButton } from "./PrimaryButton";
 import { TextField } from "./TextField";
@@ -53,9 +53,7 @@ export function CapabilitySetupModal({
                 : "Tell organizers what you do so the right opportunities find you."}
             </Text>
           </View>
-          <Pressable onPress={onClose} style={styles.closeButton} accessibilityLabel="Close profile setup">
-            <MaterialCommunityIcons name="close" size={20} color={theme.semanticColors.textSecondary} />
-          </Pressable>
+          <ModalCloseButton onPress={onClose} accessibilityLabel="Close profile setup" />
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -176,12 +174,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.semanticColors.background,
     paddingHorizontal: theme.layout.screenPadding,
+    paddingTop: theme.spacing[4],
     gap: theme.spacing[4],
   },
   header: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: theme.spacing[3],
+    paddingBottom: theme.spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.semanticColors.borderSoft,
   },
   headerCopy: {
     flex: 1,
@@ -190,7 +192,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.primary,
+    color: theme.semanticColors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.7,
   },
@@ -205,16 +207,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
     color: theme.semanticColors.textSecondary,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.semanticColors.surface,
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
   },
   content: {
     gap: theme.spacing[4],
@@ -258,8 +250,8 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
   },
   categoryChipActive: {
-    backgroundColor: theme.colors.ink[900],
-    borderColor: theme.colors.ink[900],
+    backgroundColor: theme.semanticColors.primary,
+    borderColor: theme.semanticColors.primary,
   },
   categoryLabel: {
     fontFamily: theme.typography.fontFamily.bodyMedium,

@@ -53,7 +53,7 @@ export function BookingCard({ title, counterpart, date, amount, status, eyebrow,
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing[4],
     gap: theme.spacing[3],
     backgroundColor: theme.semanticColors.surface,
@@ -62,8 +62,8 @@ const styles = StyleSheet.create({
     ...theme.shadows.card,
   },
   cardHighlight: {
-    borderColor: "#F4C96A",
-    backgroundColor: "#FFF8EA",
+    borderColor: theme.colors.gold[300],
+    backgroundColor: theme.semanticColors.warningSoft,
   },
   eyebrow: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -125,6 +125,6 @@ const styles = StyleSheet.create({
   amount: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.md,
-    color: theme.colors.ember[500],
+    color: theme.semanticColors.textPrimary,
   },
 });

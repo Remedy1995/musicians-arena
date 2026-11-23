@@ -39,9 +39,9 @@ export function AccountHomeScreen({
       />
       {activeTab === "discover" || activeTab === "gigs" ? (
         <>
-          <LinearGradient colors={["#FFF2CF", "#FFE3D8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+          <LinearGradient colors={[theme.semanticColors.warningSoft, theme.semanticColors.surface]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
             <View style={styles.heroIcon}>
-              <MaterialCommunityIcons name="compass-outline" size={25} color={theme.semanticColors.textOnDark} />
+              <MaterialCommunityIcons name="compass-outline" size={23} color={theme.colors.ink[950]} />
             </View>
             <Text style={styles.eyebrow}>Personal account</Text>
             <Text style={styles.title}>Explore first. Choose your workspace when ready.</Text>
@@ -86,13 +86,11 @@ export function AccountHomeScreen({
 
 const styles = StyleSheet.create({
   hero: {
-    marginHorizontal: theme.spacing[1],
-    gap: theme.spacing[2],
+    gap: theme.spacing[3],
     padding: theme.spacing[5],
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.8)",
-    ...theme.shadows.floating,
+    borderColor: theme.semanticColors.borderSoft,
   },
   heroIcon: {
     width: 48,
@@ -100,13 +98,13 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.gold[500],
+    backgroundColor: theme.colors.gold[300],
   },
   eyebrow: {
     marginTop: theme.spacing[2],
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.primary,
+    color: theme.semanticColors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },

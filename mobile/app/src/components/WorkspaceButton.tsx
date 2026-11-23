@@ -11,7 +11,7 @@ export function WorkspaceButton({ label, onPress, iconOnly = false }: { label: s
       accessibilityRole="button"
       accessibilityLabel={`Switch workspace. Current workspace: ${label}`}
     >
-      <MaterialCommunityIcons name="account-switch-outline" size={iconOnly ? 19 : 17} color={theme.semanticColors.primary} />
+      <MaterialCommunityIcons name="account-switch-outline" size={iconOnly ? 19 : 17} color={theme.semanticColors.textPrimary} />
       {!iconOnly ? <Text style={styles.label} numberOfLines={1}>{label}</Text> : null}
     </Pressable>
   );
@@ -25,9 +25,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[2],
     height: 36,
     borderRadius: theme.radius.pill,
-    backgroundColor: "#FFF8E8",
+    backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.gold[300],
+    borderColor: theme.semanticColors.borderSoft,
   },
   iconOnlyButton: {
     width: 38,

@@ -26,7 +26,7 @@ export function SecondaryButton({ label, onPress, destructive = false }: Seconda
 const styles = StyleSheet.create({
   button: {
     height: theme.layout.buttonHeight,
-    borderRadius: theme.radius.pill,
+    borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   },
   buttonDestructive: {
     borderColor: theme.colors.ember[300],
-    backgroundColor: "#FFF2EE",
+    backgroundColor: theme.semanticColors.dangerSoft,
   },
   buttonPressed: {
     opacity: 0.82,

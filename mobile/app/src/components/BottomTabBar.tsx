@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -34,24 +33,16 @@ export function BottomTabBar({ role, activeTab, onTabPress, badges = {} }: Botto
             <Pressable
               key={item.key}
               onPress={() => onTabPress(item.key)}
-              style={styles.item}
+              style={[styles.item, isActive ? styles.itemActive : undefined]}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               accessibilityLabel={item.label}
             >
-              {isActive ? (
-                <LinearGradient
-                  colors={[theme.colors.ember[500], theme.colors.gold[500]]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.activeIndicator}
-                />
-              ) : null}
               <View style={styles.iconWrap}>
                 <MaterialCommunityIcons
                   name={isActive ? item.activeIcon : item.icon}
                   size={22}
-                  color={isActive ? theme.colors.gold[400] : "rgba(255, 255, 255, 0.74)"}
+                  color={isActive ? theme.semanticColors.primary : theme.semanticColors.textMuted}
                 />
                 {badgeCount > 0 ? (
                   <View style={styles.badge}>
@@ -77,15 +68,15 @@ export function BottomTabBar({ role, activeTab, onTabPress, badges = {} }: Botto
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.ink[900],
+    backgroundColor: theme.semanticColors.surface,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
+    borderTopColor: theme.semanticColors.borderSoft,
   },
   bar: {
     flexDirection: "row",
     alignItems: "center",
     minHeight: theme.layout.tabBarHeight,
-    paddingHorizontal: theme.spacing[2],
+    paddingHorizontal: theme.spacing[3],
     paddingTop: theme.spacing[2],
     paddingBottom: theme.spacing[2],
     gap: theme.spacing[1],
@@ -94,17 +85,13 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     alignItems: "center",
-    gap: theme.spacing[1],
-    paddingVertical: theme.spacing[1],
+    gap: 3,
+    paddingVertical: theme.spacing[2],
+    borderRadius: theme.radius.md,
     position: "relative",
   },
-  activeIndicator: {
-    position: "absolute",
-    top: 0,
-    left: "25%" as unknown as number,
-    right: "25%" as unknown as number,
-    height: 3,
-    borderRadius: theme.radius.pill,
+  itemActive: {
+    backgroundColor: theme.semanticColors.surfaceMuted,
   },
   iconWrap: {
     position: "relative",
@@ -117,12 +104,12 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bodyMedium,
     fontSize: 11,
     lineHeight: 14,
-    color: "rgba(255, 255, 255, 0.7)",
+    color: theme.semanticColors.textMuted,
     includeFontPadding: false,
     textAlign: "center",
   },
   labelActive: {
-    color: theme.colors.gold[300],
+    color: theme.semanticColors.textPrimary,
     fontFamily: theme.typography.fontFamily.bodySemibold,
   },
   badge: {
@@ -137,7 +124,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     backgroundColor: theme.semanticColors.primary,
     borderWidth: 1.5,
-    borderColor: theme.colors.ink[900],
+    borderColor: theme.semanticColors.surface,
   },
   badgeLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,

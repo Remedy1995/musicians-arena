@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textSecondary,
   },
   fieldLabelFocused: {
-    color: theme.semanticColors.primary,
+    color: theme.semanticColors.textPrimary,
   },
   inputWrap: {
     position: "relative",
@@ -98,8 +98,8 @@ const styles = StyleSheet.create({
     paddingLeft: 52,
   },
   inputFocused: {
-    borderColor: theme.semanticColors.primary,
-    backgroundColor: "#FFF7F2",
+    borderColor: theme.semanticColors.focus,
+    backgroundColor: theme.semanticColors.surface,
   },
   inputMultiline: {
     minHeight: 112,

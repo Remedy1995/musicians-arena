@@ -16,6 +16,7 @@ import { TalentCard } from "../components/TalentCard";
 import { ProfileAvatar } from "../components/ProfileAvatar";
 import { TextField } from "../components/TextField";
 import { TopBar } from "../components/TopBar";
+import { ModalCloseButton } from "../components/ModalCloseButton";
 import { ModalSurface } from "../components/ModalSurface";
 import { theme } from "../theme/theme";
 
@@ -105,7 +106,7 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
   const roleSummary =
     role === "client"
       ? {
-          heroColors: ["#FFF0D0", "#FCE2D8"] as const,
+          heroColors: [theme.semanticColors.warningSoft, theme.semanticColors.surface] as const,
           eyebrow: "Organizer workspace",
           heroTitle: "Find the right talent for your event.",
           heroBody: "Post an opportunity, review talent, and move the right fit into a booking.",
@@ -120,7 +121,7 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
           heroCta: "Manage opportunity gigs",
         }
       : {
-          heroColors: ["#DDF3EF", "#EAF0FF"] as const,
+          heroColors: [theme.semanticColors.infoSoft, theme.semanticColors.surface] as const,
           eyebrow: "Talent workspace",
           heroTitle: "Find your next live opportunity.",
           heroBody: "Browse matching gigs, show your work, and respond when the fit feels right.",
@@ -168,7 +169,6 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
       />
 
       <LinearGradient colors={roleSummary.heroColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
-        <View style={styles.heroGlow} />
         <Text style={styles.heroEyebrow}>{roleSummary.eyebrow}</Text>
         <Text style={styles.heroTitle}>{roleSummary.heroTitle}</Text>
         <Text style={styles.heroBody}>{roleSummary.heroBody}</Text>
@@ -310,9 +310,7 @@ export function DiscoveryScreen({ role, currentUser, token, onNavigateTab, onWor
                 Unread {marketplace.unreadCount} • {marketplace.notificationSocketConnected ? "Live" : "Reconnecting"}
               </Text>
             </View>
-            <Pressable onPress={() => setInboxOpen(false)}>
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
+            <ModalCloseButton onPress={() => setInboxOpen(false)} accessibilityLabel="Close notification inbox" />
           </View>
 
           <ScrollView contentContainerStyle={styles.notificationList}>
@@ -415,7 +413,7 @@ function TalentDetailScreen({
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.detailContent}>
-          <LinearGradient colors={["#20252A", "#111315"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.detailHero}>
+          <LinearGradient colors={[theme.colors.ink[800], theme.colors.ink[950]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.detailHero}>
             <ProfileAvatar
               label={talent.display_name || talent.stage_name || talent.username}
               imageUri={talent.profile_image_url}
@@ -506,9 +504,7 @@ function TalentDetailScreen({
               <Text style={styles.modalTitle}>Invite to opportunity</Text>
               <Text style={styles.modalSubtitle}>Select the gig you want this talent to consider.</Text>
             </View>
-            <Pressable onPress={() => setInviteOpen(false)}>
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
+            <ModalCloseButton onPress={() => setInviteOpen(false)} accessibilityLabel="Close opportunity invitation" />
           </View>
           <ScrollView contentContainerStyle={styles.inviteModalContent} keyboardShouldPersistTaps="handled">
             <View style={styles.inviteTalentSummary}>
@@ -664,7 +660,7 @@ const styles = StyleSheet.create({
   detailLocation: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.sm,
-    color: "rgba(255,255,255,0.72)",
+    color: theme.semanticColors.textOnDarkMuted,
   },
   detailStatsRow: {
     width: "100%",
@@ -677,7 +673,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: theme.spacing[3],
     borderRadius: theme.radius.lg,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: theme.semanticColors.surfaceOnDark,
   },
   detailStatValue: {
     fontFamily: theme.typography.fontFamily.displayMedium,
@@ -687,7 +683,7 @@ const styles = StyleSheet.create({
   detailStatLabel: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.xs,
-    color: "rgba(255,255,255,0.68)",
+    color: theme.semanticColors.textOnDarkMuted,
   },
   detailSectionCard: {
     gap: theme.spacing[3],
@@ -700,8 +696,8 @@ const styles = StyleSheet.create({
   detailActionCard: {
     gap: theme.spacing[3],
     padding: theme.spacing[4],
-    borderRadius: theme.radius.xl,
-    backgroundColor: "#FFF8E8",
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.semanticColors.warningSoft,
     borderWidth: 1,
     borderColor: theme.colors.gold[300],
   },
@@ -770,28 +766,19 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   heroCard: {
-    marginHorizontal: theme.spacing[1],
     overflow: "hidden",
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[4],
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing[5],
     gap: theme.spacing[3],
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.72)",
-    ...theme.shadows.floating,
-  },
-  heroGlow: {
-    position: "absolute",
-    top: -48,
-    right: -24,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(217, 181, 83, 0.24)",
+    borderColor: theme.semanticColors.borderSoft,
   },
   heroEyebrow: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.primary,
+    color: theme.semanticColors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
   },
   heroTitle: {
     maxWidth: 310,
@@ -815,9 +802,9 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: theme.radius.lg,
     padding: theme.spacing[2],
-    backgroundColor: "rgba(255, 255, 255, 0.62)",
+    backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.7)",
+    borderColor: theme.semanticColors.borderSoft,
   },
   metricValue: {
     fontFamily: theme.typography.fontFamily.displayMedium,
@@ -832,13 +819,12 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textSecondary,
   },
   searchCard: {
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.semanticColors.surface,
     padding: theme.spacing[4],
     gap: theme.spacing[4],
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
-    ...theme.shadows.card,
   },
   searchTitle: {
     fontFamily: theme.typography.fontFamily.displayMedium,
@@ -882,8 +868,8 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
   },
   categoryFilterActive: {
-    backgroundColor: theme.colors.ink[900],
-    borderColor: theme.colors.ink[900],
+    backgroundColor: theme.semanticColors.primary,
+    borderColor: theme.semanticColors.primary,
   },
   categoryFilterText: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
@@ -955,7 +941,7 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
   },
   inviteGigCardActive: {
-    backgroundColor: "#EAF7F3",
+    backgroundColor: theme.semanticColors.infoSoft,
     borderColor: theme.colors.teal[400],
   },
   inviteGigCopy: {
@@ -982,6 +968,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    gap: theme.spacing[3],
+    paddingBottom: theme.spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.semanticColors.borderSoft,
   },
   modalTitle: {
     fontFamily: theme.typography.fontFamily.displayMedium,
@@ -993,11 +983,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.sm,
     color: theme.semanticColors.textSecondary,
-  },
-  modalClose: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.primary,
   },
   notificationList: {
     gap: theme.spacing[4],
@@ -1012,8 +997,8 @@ const styles = StyleSheet.create({
     gap: theme.spacing[2],
   },
   notificationUnread: {
-    borderColor: theme.semanticColors.primary,
-    backgroundColor: "#FFF7F2",
+    borderColor: theme.colors.gold[300],
+    backgroundColor: theme.semanticColors.warningSoft,
   },
   notificationTitle: {
     fontFamily: theme.typography.fontFamily.bodySemibold,

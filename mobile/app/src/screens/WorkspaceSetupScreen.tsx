@@ -107,7 +107,7 @@ function WorkspaceOption({
         <MaterialCommunityIcons
           name={capability === "talent" ? "music-note-outline" : "briefcase-outline"}
           size={21}
-          color={theme.semanticColors.textOnDark}
+          color={capability === "talent" ? theme.semanticColors.textOnDark : theme.colors.ink[950]}
         />
       </View>
       <View style={styles.optionCopy}>
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F5E6BF",
+    backgroundColor: theme.semanticColors.accentSoft,
   },
   screenHeaderTitle: {
     flex: 1,
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   setupPanel: {
     gap: theme.spacing[4],
     padding: theme.spacing[5],
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
   },
   optionReady: {
-    backgroundColor: "#E5F4F2",
+    backgroundColor: theme.semanticColors.infoSoft,
     borderColor: theme.colors.teal[300],
   },
   optionIcon: {
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing[3],
     padding: theme.spacing[4],
     borderRadius: theme.radius.lg,
-    backgroundColor: "#FFF8E8",
+    backgroundColor: theme.semanticColors.warningSoft,
     borderWidth: 1,
     borderColor: theme.colors.gold[300],
   },

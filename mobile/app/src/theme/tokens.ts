@@ -1,9 +1,15 @@
 export const colors = {
   ink: {
-    950: "#111315",
-    900: "#171A1D",
-    800: "#20252A",
-    700: "#313942",
+    950: "#29272A",
+    900: "#343135",
+    800: "#444146",
+    700: "#59565C",
+  },
+  brand: {
+    950: "#0B514E",
+    900: "#0E5C58",
+    800: "#126B66",
+    700: "#278D84",
   },
   stone: {
     50: "#F8F4EE",
@@ -12,10 +18,10 @@ export const colors = {
     300: "#D7C2A2",
   },
   gold: {
-    300: "#E7C975",
-    400: "#D9B553",
-    500: "#C89B2D",
-    600: "#A57D1F",
+    300: "#E8D18D",
+    400: "#DEBC63",
+    500: "#D6A83E",
+    600: "#A97D20",
   },
   ember: {
     300: "#F48A6A",
@@ -46,24 +52,32 @@ export const colors = {
 };
 
 export const semanticColors = {
-  background: colors.stone[50],
+  background: "#F7F5F0",
   surface: colors.white,
-  surfaceMuted: "#FBF8F3",
-  surfaceStrong: colors.ink[900],
-  textPrimary: colors.ink[900],
-  textSecondary: "#505B64",
-  textMuted: "#7C847D",
+  surfaceMuted: "#F1EEE8",
+  surfaceStrong: colors.ink[950],
+  textPrimary: colors.ink[950],
+  textSecondary: "#62666A",
+  textMuted: "#7A817F",
   textOnDark: colors.white,
-  borderSoft: "#E7DED1",
-  borderStrong: "#D7C2A2",
-  primary: colors.ember[500],
-  primaryPressed: colors.ember[600],
+  textOnDarkMuted: "rgba(255,255,255,0.72)",
+  surfaceOnDark: "rgba(255,255,255,0.08)",
+  borderOnDark: "rgba(255,255,255,0.12)",
+  borderSoft: "#E2DED6",
+  borderStrong: "#C8C1B5",
+  primary: colors.brand[800],
+  primaryPressed: colors.brand[950],
   accent: colors.gold[500],
-  accentSoft: "#F5E6BF",
+  accentSoft: "#F5EBCF",
   success: colors.verdant[500],
+  successSoft: "#E5F2E7",
   info: colors.teal[500],
+  infoSoft: "#E4F2F0",
   warning: colors.gold[500],
+  warningSoft: "#FAF0D8",
   danger: colors.ember[500],
+  dangerSoft: "#FCEAE5",
+  focus: colors.gold[500],
   overlay: "rgba(17, 19, 21, 0.48)",
 };
 
@@ -125,18 +139,18 @@ export const typography = {
 
 export const shadows = {
   card: {
-    shadowColor: "#101214",
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    shadowColor: colors.ink[950],
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
   },
   floating: {
-    shadowColor: "#101214",
-    shadowOpacity: 0.16,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
+    shadowColor: colors.ink[950],
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
   },
 };
 
@@ -147,10 +161,10 @@ export const motion = {
 };
 
 export const layout = {
-  screenPadding: spacing[4],
+  screenPadding: spacing[5],
   cardGap: spacing[3],
-  sectionGap: spacing[5],
-  buttonHeight: 48,
-  inputHeight: 52,
-  tabBarHeight: 78,
+  sectionGap: spacing[7],
+  buttonHeight: 54,
+  inputHeight: 56,
+  tabBarHeight: 72,
 };

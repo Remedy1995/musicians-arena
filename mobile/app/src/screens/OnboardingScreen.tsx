@@ -1,8 +1,8 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { ImageBackground, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { theme } from "../theme/theme";
 
@@ -13,44 +13,80 @@ type OnboardingScreenProps = {
 export function OnboardingScreen({ onContinue }: OnboardingScreenProps) {
   return (
     <Screen contentContainerStyle={styles.content} innerStyle={styles.inner}>
-      <LinearGradient colors={["#FFF2CF", "#FFE3D8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-        <View style={styles.heroGlow} />
-        <View style={styles.logoMark}>
-          <MaterialCommunityIcons name="music-clef-treble" size={28} color={theme.semanticColors.textOnDark} />
-        </View>
+      <StatusBar style="dark" />
+
+      <ImageBackground
+        source={require("../../assets/onboarding-stage.jpg")}
+        style={styles.hero}
+        imageStyle={styles.heroImage}
+        accessibilityLabel="A live music audience under warm stage lights"
+      >
+        <LinearGradient
+          colors={["rgba(12,16,20,0.78)", "rgba(12,16,20,0.08)", "rgba(12,16,20,0.92)"]}
+          locations={[0, 0.42, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+
         <View style={styles.brandRow}>
-          <Text style={styles.brand}>Musician's Arena</Text>
-          <Text style={styles.brandPill}>ONE ACCOUNT</Text>
+          <View style={styles.brandMark}>
+            <MaterialCommunityIcons name="music-note-eighth" size={20} color={theme.colors.ink[950]} />
+          </View>
+          <View style={styles.brandCopy}>
+            <Text style={styles.brandName}>MUSICIAN’S ARENA</Text>
+            <Text style={styles.brandDescriptor}>Talent and opportunities, connected</Text>
+          </View>
         </View>
-        <Text style={styles.title}>Find your sound. Build your next opportunity.</Text>
-        <Text style={styles.body}>
-          Discover talent, find gigs, and keep every booking conversation in one place.
-        </Text>
-      </LinearGradient>
 
-      <View style={styles.introCard}>
-        <Text style={styles.kicker}>A flexible account</Text>
-        <Text style={styles.cardTitle}>One account, two ways to participate.</Text>
-        <Text style={styles.cardBody}>
-          Start exploring now, then create a talent profile, an organizer profile, or both when you are ready.
-        </Text>
-        <View style={styles.points}>
-          <Benefit icon="account-multiple-outline" label="One sign-in for every capability" />
-          <Benefit icon="swap-horizontal-circle-outline" label="Switch workspaces whenever you need" />
-          <Benefit icon="compass-outline" label="Explore before creating a profile" />
+        <View style={styles.heroCopy}>
+          <View style={styles.eyebrowRow}>
+            <View style={styles.eyebrowLine} />
+            <Text style={styles.eyebrow}>THE CREATIVE WORK MARKETPLACE</Text>
+          </View>
+          <Text style={styles.title}>Make the right connection.</Text>
+          <Text style={styles.body}>
+            Discover trusted talent, find meaningful gigs, and manage every booking in one focused place.
+          </Text>
         </View>
+      </ImageBackground>
+
+      <View style={styles.actionArea}>
+        <View style={styles.roleStrip}>
+          <RoleCue icon="account-star-outline" label="For talent" />
+          <View style={styles.roleDivider} />
+          <RoleCue icon="calendar-check-outline" label="For organizers" />
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Get started with Musician's Arena"
+          onPress={onContinue}
+          style={({ pressed }) => [styles.primaryAction, pressed && styles.primaryActionPressed]}
+        >
+          <Text style={styles.primaryActionLabel}>Get started</Text>
+          <View style={styles.actionIcon}>
+            <MaterialCommunityIcons name="arrow-right" size={19} color={theme.semanticColors.textOnDark} />
+          </View>
+        </Pressable>
+
+        <Text style={styles.supportingText}>One account. Switch roles whenever your work does.</Text>
       </View>
-
-      <PrimaryButton label="Continue to account access" onPress={onContinue} />
     </Screen>
   );
 }
 
-function Benefit({ icon, label }: { icon: keyof typeof MaterialCommunityIcons.glyphMap; label: string }) {
+function RoleCue({
+  icon,
+  label,
+}: {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  label: string;
+}) {
   return (
-    <View style={styles.benefit}>
-      <MaterialCommunityIcons name={icon} size={20} color={theme.semanticColors.primary} />
-      <Text style={styles.benefitLabel}>{label}</Text>
+    <View style={styles.roleCue}>
+      <View style={styles.roleIcon}>
+        <MaterialCommunityIcons name={icon} size={20} color={theme.colors.ink[800]} />
+      </View>
+      <Text style={styles.roleLabel}>{label}</Text>
     </View>
   );
 }
@@ -58,112 +94,167 @@ function Benefit({ icon, label }: { icon: keyof typeof MaterialCommunityIcons.gl
 const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
-    paddingBottom: theme.spacing[6],
+    paddingVertical: theme.spacing[4],
   },
   inner: {
+    width: "100%",
+    maxWidth: 520,
+    alignSelf: "center",
     flexGrow: 1,
-    justifyContent: "space-between",
+    gap: theme.spacing[6],
   },
   hero: {
-    position: "relative",
+    minHeight: 460,
     overflow: "hidden",
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[6],
-    gap: theme.spacing[3],
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.8)",
+    justifyContent: "space-between",
+    padding: theme.spacing[5],
+    borderRadius: 32,
+    backgroundColor: theme.colors.ink[900],
     ...theme.shadows.floating,
   },
-  heroGlow: {
-    position: "absolute",
-    top: -72,
-    right: -34,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(217,181,83,0.26)",
-  },
-  logoMark: {
-    width: 54,
-    height: 54,
-    borderRadius: theme.radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.gold[400],
-  },
-  brand: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.primary,
-    letterSpacing: 0.4,
+  heroImage: {
+    borderRadius: 32,
   },
   brandRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: theme.spacing[3],
+  },
+  brandMark: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.gold[300],
+  },
+  brandCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  brandName: {
+    fontFamily: theme.typography.fontFamily.displayMedium,
+    fontSize: theme.typography.size.xs,
+    letterSpacing: 1.1,
+    color: theme.semanticColors.textOnDark,
+  },
+  brandDescriptor: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: 11,
+    color: "rgba(255,255,255,0.68)",
+  },
+  heroCopy: {
+    maxWidth: 390,
+    gap: theme.spacing[3],
+  },
+  eyebrowRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: theme.spacing[2],
   },
-  brandPill: {
+  eyebrowLine: {
+    width: 24,
+    height: 2,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.gold[300],
+  },
+  eyebrow: {
+    flexShrink: 1,
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: 10,
-    color: theme.colors.gold[600],
-    letterSpacing: 0.7,
+    letterSpacing: 1.15,
+    color: theme.colors.gold[300],
   },
   title: {
-    maxWidth: 310,
+    maxWidth: 350,
     fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size["3xl"],
-    lineHeight: theme.typography.lineHeight["3xl"],
-    color: theme.semanticColors.textPrimary,
+    fontSize: 38,
+    lineHeight: 44,
+    letterSpacing: -1.1,
+    color: theme.semanticColors.textOnDark,
   },
   body: {
-    maxWidth: 310,
+    maxWidth: 350,
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.md,
     lineHeight: theme.typography.lineHeight.md,
-    color: theme.semanticColors.textSecondary,
+    color: "rgba(255,255,255,0.76)",
   },
-  introCard: {
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[5],
-    gap: theme.spacing[3],
+  actionArea: {
+    gap: theme.spacing[4],
+    paddingHorizontal: theme.spacing[1],
+  },
+  roleStrip: {
+    minHeight: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: theme.spacing[4],
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
-    ...theme.shadows.card,
   },
-  kicker: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.primary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  cardTitle: {
-    fontFamily: theme.typography.fontFamily.displayMedium,
-    fontSize: theme.typography.size.xl,
-    lineHeight: theme.typography.lineHeight.xl,
-    color: theme.semanticColors.textPrimary,
-  },
-  cardBody: {
-    fontFamily: theme.typography.fontFamily.body,
-    fontSize: theme.typography.size.sm,
-    lineHeight: theme.typography.lineHeight.sm,
-    color: theme.semanticColors.textSecondary,
-  },
-  points: {
-    gap: theme.spacing[3],
-    paddingTop: theme.spacing[1],
-  },
-  benefit: {
+  roleCue: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing[3],
+    gap: theme.spacing[2],
   },
-  benefitLabel: {
-    flex: 1,
-    fontFamily: theme.typography.fontFamily.bodyMedium,
+  roleIcon: {
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 11,
+    backgroundColor: theme.colors.stone[100],
+  },
+  roleLabel: {
+    flexShrink: 1,
+    fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.sm,
     color: theme.semanticColors.textPrimary,
+  },
+  roleDivider: {
+    width: 1,
+    height: 28,
+    marginHorizontal: theme.spacing[3],
+    backgroundColor: theme.semanticColors.borderSoft,
+  },
+  primaryAction: {
+    height: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingLeft: theme.spacing[5],
+    paddingRight: 9,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.semanticColors.primary,
+    ...theme.shadows.card,
+  },
+  primaryActionPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }],
+  },
+  primaryActionLabel: {
+    fontFamily: theme.typography.fontFamily.bodySemibold,
+    fontSize: theme.typography.size.md,
+    letterSpacing: 0.1,
+    color: theme.semanticColors.textOnDark,
+  },
+  actionIcon: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  supportingText: {
+    paddingHorizontal: theme.spacing[3],
+    textAlign: "center",
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.xs,
+    lineHeight: theme.typography.lineHeight.xs,
+    color: theme.semanticColors.textMuted,
   },
 });

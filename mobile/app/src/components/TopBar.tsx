@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
@@ -21,17 +20,12 @@ export function TopBar({ unreadCount = 0, onNotificationPress, showNotifications
     <View style={styles.container}>
       <View style={styles.row}>
         <View style={styles.brandGroup}>
-          <LinearGradient
-            colors={[theme.colors.ember[500], theme.colors.gold[400]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.logoMark, compact ? styles.logoMarkCompact : undefined]}
-          >
-            <MaterialCommunityIcons name="music-clef-treble" size={compact ? 21 : 24} color={theme.semanticColors.textOnDark} />
-          </LinearGradient>
+          <View style={[styles.logoMark, compact ? styles.logoMarkCompact : undefined]}>
+            <MaterialCommunityIcons name="music-note-eighth" size={compact ? 19 : 21} color={theme.colors.ink[950]} />
+          </View>
           <View style={styles.brandCopy}>
-            <Text style={styles.kicker}>Musician's Arena</Text>
-            <Text style={styles.title} numberOfLines={1}>Find the right sound.</Text>
+            <Text style={styles.kicker}>MUSICIAN’S ARENA</Text>
+            <Text style={styles.title} numberOfLines={1}>Make the right connection.</Text>
           </View>
         </View>
         <View style={styles.actions}>
@@ -41,7 +35,7 @@ export function TopBar({ unreadCount = 0, onNotificationPress, showNotifications
               <MaterialCommunityIcons
                 name={unreadCount > 0 ? "bell-ring" : "bell-outline"}
                 size={20}
-                color={unreadCount > 0 ? theme.colors.gold[500] : theme.colors.ink[800]}
+                color={theme.colors.ink[800]}
               />
               {unreadCount > 0 ? (
                 <View style={styles.badge}>
@@ -87,12 +81,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   logoMark: {
-    width: 38,
-    height: 38,
-    borderRadius: theme.radius.lg,
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    ...theme.shadows.card,
+    backgroundColor: theme.colors.gold[300],
   },
   logoMarkCompact: {
     width: 34,
@@ -101,13 +95,12 @@ const styles = StyleSheet.create({
   kicker: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.primary,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
+    color: theme.semanticColors.textMuted,
+    letterSpacing: 0.9,
   },
   title: {
     fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size.lg,
+    fontSize: theme.typography.size.md,
     color: theme.semanticColors.textPrimary,
     lineHeight: theme.typography.lineHeight.lg,
   },
@@ -120,11 +113,10 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: theme.radius.pill,
+    borderRadius: 14,
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
-    ...theme.shadows.card,
   },
   notificationSpacer: {
     width: 44,
@@ -140,7 +132,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 5,
-    backgroundColor: theme.semanticColors.primary,
+    backgroundColor: theme.semanticColors.danger,
     borderWidth: 1.5,
     borderColor: theme.semanticColors.surface,
   },

@@ -38,21 +38,20 @@ export function RoleCard({ role, title, body, selected, onPress, compact = false
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing[5],
     gap: theme.spacing[3],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
-    ...theme.shadows.card,
   },
   cardCompact: {
     padding: theme.spacing[4],
     gap: theme.spacing[2],
   },
   cardSelected: {
-    borderColor: theme.semanticColors.borderStrong,
-    backgroundColor: theme.semanticColors.surface,
+    borderColor: theme.semanticColors.primary,
+    backgroundColor: theme.semanticColors.infoSoft,
   },
   topRow: {
     flexDirection: "row",
@@ -83,7 +82,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.stone[100],
   },
   selectionPillActive: {
-    backgroundColor: theme.colors.ink[900],
+    backgroundColor: theme.semanticColors.primary,
   },
   selectionLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,

@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { UserRole } from "../AppShell";
 import { Capability } from "../services/api/types";
+import { ModalCloseButton } from "./ModalCloseButton";
 import { ModalSurface } from "./ModalSurface";
 import { theme } from "../theme/theme";
 
@@ -63,9 +64,7 @@ export function WorkspaceSwitcherModal({
               <Text style={styles.title}>Switch workspace</Text>
               <Text style={styles.body}>Move between the ways you participate without signing out.</Text>
             </View>
-            <Pressable onPress={onClose} style={styles.closeButton} accessibilityLabel="Close workspace switcher">
-              <MaterialCommunityIcons name="close" size={20} color={theme.semanticColors.textSecondary} />
-            </Pressable>
+            <ModalCloseButton onPress={onClose} accessibilityLabel="Close workspace switcher" />
           </View>
 
           <View style={styles.currentWorkspace}>
@@ -143,15 +142,15 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(19, 23, 24, 0.48)",
+    backgroundColor: theme.semanticColors.overlay,
   },
   sheet: {
     gap: theme.spacing[4],
     paddingHorizontal: theme.layout.screenPadding,
     paddingTop: theme.spacing[2],
     paddingBottom: theme.spacing[2],
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: theme.radius.xl,
+    borderTopRightRadius: theme.radius.xl,
     backgroundColor: theme.semanticColors.background,
     borderWidth: 1,
     borderBottomWidth: 0,
@@ -177,7 +176,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.primary,
+    color: theme.semanticColors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.7,
   },
@@ -192,16 +191,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
     color: theme.semanticColors.textSecondary,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.semanticColors.surface,
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
   },
   currentWorkspace: {
     flexDirection: "row",
@@ -258,8 +247,8 @@ const styles = StyleSheet.create({
     ...theme.shadows.card,
   },
   optionActive: {
-    borderColor: theme.colors.gold[400],
-    backgroundColor: "#FFF9EC",
+    borderColor: theme.semanticColors.primary,
+    backgroundColor: theme.semanticColors.infoSoft,
   },
   optionIcon: {
     width: 44,
@@ -297,15 +286,15 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.stone[100],
   },
   actionPillActive: {
-    backgroundColor: theme.semanticColors.accentSoft,
+    backgroundColor: theme.semanticColors.infoSoft,
   },
   actionPillLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.primary,
+    color: theme.semanticColors.textPrimary,
   },
   actionPillLabelActive: {
-    color: theme.colors.gold[600],
+    color: theme.semanticColors.primary,
   },
   footer: {
     flexDirection: "row",
@@ -336,9 +325,9 @@ const styles = StyleSheet.create({
     gap: theme.spacing[2],
     padding: theme.spacing[3],
     borderRadius: theme.radius.md,
-    backgroundColor: "#FFF0ED",
+    backgroundColor: theme.semanticColors.dangerSoft,
     borderWidth: 1,
-    borderColor: "#F5C5BC",
+    borderColor: theme.colors.ember[300],
   },
   error: {
     flex: 1,

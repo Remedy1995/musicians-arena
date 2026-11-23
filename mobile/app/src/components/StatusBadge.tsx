@@ -15,11 +15,11 @@ const toneStyles: Record<StatusTone, { backgroundColor: string; color: string }>
     color: theme.colors.gold[600],
   },
   urgent: {
-    backgroundColor: "#FCE1D8",
+    backgroundColor: theme.semanticColors.dangerSoft,
     color: theme.colors.ember[600],
   },
   success: {
-    backgroundColor: "#DFF1E0",
+    backgroundColor: theme.semanticColors.successSoft,
     color: theme.colors.verdant[600],
   },
   neutral: {

@@ -13,6 +13,7 @@ function parseBoolean(value: string | undefined, fallback: boolean) {
 }
 
 export default (): ExpoConfig => {
+  const figmaPublicUrl = process.env.FIGMA ? process.env.FIGMA_PUBLIC_URL : undefined;
   const appName = process.env.APP_DISPLAY_NAME || baseConfig.name || "Musician's Arena";
   const appSlug = process.env.APP_SLUG || baseConfig.slug || "musicians-arena";
   const appScheme = process.env.APP_SCHEME || baseConfig.scheme || "musiciansarena";
@@ -78,6 +79,14 @@ export default (): ExpoConfig => {
     ],
     extra: {
       ...(baseConfig.extra || {}),
+      ...(figmaPublicUrl
+        ? {
+            router: {
+              ...(baseConfig.extra?.router || {}),
+              origin: figmaPublicUrl,
+            },
+          }
+        : {}),
       appVariant,
       apiBaseUrl,
       wsBaseUrl,

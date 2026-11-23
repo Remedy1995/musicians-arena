@@ -40,9 +40,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    paddingTop: theme.spacing[3],
     paddingBottom: theme.spacing[6],
   },
   inner: {
+    width: "100%",
+    maxWidth: 760,
+    alignSelf: "center",
     paddingHorizontal: theme.layout.screenPadding,
     gap: theme.layout.sectionGap,
   },

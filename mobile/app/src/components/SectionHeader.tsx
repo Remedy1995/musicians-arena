@@ -12,7 +12,6 @@ export function SectionHeader({ title, action, onActionPress }: SectionHeaderPro
   return (
     <View style={styles.row}>
       <View style={styles.titleGroup}>
-        <View style={styles.titleAccent} />
         <Text style={styles.title} numberOfLines={1}>{title}</Text>
       </View>
       {action ? onActionPress ? (
@@ -38,13 +37,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing[2],
-  },
-  titleAccent: {
-    width: 3,
-    height: 18,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.semanticColors.primary,
   },
   title: {
     flexShrink: 1,
@@ -55,14 +47,12 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flexShrink: 0,
-    paddingHorizontal: theme.spacing[3],
+    paddingHorizontal: theme.spacing[2],
     paddingVertical: theme.spacing[1],
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.stone[100],
   },
   action: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.primary,
+    color: theme.semanticColors.textSecondary,
   },
 });

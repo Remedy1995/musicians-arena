@@ -16,6 +16,7 @@ import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { TextField } from "../components/TextField";
+import { ModalCloseButton } from "../components/ModalCloseButton";
 import { ModalSurface } from "../components/ModalSurface";
 import { theme } from "../theme/theme";
 
@@ -300,9 +301,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
               <View style={styles.modalAccentBar} />
               <Text style={styles.modalTitle}>Create a gig</Text>
             </View>
-            <Pressable onPress={() => setComposerOpen(false)} style={styles.closeButton}>
-              <Text style={styles.modalClose}>✕ Close</Text>
-            </Pressable>
+            <ModalCloseButton onPress={() => setComposerOpen(false)} accessibilityLabel="Close gig creation" />
           </View>
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -313,7 +312,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
             <TextField label="Description" value={form.description} onChangeText={(value) => setForm((current) => ({ ...current, description: value }))} multiline />
             <TextField label="Requirements" value={form.requirements} onChangeText={(value) => setForm((current) => ({ ...current, requirements: value }))} multiline />
             <View style={styles.fieldGroupCard}>
-              <Text style={styles.fieldGroupLabel}>📅 Event timing</Text>
+              <Text style={styles.fieldGroupLabel}>Event timing</Text>
               <DateTimeField
                 label="Event date"
                 mode="date"
@@ -337,14 +336,14 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
               />
             </View>
             <View style={styles.fieldGroupCard}>
-              <Text style={styles.fieldGroupLabel}>📍 Venue details</Text>
+              <Text style={styles.fieldGroupLabel}>Venue details</Text>
               <TextField label="City / Town" value={form.city} onChangeText={(value) => setForm((current) => ({ ...current, city: value }))} />
               <TextField label="Region / State / Province" value={form.region} onChangeText={(value) => setForm((current) => ({ ...current, region: value }))} />
               <TextField label="Venue name" value={form.venueName} onChangeText={(value) => setForm((current) => ({ ...current, venueName: value }))} />
               <TextField label="Venue address" value={form.venueAddress} onChangeText={(value) => setForm((current) => ({ ...current, venueAddress: value }))} multiline />
             </View>
             <View style={styles.fieldGroupCard}>
-              <Text style={styles.fieldGroupLabel}>💰 Budget range (GHS)</Text>
+              <Text style={styles.fieldGroupLabel}>Budget range (GHS)</Text>
               <View style={styles.budgetRow}>
                 <View style={styles.budgetField}>
                   <TextField label="Min" value={form.budgetMin} onChangeText={(value) => setForm((current) => ({ ...current, budgetMin: value }))} keyboardType="phone-pad" />
@@ -355,7 +354,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
               </View>
             </View>
             <View style={styles.fieldGroupCard}>
-              <Text style={styles.fieldGroupLabel}>🎼 Eligible talent categories</Text>
+              <Text style={styles.fieldGroupLabel}>Eligible talent categories</Text>
               <Text style={styles.helperSubtext}>
                 Choose the kinds of talents that should be allowed to show interest in this gig.
               </Text>
@@ -448,9 +447,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
               <View style={styles.modalAccentBar} />
               <Text style={styles.modalTitle}>{talentResponseLocked ? "Gig details" : "Show interest"}</Text>
             </View>
-            <Pressable onPress={() => setInterestOpen(false)} style={styles.closeButton}>
-              <Text style={styles.modalClose}>✕ Close</Text>
-            </Pressable>
+            <ModalCloseButton onPress={() => setInterestOpen(false)} accessibilityLabel="Close gig details" />
           </View>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalForm} keyboardShouldPersistTaps="handled">
             {selectedGig ? (
@@ -630,9 +627,7 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
               <View style={styles.modalAccentBar} />
               <Text style={styles.modalTitle}>Gig applicants</Text>
             </View>
-            <Pressable onPress={() => setOrganizerGigOpen(false)} style={styles.closeButton}>
-              <Text style={styles.modalClose}>✕ Close</Text>
-            </Pressable>
+            <ModalCloseButton onPress={() => setOrganizerGigOpen(false)} accessibilityLabel="Close gig applicants" />
           </View>
           {gigDetail ? (
             <ScrollView contentContainerStyle={styles.modalForm}>
@@ -783,15 +778,13 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
                 <View style={styles.modalAccentBar} />
                 <Text style={styles.modalTitle}>Booking offer</Text>
               </View>
-              <Pressable
+              <ModalCloseButton
                 onPress={() => {
                   setSelectedInterest(null);
                   setOrganizerGigOpen(true);
                 }}
-                style={styles.closeButton}
-              >
-                <Text style={styles.modalClose}>✕ Close</Text>
-              </Pressable>
+                accessibilityLabel="Close booking offer"
+              />
             </View>
             {selectedInterest ? (
               <ScrollView contentContainerStyle={styles.convertModalContent}>
@@ -904,15 +897,13 @@ export function GigsScreen({ role, marketplace, token, onNavigateTab, focusedGig
               <View style={styles.modalAccentBar} />
               <Text style={styles.modalTitle}>Talent profile</Text>
             </View>
-            <Pressable
+            <ModalCloseButton
               onPress={() => {
                 setProfileTarget(null);
                 setOrganizerGigOpen(true);
               }}
-              style={styles.closeButton}
-            >
-              <Text style={styles.modalClose}>✕ Close</Text>
-            </Pressable>
+              accessibilityLabel="Close talent profile"
+            />
           </View>
           <ScrollView contentContainerStyle={styles.modalForm}>
             {viewedTalentProfile ? (
@@ -1094,13 +1085,13 @@ const styles = StyleSheet.create({
     gap: theme.spacing[3],
   },
   list: {
-    gap: theme.spacing[3],
+    gap: theme.spacing[2],
   },
   modalScreen: {
     flex: 1,
     backgroundColor: theme.semanticColors.background,
     paddingHorizontal: theme.layout.screenPadding,
-    paddingTop: 0,
+    paddingTop: theme.spacing[4],
     gap: theme.spacing[4],
   },
   modalKeyboard: {
@@ -1130,28 +1121,16 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size["2xl"],
     color: theme.semanticColors.textPrimary,
   },
-  closeButton: {
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.stone[100],
-  },
-  modalClose: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.textSecondary,
-  },
   modalForm: {
-    gap: theme.spacing[5],
+    gap: theme.spacing[4],
     paddingTop: theme.spacing[4],
     paddingBottom: theme.spacing[10],
   },
   fieldGroupCard: {
-    borderRadius: theme.radius.xl,
-    borderWidth: 1,
+    borderRadius: 0,
+    borderTopWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
-    backgroundColor: theme.semanticColors.surface,
-    padding: theme.spacing[4],
+    paddingTop: theme.spacing[4],
     gap: theme.spacing[4],
   },
   fieldGroupLabel: {
@@ -1173,8 +1152,8 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
   },
   categoryChipActive: {
-    backgroundColor: theme.colors.ink[900],
-    borderColor: theme.colors.gold[400],
+    backgroundColor: theme.semanticColors.primary,
+    borderColor: theme.semanticColors.primary,
   },
   categoryChipLabel: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
@@ -1220,11 +1199,11 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textPrimary,
   },
   handoffCard: {
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing[4],
-    backgroundColor: "#FFF7F2",
+    backgroundColor: theme.semanticColors.infoSoft,
     borderWidth: 1,
-    borderColor: theme.semanticColors.primary,
+    borderColor: theme.colors.teal[300],
     gap: theme.spacing[2],
   },
   handoffTitle: {
@@ -1244,8 +1223,8 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.primary,
   },
   interestCard: {
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[5],
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing[4],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
@@ -1290,17 +1269,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[3],
   },
   decisionButtonShortlist: {
-    backgroundColor: "#F7EED6",
+    backgroundColor: theme.semanticColors.warningSoft,
     borderWidth: 1,
     borderColor: theme.colors.gold[300],
   },
   decisionButtonInvite: {
-    backgroundColor: "#E4F1EE",
+    backgroundColor: theme.semanticColors.infoSoft,
     borderWidth: 1,
     borderColor: theme.colors.teal[300],
   },
   decisionButtonDecline: {
-    backgroundColor: "#FCEAE5",
+    backgroundColor: theme.semanticColors.dangerSoft,
     borderWidth: 1,
     borderColor: theme.colors.ember[300],
   },
@@ -1375,13 +1354,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   convertCard: {
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[5],
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing[4],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
     gap: theme.spacing[4],
-    ...theme.shadows.card,
   },
   convertOverlay: {
     flex: 1,
@@ -1441,13 +1419,12 @@ const styles = StyleSheet.create({
     gap: theme.spacing[4],
   },
   talentGigHeroCard: {
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing[4],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
     gap: theme.spacing[3],
-    ...theme.shadows.card,
   },
   talentGigHeroTop: {
     flexDirection: "row",
@@ -1463,18 +1440,18 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing[3],
     paddingVertical: 6,
-    backgroundColor: "#F2FAF4",
+    backgroundColor: theme.semanticColors.successSoft,
     borderWidth: 1,
-    borderColor: "#D7E8DA",
+    borderColor: theme.colors.verdant[300],
   },
   talentGigUrgencyPillUrgent: {
-    backgroundColor: "#FFF3EE",
+    backgroundColor: theme.semanticColors.dangerSoft,
     borderColor: theme.colors.ember[300],
   },
   talentGigUrgencyLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: "#46724C",
+    color: theme.colors.verdant[600],
   },
   talentGigUrgencyLabelUrgent: {
     color: theme.colors.ember[600],
@@ -1487,17 +1464,13 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: theme.radius.lg,
     padding: theme.spacing[4],
-    backgroundColor: theme.colors.stone[50],
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
+    backgroundColor: theme.semanticColors.surfaceMuted,
     gap: theme.spacing[1],
   },
   talentGigFactCardFull: {
     borderRadius: theme.radius.lg,
     padding: theme.spacing[4],
-    backgroundColor: "#FFF7F2",
-    borderWidth: 1,
-    borderColor: theme.colors.ember[300],
+    backgroundColor: theme.semanticColors.dangerSoft,
     gap: theme.spacing[1],
   },
   talentGigFactLabel: {
@@ -1519,18 +1492,17 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textPrimary,
   },
   talentGigSectionCard: {
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing[4],
-    backgroundColor: theme.semanticColors.surface,
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
+    borderRadius: 0,
+    paddingVertical: theme.spacing[4],
+    borderTopWidth: 1,
+    borderTopColor: theme.semanticColors.borderSoft,
     gap: theme.spacing[3],
   },
   talentGigContactCard: {
     marginTop: theme.spacing[2],
     padding: theme.spacing[3],
     borderRadius: theme.radius.md,
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: theme.semanticColors.infoSoft,
     gap: theme.spacing[1],
   },
   talentGigSectionTitle: {
@@ -1547,14 +1519,14 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing[3],
     paddingVertical: 6,
-    backgroundColor: "#F6F1E8",
+    backgroundColor: theme.semanticColors.surfaceMuted,
     borderWidth: 1,
-    borderColor: "#E4D8C8",
+    borderColor: theme.semanticColors.borderSoft,
   },
   talentGigCategoryLabel: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
     fontSize: theme.typography.size.xs,
-    color: "#6A6258",
+    color: theme.semanticColors.textSecondary,
   },
   gigContextTitle: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -1575,7 +1547,7 @@ const styles = StyleSheet.create({
   talentStatusCard: {
     borderRadius: theme.radius.lg,
     padding: theme.spacing[4],
-    backgroundColor: "#FFF7F2",
+    backgroundColor: theme.semanticColors.dangerSoft,
     borderWidth: 1,
     borderColor: theme.colors.ember[300],
     gap: theme.spacing[2],
@@ -1632,7 +1604,7 @@ const styles = StyleSheet.create({
   },
   confirmOverlay: {
     flex: 1,
-    backgroundColor: "rgba(17, 19, 21, 0.52)",
+    backgroundColor: theme.semanticColors.overlay,
     alignItems: "center",
     justifyContent: "center",
     padding: theme.spacing[5],

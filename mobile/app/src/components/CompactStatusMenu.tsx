@@ -96,8 +96,8 @@ const styles = StyleSheet.create({
     zIndex: 3,
     gap: theme.spacing[2],
     padding: theme.spacing[3],
-    borderRadius: theme.radius.xl,
-    backgroundColor: "#F7F1E7",
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.semanticColors.surfaceMuted,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
     overflow: "visible",
@@ -136,8 +136,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   optionActive: {
-    borderColor: theme.colors.gold[400],
-    backgroundColor: "#FFF4DB",
+    borderColor: theme.semanticColors.primary,
+    backgroundColor: theme.semanticColors.infoSoft,
   },
   optionLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textSecondary,
   },
   optionLabelActive: {
-    color: theme.semanticColors.textPrimary,
+    color: theme.semanticColors.primary,
   },
   allOption: {
     flexDirection: "row",
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
     backgroundColor: theme.semanticColors.surface,
-    shadowColor: "#000000",
+    shadowColor: theme.colors.ink[950],
     shadowOpacity: 0.14,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   menuItemActive: {
-    backgroundColor: "#FFF4DB",
+    backgroundColor: theme.semanticColors.infoSoft,
   },
   menuLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -195,6 +195,6 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textSecondary,
   },
   menuLabelActive: {
-    color: theme.semanticColors.textPrimary,
+    color: theme.semanticColors.primary,
   },
 });

@@ -96,8 +96,7 @@ export function GigCard({
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: theme.spacing[1],
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
@@ -105,8 +104,8 @@ const styles = StyleSheet.create({
     ...theme.shadows.card,
   },
   cardContent: {
-    padding: theme.spacing[3],
-    gap: theme.spacing[2],
+    padding: theme.spacing[4],
+    gap: theme.spacing[3],
   },
   header: {
     flexDirection: "row",
@@ -223,27 +222,27 @@ function getInterestStatusPalette(status: string | null | undefined) {
   switch (status) {
     case "Request sent":
       return {
-        backgroundColor: "#EEF4FF",
-        borderColor: "#C9DBFF",
-        color: "#3559A8",
+        backgroundColor: theme.semanticColors.infoSoft,
+        borderColor: theme.colors.teal[300],
+        color: theme.colors.teal[600],
       };
     case "Shortlisted":
       return {
-        backgroundColor: "#FFF6E5",
-        borderColor: "#F0D39A",
-        color: "#9B6A13",
+        backgroundColor: theme.semanticColors.warningSoft,
+        borderColor: theme.colors.gold[300],
+        color: theme.colors.gold[600],
       };
     case "Invited to proceed":
       return {
-        backgroundColor: "#F3ECFF",
-        borderColor: "#D8C4F3",
-        color: "#6C469A",
+        backgroundColor: theme.semanticColors.successSoft,
+        borderColor: theme.colors.verdant[300],
+        color: theme.colors.verdant[600],
       };
     case "Not selected":
       return {
-        backgroundColor: "#F5F5F5",
-        borderColor: "#DDDDDD",
-        color: "#6D6D6D",
+        backgroundColor: theme.semanticColors.surfaceMuted,
+        borderColor: theme.semanticColors.borderSoft,
+        color: theme.semanticColors.textMuted,
       };
     default:
       return {

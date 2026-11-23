@@ -14,6 +14,7 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
+import { ModalCloseButton } from "../components/ModalCloseButton";
 import { ModalSurface } from "../components/ModalSurface";
 import { TextField } from "../components/TextField";
 import { theme } from "../theme/theme";
@@ -254,9 +255,7 @@ export function BookingsScreen({
             <Text style={styles.modalTitle}>
               {role === "talent" && negotiationCanRespond ? "Booking request" : "Booking actions"}
             </Text>
-            <Pressable onPress={() => setActionOpen(false)}>
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
+            <ModalCloseButton onPress={() => setActionOpen(false)} accessibilityLabel="Close booking actions" />
           </View>
           {selectedBooking ? (
             <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalForm}>
@@ -567,9 +566,7 @@ export function BookingsScreen({
               <Text style={styles.modalTitle}>Request booking review</Text>
               <Text style={styles.modalSubtitle}>Support will review the concern before any refund or compensation is released.</Text>
             </View>
-            <Pressable onPress={() => setDisputeOpen(false)}>
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
+            <ModalCloseButton onPress={() => setDisputeOpen(false)} accessibilityLabel="Close booking review" />
           </View>
           <ScrollView contentContainerStyle={styles.modalForm}>
             <View style={styles.selectorRow}>
@@ -623,14 +620,13 @@ export function BookingsScreen({
                     ? "Send counteroffer"
                     : ""}
               </Text>
-              <Pressable
+              <ModalCloseButton
                 onPress={() => {
                   setActiveActionForm(null);
                   setActionOpen(true);
                 }}
-              >
-                <Text style={styles.modalClose}>Close</Text>
-              </Pressable>
+                accessibilityLabel="Close booking form"
+              />
             </View>
             {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
             <ScrollView contentContainerStyle={styles.actionFormContent}>
@@ -707,14 +703,13 @@ export function BookingsScreen({
         <ModalSurface style={styles.modalScreen}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Counteroffer history</Text>
-            <Pressable
+            <ModalCloseButton
               onPress={() => {
                 setHistoryOpen(false);
                 setActionOpen(true);
               }}
-            >
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
+              accessibilityLabel="Close counteroffer history"
+            />
           </View>
           <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalForm}>
             <Text style={styles.helperText}>
@@ -1119,7 +1114,7 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textSecondary,
   },
   list: {
-    gap: theme.spacing[4],
+    gap: theme.spacing[3],
   },
   modalScreen: {
     flex: 1,
@@ -1131,6 +1126,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingBottom: theme.spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.semanticColors.borderSoft,
   },
   modalTitleWrap: {
     flex: 1,
@@ -1141,11 +1139,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.size["2xl"],
     color: theme.semanticColors.textPrimary,
   },
-  modalClose: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.primary,
-  },
   modalSubtitle: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.sm,
@@ -1153,7 +1146,7 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textSecondary,
   },
   modalForm: {
-    gap: theme.spacing[4],
+    gap: theme.spacing[3],
     paddingBottom: theme.spacing[8],
   },
   modalScroll: {
@@ -1173,8 +1166,8 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
   },
   selectorChipActive: {
-    backgroundColor: theme.colors.ink[900],
-    borderColor: theme.colors.gold[400],
+    backgroundColor: theme.semanticColors.primary,
+    borderColor: theme.semanticColors.primary,
   },
   selectorChipLabel: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
@@ -1191,43 +1184,45 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textSecondary,
   },
   summaryCard: {
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing[4],
-    backgroundColor: theme.colors.ink[900],
+    backgroundColor: theme.semanticColors.surface,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.semanticColors.primary,
     gap: theme.spacing[2],
   },
   summaryTitle: {
     fontFamily: theme.typography.fontFamily.displayMedium,
     fontSize: theme.typography.size.xl,
-    color: theme.semanticColors.textOnDark,
+    color: theme.semanticColors.textPrimary,
   },
   summaryMeta: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.sm,
-    color: "rgba(255,255,255,0.74)",
+    color: theme.semanticColors.textSecondary,
   },
   summaryCounterpart: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.sm,
-    color: "rgba(255,255,255,0.88)",
+    color: theme.semanticColors.textPrimary,
   },
   contactCard: {
     marginTop: theme.spacing[2],
     padding: theme.spacing[2],
     borderRadius: theme.radius.md,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: theme.semanticColors.infoSoft,
   },
   contactCardTitle: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.textOnDark,
+    color: theme.semanticColors.textPrimary,
     marginBottom: 2,
   },
   timelineCard: {
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[4],
-    backgroundColor: theme.semanticColors.surface,
-    borderWidth: 1,
+    borderRadius: 0,
+    paddingVertical: theme.spacing[4],
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
     gap: theme.spacing[3],
   },
@@ -1259,11 +1254,11 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textPrimary,
   },
   paymentCard: {
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing[4],
-    backgroundColor: "#F3EEE5",
+    backgroundColor: theme.semanticColors.surfaceMuted,
     gap: theme.spacing[2],
-    marginTop: 20,
+    marginTop: theme.spacing[2],
   },
   paymentLine: {
     fontFamily: theme.typography.fontFamily.body,
@@ -1278,7 +1273,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing[3],
     paddingVertical: theme.spacing[2],
-    backgroundColor: "#FFF4DB",
+    backgroundColor: theme.semanticColors.warningSoft,
     borderWidth: 1,
     borderColor: theme.colors.gold[300],
   },
@@ -1302,7 +1297,7 @@ const styles = StyleSheet.create({
   checkoutPendingCard: {
     borderRadius: theme.radius.lg,
     padding: theme.spacing[3],
-    backgroundColor: "#EAF7F5",
+    backgroundColor: theme.semanticColors.infoSoft,
     borderWidth: 1,
     borderColor: theme.colors.teal[300],
     gap: theme.spacing[2],
@@ -1329,7 +1324,7 @@ const styles = StyleSheet.create({
   disputeCard: {
     borderRadius: theme.radius.lg,
     padding: theme.spacing[3],
-    backgroundColor: "#FFF7F2",
+    backgroundColor: theme.semanticColors.dangerSoft,
     borderWidth: 1,
     borderColor: theme.colors.ember[300],
     gap: theme.spacing[2],
@@ -1345,17 +1340,17 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textSecondary,
   },
   decisionSummaryCard: {
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing[4],
-    backgroundColor: "#FFF7F2",
-    borderWidth: 1,
-    borderColor: theme.colors.ember[300],
+    backgroundColor: theme.semanticColors.infoSoft,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.semanticColors.primary,
     gap: theme.spacing[2],
   },
   decisionSummaryLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: theme.colors.ember[600],
+    color: theme.semanticColors.primary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -1409,6 +1404,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     gap: theme.spacing[3],
+    paddingBottom: theme.spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.semanticColors.borderSoft,
   },
   actionFormTitle: {
     flex: 1,
@@ -1421,17 +1419,15 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing[4],
   },
   offerDecisionCard: {
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing[4],
-    backgroundColor: theme.semanticColors.surface,
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
+    backgroundColor: theme.semanticColors.surfaceMuted,
     gap: theme.spacing[3],
   },
   latestOfferCard: {
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing[3],
-    backgroundColor: "#FFF4DB",
+    backgroundColor: theme.semanticColors.warningSoft,
     borderWidth: 1,
     borderColor: theme.colors.gold[400],
     gap: theme.spacing[1],
@@ -1477,9 +1473,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[3],
     paddingVertical: theme.spacing[2],
     borderRadius: theme.radius.pill,
-    backgroundColor: "#FFF7F2",
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
+    backgroundColor: theme.semanticColors.surfaceMuted,
   },
   historyLink: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -1487,8 +1481,8 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.primary,
   },
   offerHistorySection: {
-    gap: theme.spacing[4],
-    marginTop: 30,
+    gap: theme.spacing[3],
+    marginTop: theme.spacing[4],
   },
   offerHistoryCard: {
     borderRadius: theme.radius.xl,
@@ -1507,14 +1501,14 @@ const styles = StyleSheet.create({
   offerHistoryItem: {
     borderRadius: theme.radius.lg,
     padding: theme.spacing[4],
-    backgroundColor: "#FAF7F2",
+    backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
     gap: theme.spacing[2],
   },
   offerHistoryItemLatest: {
     borderColor: theme.colors.gold[400],
-    backgroundColor: "#FFF7E5",
+    backgroundColor: theme.semanticColors.warningSoft,
   },
   offerHistoryHeader: {
     flexDirection: "row",

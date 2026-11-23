@@ -11,6 +11,7 @@ import { ApiError } from "../services/api/client";
 import { toMessageItem } from "../services/realtime/types";
 import { ConversationCard } from "../components/ConversationCard";
 import { PageHeader } from "../components/PageHeader";
+import { ModalCloseButton } from "../components/ModalCloseButton";
 import { ModalSurface } from "../components/ModalSurface";
 import { ProfileAvatar } from "../components/ProfileAvatar";
 import { Screen } from "../components/Screen";
@@ -197,9 +198,7 @@ export function MessagesScreen({
                 </View>
               </View>
             </View>
-            <Pressable onPress={() => setDetailOpen(false)} style={styles.modalCloseButton}>
-              <MaterialCommunityIcons name="close" size={18} color={theme.semanticColors.textPrimary} />
-            </Pressable>
+            <ModalCloseButton onPress={() => setDetailOpen(false)} accessibilityLabel="Close conversation" />
           </View>
 
           <View style={styles.chatShell}>
@@ -399,7 +398,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing[4],
   },
   list: {
-    gap: theme.spacing[4],
+    gap: theme.spacing[2],
   },
   error: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
@@ -414,8 +413,8 @@ const styles = StyleSheet.create({
   modalScreen: {
     flex: 1,
     backgroundColor: theme.semanticColors.background,
-    paddingHorizontal: theme.spacing[1],
-    paddingTop: theme.spacing[2],
+    paddingHorizontal: 0,
+    paddingTop: theme.spacing[3],
     paddingBottom: theme.spacing[1],
   },
   modalKeyboard: {
@@ -426,8 +425,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingBottom: theme.spacing[4],
-    paddingHorizontal: theme.spacing[3],
+    paddingHorizontal: theme.layout.screenPadding,
     gap: theme.spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.semanticColors.borderSoft,
   },
   modalHeaderContent: {
     flex: 1,
@@ -453,43 +454,24 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: theme.radius.pill,
-    backgroundColor: "#2FB579",
+    backgroundColor: theme.semanticColors.success,
   },
   modalSubtitle: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.sm,
     color: theme.semanticColors.textSecondary,
   },
-  modalCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.semanticColors.surface,
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
-  },
   chatShell: {
     flex: 1,
-    borderRadius: theme.radius.xl,
-    overflow: "hidden",
-    backgroundColor: theme.colors.stone[50],
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
-    shadowColor: "#20160D",
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    backgroundColor: theme.semanticColors.background,
   },
   threadScroll: {
     flex: 1,
   },
   messageList: {
-    gap: theme.spacing[3],
-    paddingHorizontal: theme.spacing[3],
-    paddingTop: theme.spacing[3],
+    gap: theme.spacing[2],
+    paddingHorizontal: theme.layout.screenPadding,
+    paddingTop: theme.spacing[4],
     paddingBottom: theme.spacing[4],
   },
   bubbleRow: {
@@ -507,11 +489,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[4],
     paddingVertical: theme.spacing[2],
     gap: 2,
-    shadowColor: "#0B1220",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
   },
   bubbleMine: {
     backgroundColor: theme.semanticColors.primary,
@@ -539,13 +516,13 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textMuted,
   },
   bubbleMetaMine: {
-    color: "rgba(255,255,255,0.68)",
+    color: theme.semanticColors.textOnDarkMuted,
   },
   detailComposer: {
     borderTopWidth: 1,
     borderTopColor: theme.semanticColors.borderSoft,
-    backgroundColor: "rgba(255,255,255,0.94)",
-    paddingHorizontal: theme.spacing[3],
+    backgroundColor: theme.semanticColors.surface,
+    paddingHorizontal: theme.layout.screenPadding,
     paddingTop: theme.spacing[3],
     paddingBottom: theme.spacing[3],
   },
@@ -562,8 +539,8 @@ const styles = StyleSheet.create({
     maxHeight: 84,
     borderRadius: theme.radius.pill,
     borderWidth: 1,
-    borderColor: "#E6DCCF",
-    backgroundColor: "#FFFDF9",
+    borderColor: theme.semanticColors.borderSoft,
+    backgroundColor: theme.semanticColors.surfaceMuted,
     paddingHorizontal: theme.spacing[5],
     paddingVertical: theme.spacing[2],
     fontFamily: theme.typography.fontFamily.body,

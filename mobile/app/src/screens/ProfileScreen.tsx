@@ -10,8 +10,9 @@ import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { TextField } from "../components/TextField";
+import { ModalCloseButton } from "../components/ModalCloseButton";
 import { ModalSurface } from "../components/ModalSurface";
-import { WorkspaceButton } from "../components/WorkspaceButton";
+import { PageHeader } from "../components/PageHeader";
 import { useMarketplaceData } from "../hooks/useMarketplaceData";
 import { api } from "../services/api";
 import { ApiError } from "../services/api/client";
@@ -163,15 +164,12 @@ export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, market
   if (!role) {
     return (
       <Screen>
-        <View style={styles.screenHeader}>
-          <Text style={styles.screenHeaderTitle}>Profile</Text>
-          <WorkspaceButton label="Account" onPress={onWorkspacePress} iconOnly />
-        </View>
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>Personal account</Text>
-          <Text style={styles.title}>{marketplace.me?.profile?.display_name || marketplace.me?.username || "Your account"}</Text>
-          <Text style={styles.body}>Create a workspace when you are ready to apply for opportunities or organize an event.</Text>
-        </View>
+        <PageHeader
+          title={marketplace.me?.profile?.display_name || marketplace.me?.username || "Your account"}
+          body="Create a workspace when you are ready to apply for opportunities or organize an event."
+          workspaceLabel="Account"
+          onWorkspacePress={onWorkspacePress}
+        />
         <View style={styles.accountActions}>
           <Text style={styles.accountActionsLabel}>Account actions</Text>
           <View style={styles.signOutRow}>
@@ -187,10 +185,16 @@ export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, market
 
   return (
     <Screen>
-      <View style={styles.screenHeader}>
-        <Text style={styles.screenHeaderTitle}>Profile</Text>
-        <WorkspaceButton label={role === "client" ? "Organizer" : "Talent"} onPress={onWorkspacePress} iconOnly />
-      </View>
+      <PageHeader
+        title={marketplace.me?.profile?.display_name || marketplace.me?.username || "Your profile"}
+        body={
+          role === "client"
+            ? "Manage how your organization appears across bookings, gigs, and conversations."
+            : "Manage how your talent profile appears across discovery, gigs, and bookings."
+        }
+        workspaceLabel={role === "client" ? "Organizer" : "Talent"}
+        onWorkspacePress={onWorkspacePress}
+      />
 
       <View style={styles.header}>
         <View style={styles.profileHeroRow}>
@@ -227,13 +231,6 @@ export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, market
             </Pressable>
           </View>
         </View>
-        <Text style={styles.eyebrow}>{role === "client" ? "Organizer profile" : "Talent profile"}</Text>
-        <Text style={styles.title}>{marketplace.me?.profile?.display_name || marketplace.me?.username || "Your profile"}</Text>
-        <Text style={styles.body}>
-          {role === "client"
-            ? "Manage how organizers are represented across bookings, gigs, and conversations."
-            : "Manage how your talent profile appears across discovery, gigs, and bookings."}
-        </Text>
       </View>
 
       {role === "talent" ? (
@@ -545,9 +542,7 @@ export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, market
               <Text style={styles.modalTitle}>Talent portfolio</Text>
               <Text style={styles.modalSubtitle}>Add samples that help organizers trust and book you faster.</Text>
             </View>
-            <Pressable onPress={() => setPortfolioOpen(false)} style={styles.modalCloseButton}>
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
+            <ModalCloseButton onPress={() => setPortfolioOpen(false)} accessibilityLabel="Close portfolio editor" />
           </View>
           <ScrollView contentContainerStyle={styles.modalContent}>
             <View style={styles.entryModeRow}>
@@ -639,9 +634,7 @@ export function ProfileScreen({ role, token, onWorkspacePress, onSignOut, market
               <Text style={[styles.modalTitle, styles.mediaModalTitle]}>{selectedMedia?.title || "Portfolio sample"}</Text>
               <Text style={[styles.modalSubtitle, styles.mediaModalSubtitle]}>Portfolio preview</Text>
             </View>
-            <Pressable onPress={() => setSelectedMediaId(null)} style={styles.modalCloseButton}>
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
+            <ModalCloseButton onPress={() => setSelectedMediaId(null)} accessibilityLabel="Close portfolio preview" />
           </View>
           {selectedMedia ? (
             <ScrollView contentContainerStyle={styles.mediaModalContent}>
@@ -1121,19 +1114,6 @@ async function appendUploadFile(
 }
 
 const styles = StyleSheet.create({
-  screenHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing[3],
-    paddingTop: theme.spacing[2],
-  },
-  screenHeaderTitle: {
-    flex: 1,
-    fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size["2xl"],
-    color: theme.semanticColors.textPrimary,
-  },
   accountActions: {
     gap: theme.spacing[2],
     marginTop: theme.spacing[4],
@@ -1163,7 +1143,6 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: theme.spacing[2],
-    paddingTop: theme.spacing[2],
   },
   profileHeroRow: {
     flexDirection: "row",
@@ -1172,13 +1151,12 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[2],
   },
   avatarPressable: {
-    width: 92,
-    height: 92,
-    borderRadius: 32,
+    width: 80,
+    height: 80,
+    borderRadius: theme.radius.xl,
     overflow: "hidden",
-    backgroundColor: theme.colors.ink[900],
+    backgroundColor: theme.colors.brand[900],
     position: "relative",
-    ...theme.shadows.card,
   },
   avatarImage: {
     width: "100%",
@@ -1188,7 +1166,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.ink[900],
+    backgroundColor: theme.colors.brand[900],
   },
   avatarFallbackLabel: {
     fontFamily: theme.typography.fontFamily.display,
@@ -1202,7 +1180,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: theme.colors.ember[500],
+    backgroundColor: theme.semanticColors.primary,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -1268,8 +1246,8 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
   },
   segmentButtonActive: {
-    backgroundColor: theme.colors.ink[900],
-    borderColor: theme.colors.gold[400],
+    backgroundColor: theme.semanticColors.primary,
+    borderColor: theme.semanticColors.primary,
   },
   segmentLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -1289,13 +1267,12 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing[2],
   },
   portfolioHero: {
-    borderRadius: theme.radius.xl,
-    backgroundColor: theme.colors.ink[900],
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.gold[400],
-    padding: theme.spacing[5],
-    gap: theme.spacing[4],
-    ...theme.shadows.floating,
+    borderColor: theme.semanticColors.borderSoft,
+    padding: theme.spacing[4],
+    gap: theme.spacing[3],
   },
   portfolioHeroHeader: {
     flexDirection: "row",
@@ -1310,12 +1287,12 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing[3],
     paddingVertical: theme.spacing[2],
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: theme.semanticColors.warningSoft,
   },
   portfolioHeroBadgeLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.textOnDark,
+    color: theme.semanticColors.textPrimary,
   },
   addPortfolioButton: {
     flexDirection: "row",
@@ -1324,7 +1301,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing[4],
     paddingVertical: theme.spacing[2],
-    backgroundColor: theme.colors.ember[500],
+    backgroundColor: theme.semanticColors.primary,
   },
   addPortfolioButtonLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -1335,13 +1312,13 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.display,
     fontSize: theme.typography.size["2xl"],
     lineHeight: theme.typography.lineHeight["2xl"],
-    color: theme.semanticColors.textOnDark,
+    color: theme.semanticColors.textPrimary,
   },
   portfolioIntro: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
-    color: "rgba(255,255,255,0.72)",
+    color: theme.semanticColors.textSecondary,
   },
   portfolioStatsRow: {
     flexDirection: "row",
@@ -1351,23 +1328,22 @@ const styles = StyleSheet.create({
   portfolioStatCard: {
     minWidth: 72,
     flexGrow: 1,
-    borderRadius: theme.radius.lg,
-    paddingVertical: theme.spacing[3],
+    borderRadius: 0,
+    paddingVertical: theme.spacing[2],
     paddingHorizontal: theme.spacing[3],
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderLeftWidth: 1,
+    borderLeftColor: theme.semanticColors.borderSoft,
     gap: theme.spacing[1],
   },
   portfolioStatValue: {
     fontFamily: theme.typography.fontFamily.display,
     fontSize: theme.typography.size.xl,
-    color: theme.semanticColors.textOnDark,
+    color: theme.semanticColors.primary,
   },
   portfolioStatLabel: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.xs,
-    color: "rgba(255,255,255,0.64)",
+    color: theme.semanticColors.textMuted,
   },
   categorySection: {
     gap: theme.spacing[3],
@@ -1400,8 +1376,8 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
   },
   categoryChipActive: {
-    backgroundColor: theme.colors.ink[900],
-    borderColor: theme.colors.gold[400],
+    backgroundColor: theme.semanticColors.primary,
+    borderColor: theme.semanticColors.primary,
   },
   categoryChipLabel: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
@@ -1425,8 +1401,8 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
   },
   portfolioFilterChipActive: {
-    backgroundColor: theme.colors.ink[900],
-    borderColor: theme.colors.gold[400],
+    backgroundColor: theme.semanticColors.primary,
+    borderColor: theme.semanticColors.primary,
   },
   portfolioFilterChipLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -1446,7 +1422,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: theme.colors.ink[900],
     justifyContent: "flex-end",
-    ...theme.shadows.card,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderSoft,
   },
   portfolioTileImage: {
     ...StyleSheet.absoluteFill,
@@ -1470,7 +1447,7 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: theme.semanticColors.borderOnDark,
   },
   portfolioLinkLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -1481,7 +1458,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.xs,
     lineHeight: theme.typography.lineHeight.xs,
-    color: "rgba(255,255,255,0.7)",
+    color: theme.semanticColors.textOnDarkMuted,
   },
   portfolioTileVideo: {
     backgroundColor: theme.colors.ink[900],
@@ -1492,7 +1469,7 @@ const styles = StyleSheet.create({
   portfolioTileOverlay: {
     gap: theme.spacing[2],
     padding: theme.spacing[3],
-    backgroundColor: "rgba(17, 19, 21, 0.48)",
+    backgroundColor: theme.semanticColors.overlay,
   },
   portfolioTypeBadge: {
     alignSelf: "flex-start",
@@ -1502,7 +1479,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing[2],
     paddingVertical: 5,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: theme.semanticColors.borderOnDark,
   },
   portfolioTypeBadgeLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -1558,8 +1535,8 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
   },
   selectorChipActive: {
-    backgroundColor: theme.colors.ink[900],
-    borderColor: theme.colors.gold[400],
+    backgroundColor: theme.semanticColors.primary,
+    borderColor: theme.semanticColors.primary,
   },
   selectorChipLabel: {
     fontFamily: theme.typography.fontFamily.bodyMedium,
@@ -1597,6 +1574,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: theme.spacing[3],
+    paddingBottom: theme.spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.semanticColors.borderSoft,
   },
   modalTitleWrap: {
     flex: 1,
@@ -1616,20 +1596,7 @@ const styles = StyleSheet.create({
     color: theme.semanticColors.textOnDark,
   },
   mediaModalSubtitle: {
-    color: "rgba(255,255,255,0.7)",
-  },
-  modalClose: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.sm,
-    color: theme.semanticColors.textPrimary,
-  },
-  modalCloseButton: {
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    backgroundColor: theme.semanticColors.surface,
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
+    color: theme.semanticColors.textOnDarkMuted,
   },
   modalContent: {
     gap: theme.spacing[4],
@@ -1650,8 +1617,8 @@ const styles = StyleSheet.create({
     borderColor: theme.semanticColors.borderSoft,
   },
   entryModeChipActive: {
-    backgroundColor: theme.colors.ink[900],
-    borderColor: theme.colors.gold[400],
+    backgroundColor: theme.semanticColors.primary,
+    borderColor: theme.semanticColors.primary,
   },
   entryModeChipLabel: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
@@ -1712,7 +1679,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
-    color: "rgba(255,255,255,0.82)",
+    color: theme.semanticColors.textOnDarkMuted,
   },
   mediaInfoCard: {
     borderRadius: theme.radius.xl,

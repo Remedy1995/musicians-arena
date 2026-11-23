@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ImageBackground, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AuthMode } from "../AppShell";
 import { ApiError } from "../services/api/client";
@@ -9,7 +9,6 @@ import { api } from "../services/api";
 import { AuthResponse } from "../services/api/types";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
-import { SecondaryButton } from "../components/SecondaryButton";
 import { TextField } from "../components/TextField";
 import { theme } from "../theme/theme";
 
@@ -113,62 +112,45 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
   }
 
   return (
-    <Screen contentContainerStyle={[styles.screenContent, isLogin ? styles.loginScreenContent : undefined]}>
-      <LinearGradient colors={[theme.colors.ink[950], theme.colors.ink[800]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.brandStage}>
-        <View style={[styles.stageOrb, styles.stageOrbTop]} />
-        <View style={[styles.stageOrb, styles.stageOrbBottom]} />
+    <Screen contentContainerStyle={styles.screenContent} innerStyle={styles.screenInner}>
+      <ImageBackground
+        source={require("../../assets/onboarding-stage.jpg")}
+        style={styles.brandStage}
+        imageStyle={styles.brandStageImage}
+        accessibilityLabel="A live music audience under warm stage lights"
+      >
+        <View style={styles.imageOverlay} />
+        <LinearGradient
+          colors={[theme.colors.transparent, theme.colors.ink[950]]}
+          locations={[0.22, 1]}
+          style={StyleSheet.absoluteFill}
+        />
         <View style={styles.brandHeader}>
-          <View style={styles.brandMark}>
-            <MaterialCommunityIcons name="music-clef-treble" size={25} color={theme.semanticColors.textOnDark} />
+          <View style={styles.brandIdentity}>
+            <View style={styles.brandMark}>
+              <MaterialCommunityIcons name="music-note-eighth" size={20} color={theme.colors.ink[950]} />
+            </View>
+            <View style={styles.brandCopy}>
+              <Text style={styles.brandName}>MUSICIAN’S ARENA</Text>
+              <Text style={styles.brandTagline}>Talent and opportunities, connected</Text>
+            </View>
           </View>
-          <View style={styles.brandCopy}>
-            <Text style={styles.brandName}>MUSICIAN'S ARENA</Text>
-            <Text style={styles.brandTagline}>One account. Every stage.</Text>
-          </View>
-          <View style={styles.liveMark}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveLabel}>LIVE</Text>
-          </View>
+          <Pressable onPress={onBack} style={styles.backButton} accessibilityLabel="Back to welcome">
+            <MaterialCommunityIcons name="arrow-left" size={20} color={theme.semanticColors.textOnDark} />
+          </Pressable>
         </View>
         <View style={styles.stageCopy}>
-          <Text style={styles.stageKicker}>{isLogin ? "WELCOME BACK" : "YOUR NEXT CHAPTER"}</Text>
-          <Text style={styles.stageTitle}>{isLogin ? "Return to your next stage." : "Find your place in the sound."}</Text>
+          <Text style={styles.stageKicker}>{isLogin ? "SIGN IN" : "GET STARTED"}</Text>
+          <Text style={styles.stageTitle}>{isLogin ? "Welcome back." : "Make your next connection."}</Text>
           <Text style={styles.stageBody}>
             {isLogin
-              ? "Connect with the people and opportunities that keep your work moving."
-              : "Meet the talent, organizers, and opportunities that make live music happen."}
+              ? "Your work, messages, and bookings are right where you left them."
+              : "Create one account for every way you work—on stage or behind the event."}
           </Text>
         </View>
-        <View style={styles.stagePills}>
-          <View style={styles.stagePill}>
-            <MaterialCommunityIcons name="music-note-outline" size={16} color={theme.colors.gold[300]} />
-            <Text style={styles.stagePillLabel}>Talent</Text>
-          </View>
-          <View style={styles.stagePill}>
-            <MaterialCommunityIcons name="calendar-star-outline" size={16} color={theme.colors.gold[300]} />
-            <Text style={styles.stagePillLabel}>Opportunities</Text>
-          </View>
-        </View>
-      </LinearGradient>
+      </ImageBackground>
 
       <View style={styles.authCard}>
-        <View style={styles.header}>
-          <View style={styles.authIntroRow}>
-            <View style={styles.authIntroIcon}>
-              <MaterialCommunityIcons name={isLogin ? "login-variant" : "account-plus-outline"} size={19} color={theme.semanticColors.primary} />
-            </View>
-            <View style={styles.authIntroCopy}>
-              <Text style={styles.kicker}>{isLogin ? "Welcome back" : "Join the community"}</Text>
-              <Text style={styles.title}>{isLogin ? "Pick up where you left off." : "Create your arena account."}</Text>
-            </View>
-          </View>
-          <Text style={styles.body}>
-            {isLogin
-              ? "Sign in once to access your available workspaces."
-              : "Create one account, then add a talent profile, an organizer profile, or both later."}
-          </Text>
-        </View>
-
         <View style={styles.modeSwitch}>
           <Pressable
             onPress={() => {
@@ -190,6 +172,13 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
           >
             <Text style={[styles.modeLabel, mode === "register" ? styles.modeLabelActive : undefined]}>Register</Text>
           </Pressable>
+        </View>
+
+        <View style={styles.formIntro}>
+          <Text style={styles.formTitle}>{isLogin ? "Sign in to your account" : "Create your account"}</Text>
+          <Text style={styles.formBody}>
+            {isLogin ? "Use the username and password you registered with." : "Start with your details. You can set up talent and organizer profiles after joining."}
+          </Text>
         </View>
 
         <View style={styles.form}>
@@ -295,7 +284,6 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
             disabled={loading}
             onPress={() => void handleSubmit()}
           />
-          {mode === "register" ? <SecondaryButton label="Back to welcome" onPress={onBack} /> : null}
         </View>
       </View>
     </Screen>
@@ -305,51 +293,49 @@ export function AuthScreen({ initialMode, onAuthenticated, onBack, onSwitchMode 
 const styles = StyleSheet.create({
   screenContent: {
     flexGrow: 1,
-  },
-  loginScreenContent: {
-    justifyContent: "center",
     paddingVertical: theme.spacing[4],
   },
+  screenInner: {
+    maxWidth: 520,
+    gap: theme.spacing[5],
+  },
   brandStage: {
+    minHeight: 290,
     position: "relative",
     overflow: "hidden",
     borderRadius: theme.radius.xl,
     padding: theme.spacing[5],
-    gap: theme.spacing[4],
+    justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: theme.semanticColors.borderOnDark,
     ...theme.shadows.floating,
   },
-  stageOrb: {
-    position: "absolute",
-    borderRadius: theme.radius.pill,
+  brandStageImage: {
+    borderRadius: theme.radius.xl,
   },
-  stageOrbTop: {
-    width: 170,
-    height: 170,
-    top: -90,
-    right: -42,
-    backgroundColor: "rgba(217,181,83,0.24)",
-  },
-  stageOrbBottom: {
-    width: 120,
-    height: 120,
-    bottom: -78,
-    left: 42,
-    backgroundColor: "rgba(217,75,36,0.20)",
+  imageOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: theme.semanticColors.overlay,
   },
   brandHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing[3],
+  },
+  brandIdentity: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[3],
   },
   brandMark: {
-    width: 46,
-    height: 46,
-    borderRadius: theme.radius.lg,
+    width: 42,
+    height: 42,
+    borderRadius: theme.radius.sm,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.gold[500],
+    backgroundColor: theme.colors.gold[300],
   },
   brandCopy: {
     flex: 1,
@@ -357,141 +343,65 @@ const styles = StyleSheet.create({
   },
   brandName: {
     fontFamily: theme.typography.fontFamily.displayMedium,
-    fontSize: theme.typography.size.sm,
+    fontSize: theme.typography.size.xs,
     letterSpacing: 1,
-    color: theme.colors.gold[300],
+    color: theme.semanticColors.textOnDark,
   },
   brandTagline: {
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.xs,
-    color: "rgba(255,255,255,0.68)",
+    color: theme.semanticColors.textOnDarkMuted,
   },
-  liveMark: {
-    flexDirection: "row",
+  backButton: {
+    width: theme.spacing[10],
+    height: theme.spacing[10],
+    borderRadius: theme.radius.pill,
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: 5,
-    borderRadius: theme.radius.pill,
-    backgroundColor: "rgba(255,255,255,0.10)",
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.teal[300],
-  },
-  liveLabel: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: 10,
-    letterSpacing: 0.7,
-    color: "rgba(255,255,255,0.82)",
+    justifyContent: "center",
+    backgroundColor: theme.semanticColors.surfaceOnDark,
+    borderWidth: 1,
+    borderColor: theme.semanticColors.borderOnDark,
   },
   stageCopy: {
     gap: theme.spacing[2],
-    maxWidth: 320,
+    maxWidth: 390,
   },
   stageKicker: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
     letterSpacing: 1,
-    color: theme.colors.ember[300],
+    color: theme.colors.gold[300],
   },
   stageTitle: {
     fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size["3xl"],
-    lineHeight: theme.typography.lineHeight["3xl"],
+    fontSize: theme.typography.size["2xl"],
+    lineHeight: theme.typography.lineHeight["2xl"],
     color: theme.semanticColors.textOnDark,
   },
   stageBody: {
     fontFamily: theme.typography.fontFamily.body,
-    fontSize: theme.typography.size.md,
-    lineHeight: theme.typography.lineHeight.md,
-    color: "rgba(255,255,255,0.72)",
-  },
-  stagePills: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing[2],
-  },
-  stagePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[1],
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    borderRadius: theme.radius.pill,
-    backgroundColor: "rgba(255,255,255,0.10)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-  },
-  stagePillLabel: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.xs,
-    color: "rgba(255,255,255,0.86)",
-  },
-  authCard: {
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[5],
-    gap: theme.spacing[4],
-    backgroundColor: theme.semanticColors.surface,
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
-    ...theme.shadows.card,
-  },
-  header: {
-    gap: theme.spacing[2],
-  },
-  authIntroRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: theme.spacing[3],
-  },
-  authIntroIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: theme.radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF1E8",
-  },
-  authIntroCopy: {
-    flex: 1,
-    gap: theme.spacing[1],
-  },
-  kicker: {
-    fontFamily: theme.typography.fontFamily.bodySemibold,
-    fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.primary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  title: {
-    fontFamily: theme.typography.fontFamily.display,
-    fontSize: theme.typography.size.xl,
-    lineHeight: theme.typography.lineHeight.xl,
-    color: theme.semanticColors.textPrimary,
-  },
-  body: {
-    fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.sm,
     lineHeight: theme.typography.lineHeight.sm,
-    color: theme.semanticColors.textSecondary,
+    color: theme.semanticColors.textOnDarkMuted,
+  },
+  authCard: {
+    paddingHorizontal: theme.spacing[1],
+    gap: theme.spacing[4],
   },
   modeSwitch: {
     flexDirection: "row",
     gap: theme.spacing[2],
     padding: theme.spacing[1],
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.stone[100],
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.semanticColors.surfaceMuted,
   },
   modeChip: {
     flex: 1,
-    borderRadius: theme.radius.pill,
+    borderRadius: theme.radius.sm,
     paddingHorizontal: theme.spacing[3],
     paddingVertical: 10,
     alignItems: "center",
-    backgroundColor: "transparent",
+    backgroundColor: theme.colors.transparent,
   },
   modeChipActive: {
     backgroundColor: theme.semanticColors.primary,
@@ -503,6 +413,21 @@ const styles = StyleSheet.create({
   },
   modeLabelActive: {
     color: theme.semanticColors.textOnDark,
+  },
+  formIntro: {
+    gap: theme.spacing[1],
+  },
+  formTitle: {
+    fontFamily: theme.typography.fontFamily.displayMedium,
+    fontSize: theme.typography.size.lg,
+    lineHeight: theme.typography.lineHeight.lg,
+    color: theme.semanticColors.textPrimary,
+  },
+  formBody: {
+    fontFamily: theme.typography.fontFamily.body,
+    fontSize: theme.typography.size.sm,
+    lineHeight: theme.typography.lineHeight.sm,
+    color: theme.semanticColors.textSecondary,
   },
   form: {
     gap: theme.spacing[3],
@@ -551,12 +476,12 @@ const styles = StyleSheet.create({
     gap: theme.spacing[2],
     padding: theme.spacing[3],
     borderRadius: theme.radius.md,
-    backgroundColor: "#FFF0ED",
+    backgroundColor: theme.semanticColors.dangerSoft,
     borderWidth: 1,
-    borderColor: "#F4C5B7",
+    borderColor: theme.colors.ember[300],
   },
   networkBanner: {
-    backgroundColor: "#FFF8E8",
+    backgroundColor: theme.semanticColors.warningSoft,
     borderColor: theme.colors.gold[300],
   },
   errorCopy: {
@@ -574,7 +499,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing[3],
     padding: theme.spacing[3],
     borderRadius: theme.radius.md,
-    backgroundColor: "#FFF8E8",
+    backgroundColor: theme.semanticColors.warningSoft,
     borderWidth: 1,
     borderColor: theme.colors.gold[300],
   },

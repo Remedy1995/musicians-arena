@@ -61,15 +61,15 @@ export function TalentCard({ name, imageUri, title, city, rate, rating, jobs, ve
 
 const styles = StyleSheet.create({
   card: {
-    height: 224,
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[3],
-    gap: theme.spacing[1],
+    height: 232,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing[4],
+    gap: theme.spacing[2],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
     overflow: "hidden",
-    ...theme.shadows.floating,
+    ...theme.shadows.card,
   },
   header: {
     flexDirection: "row",
@@ -139,13 +139,11 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing[2],
     paddingVertical: 6,
-    backgroundColor: theme.colors.stone[100],
-    borderWidth: 1,
-    borderColor: theme.semanticColors.borderSoft,
+    backgroundColor: theme.semanticColors.surfaceMuted,
   },
   cta: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: theme.semanticColors.primary,
+    color: theme.semanticColors.textPrimary,
   },
 });

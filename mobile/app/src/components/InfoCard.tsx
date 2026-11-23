@@ -20,9 +20,9 @@ export function InfoCard({ eyebrow, title, body }: InfoCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[4],
-    gap: theme.spacing[1],
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing[5],
+    gap: theme.spacing[2],
     backgroundColor: theme.semanticColors.surface,
     borderWidth: 1,
     borderColor: theme.semanticColors.borderSoft,
@@ -30,7 +30,9 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontFamily: theme.typography.fontFamily.bodySemibold,
     fontSize: theme.typography.size.xs,
-    color: theme.colors.gold[600],
+    color: theme.semanticColors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
   },
   title: {
     fontFamily: theme.typography.fontFamily.displayMedium,

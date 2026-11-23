@@ -24,8 +24,9 @@ export function PageHeader({ title, body, workspaceLabel, onWorkspacePress }: Pa
 
 const styles = StyleSheet.create({
   container: {
-    gap: theme.spacing[3],
-    paddingTop: theme.spacing[3],
+    gap: theme.spacing[2],
+    paddingTop: theme.spacing[2],
+    paddingBottom: theme.spacing[1],
   },
   topRow: {
     flexDirection: "row",
@@ -37,9 +38,11 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.display,
     fontSize: theme.typography.size["3xl"],
     lineHeight: theme.typography.lineHeight["3xl"],
+    letterSpacing: -0.7,
     color: theme.semanticColors.textPrimary,
   },
   body: {
+    maxWidth: 560,
     fontFamily: theme.typography.fontFamily.body,
     fontSize: theme.typography.size.md,
     lineHeight: theme.typography.lineHeight.md,
